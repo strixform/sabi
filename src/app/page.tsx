@@ -1,5 +1,7 @@
 import Link from 'next/link';
-import { SiInstagram, SiTwitter, SiTiktok, SiYoutube, SiFacebook, SiGlobe } from 'react-icons/si';
+import { SiInstagram, SiTiktok, SiYoutube, SiFacebook } from 'react-icons/si';
+import { SiX } from 'react-icons/si';
+import { FiGlobe } from 'react-icons/fi';
 
 export default function Home() {
   return (
@@ -101,11 +103,11 @@ export default function Home() {
         <div className="grid md:grid-cols-3 gap-6">
           {[
             { Icon: SiInstagram, name: 'Instagram', services: '6 Services', color: 'text-pink-500' },
-            { Icon: SiTwitter, name: 'Twitter/X', services: '5 Services', color: 'text-black dark:text-white' },
-            { Icon: SiTiktok, name: 'TikTok', services: '5 Services', color: 'text-black dark:text-white' },
+            { Icon: SiX, name: 'Twitter/X', services: '5 Services', color: 'text-white' },
+            { Icon: SiTiktok, name: 'TikTok', services: '5 Services', color: 'text-white' },
             { Icon: SiYoutube, name: 'YouTube', services: '5 Services', color: 'text-red-600' },
             { Icon: SiFacebook, name: 'Facebook', services: '3 Services', color: 'text-blue-600' },
-            { Icon: SiGlobe, name: 'Website & Conversion', services: '4 Services', color: 'text-slate-400' },
+            { Icon: FiGlobe, name: 'Website & Conversion', services: '4 Services', color: 'text-slate-300' },
           ].map((platform, i) => (
             <div
               key={i}
