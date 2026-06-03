@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSabiSession } from '@/lib/sabiAuth';
-import { generateFlwTxRef, initializeFlwPayment } from '@/lib/sabiFlutterwave';
+import { generateKorapayTxRef, initializeKorapayPayment } from '@/lib/sabiKorapay';
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,12 +16,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const txRef = generateFlwTxRef(session.id);
-    const result = await initializeFlwPayment({
+    const txRef = generateKorapayTxRef(session.id);
+    const result = await initializeKorapayPayment({
       email: session.email,
       amount,
       txRef,
-      redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/wallet/callback`,
+      redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/sabi/wallet/callback`,
     });
 
     if (!result.success) {
