@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Poppins, Space_Mono, Outfit } from 'next/font/google';
 import './globals.css';
+import { AccessibilitySettings } from '@/components/AccessibilitySettings';
 
 const poppins = Poppins({ weight: ['400', '600', '700', '900'], subsets: ['latin'] });
 const spaceMono = Space_Mono({ weight: ['400', '700'], subsets: ['latin'] });
@@ -42,6 +43,9 @@ export default function RootLayout({
             {children}
           </div>
         </div>
+
+        {/* Accessibility Settings */}
+        <AccessibilitySettings />
       </body>
     </html>
   );

@@ -1,0 +1,126 @@
+{
+  "nav": {
+    "login": "Login",
+    "getStarted": "Get Started"
+  },
+  "hero": {
+    "badge": "✅ 100% REAL • 100% ACTIVE • 100% NIGERIAN",
+    "title": "Real Social Media Engagement",
+    "subtitle": "Powered by Real Nigerian Users",
+    "description": "Stop wasting money on fake followers. Get REAL, ACTIVE Nigerian users who actually engage with your content.",
+    "cta1": "Start Getting Real Engagement",
+    "cta2": "View All Services"
+  },
+  "badges": {
+    "users": "Users",
+    "verified": "Verified",
+    "engagement": "Engagement",
+    "roi": "ROI",
+    "nigeria": "Nigeria",
+    "delivery": "Delivery"
+  },
+  "services": {
+    "title": "All Major Platforms",
+    "subtitle": "Real engagement across 30+ digital services",
+    "instagram": "Instagram",
+    "twitter": "Twitter/X",
+    "tiktok": "TikTok",
+    "youtube": "YouTube",
+    "facebook": "Facebook",
+    "website": "Website & Conversion"
+  },
+  "whyChoose": {
+    "title": "Why Choose Sabi?",
+    "realUsers": "100% Real & Active Users",
+    "realUsersDesc": "Every follower, like, comment, and engagement comes from real, verified Nigerian users.",
+    "performanceDriven": "Performance-Driven Community",
+    "performanceDrivenDesc": "Users are financially incentivized to engage. Real motivation, real results.",
+    "engagement": "8-25% Engagement Rate",
+    "engagementDesc": "Real engagement that converts. Unlike fake followers (1-3%), we deliver interaction.",
+    "roi": "300-500% ROI Average",
+    "roiDesc": "Real customers. Real sales. Measurable growth from day one.",
+    "automation": "Zero Automation",
+    "automationDesc": "No bots. No scripts. Every engagement is a real person with verified identity.",
+    "delivery": "24-Hour Delivery",
+    "deliveryDesc": "Orders execute fast. Real users begin engaging within hours."
+  },
+  "howItWorks": {
+    "title": "How Sabi Works",
+    "subtitle": "Get real engagement in 4 simple steps. No technical knowledge required.",
+    "step1": "Create Account",
+    "step1Desc": "Sign up in 30 seconds with email or Google",
+    "step2": "Fund Wallet",
+    "step2Desc": "Add funds via Flutterwave (secure, instant)",
+    "step3": "Place Order",
+    "step3Desc": "Select service, enter URL, confirm price",
+    "step4": "Get Results",
+    "step4Desc": "Real engagement starts within 24 hours"
+  },
+  "benefits": {
+    "title": "Why Choose Sabi Over Fake Followers?",
+    "subtitle": "Real engagement from real people beats fake followers every time. Here's the proof.",
+    "realPeople": "Real People = Real Results",
+    "point1": "Followers from our network actually use Instagram, TikTok, Twitter daily",
+    "point2": "They engage because they're paid to be there - genuine motivation",
+    "point3": "Your content gets in front of real eyes, real accounts, real followers",
+    "algorithmFriendly": "Algorithm-Friendly Growth",
+    "point4": "Real engagement signals boost your posts to more users organically",
+    "point5": "8-25% engagement rate triggers platform algorithms",
+    "point6": "Instagram, TikTok, YouTube reward high engagement with viral reach",
+    "noRisk": "No Risk of Account Ban",
+    "point7": "No bots, scripts, or automation - 100% manual human engagement",
+    "point8": "Complies with all platform terms of service",
+    "point9": "Your account stays safe, verified, and in good standing",
+    "measurable": "Measurable ROI",
+    "point10": "Track every engagement in real-time on your analytics",
+    "point11": "See follower growth, reach increase, sales directly tied to Sabi",
+    "point12": "Average customer reports 300-500% ROI within 30 days"
+  },
+  "testimonials": {
+    "title": "Real Success Stories",
+    "subtitle": "See how Sabi users are growing their accounts and making real money",
+    "chioma": "Grew from 5K to 125K followers in 60 days",
+    "chiomaDetail": "Used Sabi to boost engagement on her lifestyle content. Now gets brand partnership offers weekly.",
+    "tunde": "Increased engagement from 2% to 18% in 30 days",
+    "tundeDetail": "As a tech creator, needed real engagement. Sabi's Nigerian audience was perfect fit. Got 3 sponsorships.",
+    "nia": "Converted followers to ₦500K revenue in 90 days",
+    "niaDetail": "Used Sabi to build credibility, then launched digital products. Real followers = real customers."
+  },
+  "security": {
+    "title": "Enterprise-Grade Security",
+    "subtitle": "Your account and data are protected by industry-leading security standards",
+    "encryption": "Data Encryption",
+    "encryptionDesc": "All data encrypted in transit and at rest using industry standards",
+    "compliance": "100% Compliance",
+    "complianceDesc": "Fully compliant with GDPR, CCPA, and Nigerian data protection laws",
+    "payments": "Secure Payments",
+    "paymentsDesc": "All payments processed through Flutterwave (PCI DSS Level 1 certified)",
+    "support": "24/7 Support",
+    "supportDesc": "Real humans available to help with any questions or issues",
+    "guarantee": "Risk-Free Guarantee",
+    "guaranteeDesc": "Not satisfied with your engagement within 30 days? Get a full refund. We're confident in our service because we know it works."
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "q1": "Will my account get banned?",
+    "a1": "No. We use only real people and real engagement. Your account stays safe and compliant with platform policies.",
+    "q2": "How fast will I see results?",
+    "a2": "Real users start engaging within 1-24 hours of order placement. You'll see follower growth within days.",
+    "q3": "Are the followers real?",
+    "a3": "Yes, 100% real. All users are verified Nigerians with active accounts. You can see their profiles.",
+    "q4": "What platforms do you support?",
+    "a4": "We support Instagram, TikTok, Twitter/X, YouTube, Facebook, and website traffic. 30+ services total.",
+    "q5": "Can I get a refund?",
+    "a5": "Yes. If unsatisfied within 30 days, we offer full refund with no questions asked.",
+    "q6": "Is there a contract or minimum?",
+    "a6": "No contracts, no minimums. Pay only for what you order. Cancel anytime."
+  },
+  "cta": {
+    "title": "Ready to Get Real Engagement?",
+    "button": "Create Free Account",
+    "subtitle": "No credit card required. Fund your wallet when ready."
+  },
+  "footer": {
+    "copyright": "© 2026 Sabi. All rights reserved. | Real Engagement. Real Growth."
+  }
+}

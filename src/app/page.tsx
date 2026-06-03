@@ -12,8 +12,12 @@ import { StaggerContainer, StaggerItem } from '@/components/StaggerContainer';
 import { InteractiveCard } from '@/components/InteractiveCard';
 import { AnimateInText } from '@/components/AnimateInText';
 import { CuteIconAnimation, FloatingIcon } from '@/components/CuteIconAnimation';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { useTranslation } from '@/lib/i18n-client';
 
-export default function Home() {
+function HomeContent() {
+  const { language, switchLanguage, t } = useTranslation();
+
   return (
     <div className="min-h-screen relative">
       <AnimatedBackground />
@@ -38,19 +42,24 @@ export default function Home() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
-            className="flex gap-4"
+            className="flex gap-4 items-center"
           >
+            <LanguageSwitcher
+              currentLanguage={language}
+              onLanguageChange={switchLanguage}
+              variant="header"
+            />
             <Link
               href="/sabi/login"
               className="px-6 py-2 text-sm font-semibold text-white hover:bg-slate-800 rounded-lg transition"
             >
-              Login
+              {t('nav.login', 'Login')}
             </Link>
             <Link
               href="/sabi/register"
               className="px-6 py-2 text-sm font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/20 transition"
             >
-              Get Started
+              {t('nav.getStarted', 'Get Started')}
             </Link>
           </motion.div>
         </div>
@@ -732,15 +741,24 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-slate-800/50 py-8 text-center text-slate-500 text-sm">
+      <footer className="border-t border-slate-800/50 py-12 text-center text-slate-500 text-sm space-y-4">
+        <LanguageSwitcher
+          currentLanguage={language}
+          onLanguageChange={switchLanguage}
+          variant="footer"
+        />
         <motion.p
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           transition={{ duration: 0.8 }}
         >
-          © 2026 Sabi. All rights reserved. | Real Engagement. Real Growth.
+          {t('footer.copyright', '© 2026 Sabi. All rights reserved. | Real Engagement. Real Growth.')}
         </motion.p>
       </footer>
     </div>
   );
+}
+
+export default function Home() {
+  return <HomeContent />;
 }
