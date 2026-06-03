@@ -6,11 +6,12 @@ import { SiInstagram, SiTiktok, SiYoutube, SiFacebook } from 'react-icons/si';
 import { SiX } from 'react-icons/si';
 import { FiGlobe } from 'react-icons/fi';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
-import { AnimatedText, GradientText } from '@/components/AnimatedText';
+import { GradientText } from '@/components/AnimatedText';
 import { FloatingElement } from '@/components/FloatingElement';
-import { AnimatedCounter } from '@/components/AnimatedCounter';
 import { StaggerContainer, StaggerItem } from '@/components/StaggerContainer';
 import { InteractiveCard } from '@/components/InteractiveCard';
+import { AnimateInText } from '@/components/AnimateInText';
+import { CuteIconAnimation, FloatingIcon } from '@/components/CuteIconAnimation';
 
 export default function Home() {
   return (
@@ -24,10 +25,13 @@ export default function Home() {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
-            className="flex items-center gap-2"
+            className="flex items-center gap-3"
           >
+            <CuteIconAnimation type="bounce" duration={1.5}>
+              <div className="text-3xl">🎯</div>
+            </CuteIconAnimation>
             <div className="text-2xl font-black">
-              <GradientText>🎯 SABI</GradientText>
+              <GradientText>SABI</GradientText>
             </div>
           </motion.div>
           <motion.div
@@ -55,54 +59,69 @@ export default function Home() {
       {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative">
         <div className="text-center space-y-8">
-          {/* Main Headline */}
-          <div className="space-y-4">
-            {/* Floating Badge */}
-            <FloatingElement delay={0} duration={3} distance={10}>
-              <motion.div
-                className="inline-block px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded-full text-sm font-semibold text-blue-400 hover:bg-blue-500/20 transition"
-                whileHover={{ scale: 1.05 }}
-              >
+          {/* Floating Badge */}
+          <FloatingElement delay={0} duration={3} distance={10}>
+            <motion.div
+              className="inline-block px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded-full text-sm font-semibold text-blue-400 hover:bg-blue-500/20 transition"
+              whileHover={{ scale: 1.05 }}
+            >
+              <AnimateInText type="typewriter" delay={0.2}>
                 ✅ 100% REAL • 100% ACTIVE • 100% NIGERIAN
-              </motion.div>
-            </FloatingElement>
+              </AnimateInText>
+            </motion.div>
+          </FloatingElement>
 
-            {/* Main Title with Animation */}
-            <h1 className="text-5xl md:text-7xl font-black leading-tight">
-              <div className="overflow-hidden">
-                <motion.span
-                  initial={{ opacity: 0, y: 50 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8, delay: 0.2 }}
-                  className="block"
-                >
-                  <GradientText>Real Social Media Engagement</GradientText>
-                </motion.span>
-              </div>
-              <br />
-              <motion.span
-                initial={{ opacity: 0, y: 50 }}
+          {/* Main Title with Premium Text Animation */}
+          <h1 className="text-5xl md:text-7xl font-black leading-tight">
+            <div className="overflow-hidden h-fit">
+              <motion.div
+                initial={{ opacity: 0, y: 80 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.4 }}
-                className="block text-white"
+                transition={{ duration: 0.8, delay: 0.3, ease: 'easeOut' }}
               >
-                Powered by Real Nigerian Users
-              </motion.span>
-            </h1>
-
-            {/* Subtitle */}
-            <motion.p
-              initial={{ opacity: 0, y: 30 }}
+                <GradientText className="block mb-2">
+                  <AnimateInText type="blur" delay={0.4}>
+                    Real Social Media Engagement
+                  </AnimateInText>
+                </GradientText>
+              </motion.div>
+            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
-              className="text-xl md:text-2xl text-slate-300 max-w-3xl mx-auto"
+              className="text-white mt-3"
             >
-              Stop wasting money on fake followers. Get <span className="font-bold text-blue-400">REAL, ACTIVE Nigerian users</span> who actually engage with your content.
-            </motion.p>
-          </div>
+              <AnimateInText type="slide" delay={0.7}>
+                Powered by Real Nigerian Users
+              </AnimateInText>
+            </motion.div>
+          </h1>
+
+          {/* Subtitle with Animation */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.9 }}
+            className="text-xl md:text-2xl text-slate-300 max-w-3xl mx-auto"
+          >
+            <AnimateInText type="fade" delay={1}>
+              Stop wasting money on fake followers. Get
+            </AnimateInText>
+            <span className="block mt-2">
+              <AnimateInText type="typewriter" delay={1.2}>
+                <span className="font-bold text-blue-400">REAL, ACTIVE Nigerian users</span>
+              </AnimateInText>
+              <span className="ml-2">
+                <AnimateInText type="fade" delay={2}>
+                  who actually engage with your content.
+                </AnimateInText>
+              </span>
+            </span>
+          </motion.div>
 
           {/* Trust Badges - Animated */}
-          <StaggerContainer staggerDelay={0.1} delay={0.8}>
+          <StaggerContainer staggerDelay={0.1} delay={1.5}>
             <div className="grid grid-cols-3 md:grid-cols-6 gap-4 max-w-4xl mx-auto pt-8">
               {[
                 { icon: '👥', label: '50K+', val: 'Users', color: 'blue' },
@@ -115,15 +134,13 @@ export default function Home() {
                 <StaggerItem key={i}>
                   <InteractiveCard delay={0} glowColor={badge.color}>
                     <div className="p-4 text-center">
-                      <motion.div
-                        className="text-3xl mb-2"
-                        animate={{ scale: [1, 1.1, 1] }}
-                        transition={{ duration: 2, repeat: Infinity, delay: i * 0.1 }}
-                      >
-                        {badge.icon}
-                      </motion.div>
-                      <div className="text-xs text-slate-400">{badge.label}</div>
-                      <div className="text-sm font-bold text-blue-400">{badge.val}</div>
+                      <CuteIconAnimation type="bounce" delay={i * 0.15} duration={1.8}>
+                        <div className="text-4xl mb-2">{badge.icon}</div>
+                      </CuteIconAnimation>
+                      <div className="text-xs text-slate-400 font-semibold">{badge.label}</div>
+                      <AnimateInText type="fade" delay={1.5 + i * 0.1}>
+                        <div className="text-sm font-bold text-blue-400">{badge.val}</div>
+                      </AnimateInText>
                     </div>
                   </InteractiveCard>
                 </StaggerItem>
@@ -135,7 +152,7 @@ export default function Home() {
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 1.2 }}
+            transition={{ duration: 0.8, delay: 2 }}
             className="flex flex-col md:flex-row gap-4 justify-center pt-8"
           >
             <motion.div
@@ -148,7 +165,9 @@ export default function Home() {
                 href="/sabi/register"
                 className="relative block px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold rounded-lg hover:shadow-2xl transition"
               >
-                Start Getting Real Engagement
+                <AnimateInText type="fade" delay={2.1}>
+                  Start Getting Real Engagement
+                </AnimateInText>
               </Link>
             </motion.div>
 
@@ -158,9 +177,11 @@ export default function Home() {
             >
               <Link
                 href="#services"
-                className="block px-8 py-4 border-2 border-slate-600 text-white font-bold rounded-lg hover:border-blue-400 hover:bg-slate-800/50 transition"
+                className="block px-8 py-4 border-2 border-slate-600 text-white font-bold rounded-lg hover:border-blue-400 hover:bg-slate-800/50 transition text-center"
               >
-                View All Services
+                <AnimateInText type="fade" delay={2.2}>
+                  View All Services
+                </AnimateInText>
               </Link>
             </motion.div>
           </motion.div>
@@ -176,9 +197,15 @@ export default function Home() {
           className="text-center mb-12"
         >
           <h2 className="text-4xl font-black mb-4">
-            <GradientText>All Major Platforms</GradientText>
+            <GradientText>
+              <AnimateInText type="slide" delay={0.1}>
+                All Major Platforms
+              </AnimateInText>
+            </GradientText>
           </h2>
-          <p className="text-slate-300">Real engagement across 30+ digital services</p>
+          <AnimateInText type="fade" delay={0.3}>
+            <p className="text-slate-300">Real engagement across 30+ digital services</p>
+          </AnimateInText>
         </motion.div>
 
         <StaggerContainer staggerDelay={0.1}>
@@ -194,10 +221,14 @@ export default function Home() {
               <StaggerItem key={i}>
                 <InteractiveCard glowColor={platform.glowColor as any} delay={0}>
                   <div className="p-6 text-center h-full flex flex-col items-center justify-center">
-                    <FloatingElement delay={i * 0.1} duration={4} distance={8}>
+                    <FloatingIcon delay={i * 0.15} speed={3.5}>
                       <platform.Icon className={`text-5xl mb-3 text-${platform.color}-500`} />
-                    </FloatingElement>
-                    <h3 className="font-bold text-lg mb-1">{platform.name}</h3>
+                    </FloatingIcon>
+                    <h3 className="font-bold text-lg mb-1">
+                      <AnimateInText type="fade" delay={0.5 + i * 0.1}>
+                        {platform.name}
+                      </AnimateInText>
+                    </h3>
                     <p className="text-sm text-slate-400">{platform.services}</p>
                   </div>
                 </InteractiveCard>
@@ -216,7 +247,11 @@ export default function Home() {
           className="text-center mb-12"
         >
           <h2 className="text-4xl font-black mb-4">
-            <GradientText>Why Sabi?</GradientText>
+            <GradientText>
+              <AnimateInText type="slide" delay={0.1}>
+                Why Sabi?
+              </AnimateInText>
+            </GradientText>
           </h2>
         </motion.div>
 
@@ -225,37 +260,37 @@ export default function Home() {
             {[
               {
                 title: '100% Real & Active Users',
-                desc: 'Every follower, like, comment, and engagement comes from real, verified Nigerian users who are genuinely active.',
+                desc: 'Every follower, like, comment, and engagement comes from real, verified Nigerian users.',
                 icon: '👥',
                 glowColor: 'blue',
               },
               {
                 title: 'Performance-Driven Community',
-                desc: 'Users are financially incentivized to engage. Real motivation leads to real, lasting results.',
+                desc: 'Users are financially incentivized to engage. Real motivation, real results.',
                 icon: '🎯',
                 glowColor: 'purple',
               },
               {
                 title: '8-25% Engagement Rate',
-                desc: 'Real engagement that converts. Unlike fake followers (1-3%), our users actually interact with your content.',
+                desc: 'Real engagement that converts. Unlike fake followers (1-3%), we deliver interaction.',
                 icon: '📊',
                 glowColor: 'pink',
               },
               {
                 title: '300-500% ROI Average',
-                desc: 'Real customers. Real sales. Measurable, sustainable growth from day one.',
+                desc: 'Real customers. Real sales. Measurable growth from day one.',
                 icon: '💰',
                 glowColor: 'cyan',
               },
               {
                 title: 'Zero Automation',
-                desc: 'No bots. No scripts. Every engagement is completed by a real person with verified identity.',
+                desc: 'No bots. No scripts. Every engagement is a real person with verified identity.',
                 icon: '🔒',
                 glowColor: 'blue',
               },
               {
                 title: '24-Hour Delivery',
-                desc: 'Orders execute fast. Real users begin engaging within hours, not weeks.',
+                desc: 'Orders execute fast. Real users begin engaging within hours.',
                 icon: '⚡',
                 glowColor: 'purple',
               },
@@ -264,16 +299,20 @@ export default function Home() {
                 <InteractiveCard glowColor={item.glowColor as any} delay={0}>
                   <div className="p-6">
                     <div className="flex gap-4">
-                      <motion.div
-                        className="text-3xl flex-shrink-0"
-                        animate={{ rotate: [0, 5, -5, 0] }}
-                        transition={{ duration: 3, repeat: Infinity, delay: i * 0.2 }}
-                      >
-                        {item.icon}
-                      </motion.div>
+                      <CuteIconAnimation type="wiggle" delay={i * 0.2} duration={2}>
+                        <div className="text-4xl flex-shrink-0">{item.icon}</div>
+                      </CuteIconAnimation>
                       <div>
-                        <h3 className="font-bold text-lg mb-2">{item.title}</h3>
-                        <p className="text-slate-400 text-sm">{item.desc}</p>
+                        <h3 className="font-bold text-lg mb-2">
+                          <AnimateInText type="fade" delay={0.5 + i * 0.1}>
+                            {item.title}
+                          </AnimateInText>
+                        </h3>
+                        <p className="text-slate-400 text-sm">
+                          <AnimateInText type="fade" delay={0.6 + i * 0.1}>
+                            {item.desc}
+                          </AnimateInText>
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -292,7 +331,9 @@ export default function Home() {
           transition={{ duration: 0.8 }}
           className="text-3xl font-black mb-6"
         >
-          Ready to Get Real Engagement?
+          <AnimateInText type="slide" delay={0.1}>
+            Ready to Get Real Engagement?
+          </AnimateInText>
         </motion.h2>
 
         <motion.div
@@ -308,7 +349,9 @@ export default function Home() {
             href="/sabi/register"
             className="relative block px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold rounded-lg transition"
           >
-            Create Free Account
+            <AnimateInText type="fade" delay={0.3}>
+              Create Free Account
+            </AnimateInText>
           </Link>
         </motion.div>
 
@@ -318,7 +361,9 @@ export default function Home() {
           transition={{ duration: 0.8, delay: 0.3 }}
           className="text-slate-400 text-sm mt-4"
         >
-          No credit card required. Fund your wallet when ready.
+          <AnimateInText type="fade" delay={0.4}>
+            No credit card required. Fund your wallet when ready.
+          </AnimateInText>
         </motion.p>
       </section>
 

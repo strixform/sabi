@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Poppins, Space_Mono, Outfit } from 'next/font/google';
 import './globals.css';
 
-const inter = Inter({ subsets: ['latin'] });
+const poppins = Poppins({ weight: ['400', '600', '700', '900'], subsets: ['latin'] });
+const spaceMono = Space_Mono({ weight: ['400', '700'], subsets: ['latin'] });
+const outfit = Outfit({ weight: ['400', '600', '700', '800'], subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: '🎯 Sabi - 100% REAL Nigerian Social Media Engagement',
@@ -26,7 +28,7 @@ export default function RootLayout({
         <meta name="theme-color" content="#0f172a" />
         <link rel="icon" href="/favicon.ico" />
       </head>
-      <body className={`${inter.className} bg-slate-950 text-white antialiased`}>
+      <body className={`${outfit.className} bg-slate-950 text-white antialiased`}>
         <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
           {/* Premium animated background */}
           <div className="fixed inset-0 overflow-hidden pointer-events-none">
