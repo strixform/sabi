@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSabiSession } from '@/lib/sabiAuth';
-import { generateKorapayTxRef, initializeKorapayPayment } from '@/lib/sabiKorapay';
+import { generateFlwTxRef, initializeFlwPayment } from '@/lib/sabiFlutterwave';
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,8 +16,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const txRef = generateKorapayTxRef(session.id);
-    const result = await initializeKorapayPayment({
+    const txRef = generateFlwTxRef(session.id);
+    const result = await initializeFlwPayment({
       email: session.email,
       amount,
       txRef,
