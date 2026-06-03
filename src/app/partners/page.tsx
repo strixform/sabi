@@ -8,50 +8,13 @@ import { GradientText } from '@/components/AnimatedText';
 import { StaggerContainer, StaggerItem } from '@/components/StaggerContainer';
 import { InteractiveCard } from '@/components/InteractiveCard';
 import { AnimateInText } from '@/components/AnimateInText';
-import { CuteIconAnimation } from '@/components/CuteIconAnimation';
+import SabiHeader from '@/components/SabiHeader';
 
 export default function PartnersPage() {
   return (
     <div className="min-h-screen relative">
       <AnimatedBackground />
-
-      {/* Header */}
-      <header className="border-b border-slate-800/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6 }}
-            className="flex items-center gap-3"
-          >
-            <CuteIconAnimation type="bounce" duration={1.5}>
-              <FiTarget className="w-8 h-8 text-blue-400" />
-            </CuteIconAnimation>
-            <div className="text-2xl font-black">
-              <GradientText>SABI</GradientText>
-            </div>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6 }}
-            className="flex gap-4"
-          >
-            <Link
-              href="/sabi/login"
-              className="px-6 py-2 text-sm font-semibold text-white hover:bg-slate-800 rounded-lg transition"
-            >
-              Login
-            </Link>
-            <Link
-              href="/sabi/register"
-              className="px-6 py-2 text-sm font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/20 transition"
-            >
-              Get Started
-            </Link>
-          </motion.div>
-        </div>
-      </header>
+      <SabiHeader showAuth={true} />
 
       {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative">

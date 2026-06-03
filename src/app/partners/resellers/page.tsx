@@ -8,39 +8,19 @@ import { GradientText } from '@/components/AnimatedText';
 import { StaggerContainer, StaggerItem } from '@/components/StaggerContainer';
 import { InteractiveCard } from '@/components/InteractiveCard';
 import { AnimateInText } from '@/components/AnimateInText';
-import { CuteIconAnimation } from '@/components/CuteIconAnimation';
+import SabiHeader from '@/components/SabiHeader';
 
 export default function ResellersPage() {
   return (
     <div className="min-h-screen relative">
       <AnimatedBackground />
-
-      {/* Header */}
-      <header className="border-b border-slate-800/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <Link href="/partners" className="flex items-center gap-3 hover:opacity-80 transition">
-            <CuteIconAnimation type="bounce" duration={1.5}>
-              <FiTarget className="w-8 h-8 text-blue-400" />
-            </CuteIconAnimation>
-            <div className="text-2xl font-black">
-              <GradientText>SABI</GradientText>
-            </div>
-          </Link>
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6 }}
-            className="flex gap-4"
-          >
-            <Link href="/partners" className="px-6 py-2 text-sm font-semibold text-white hover:bg-slate-800 rounded-lg transition">
-              Back
-            </Link>
-            <Link href="/partners/resellers/apply" className="px-6 py-2 text-sm font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/20 transition">
-              Apply Now
-            </Link>
-          </motion.div>
-        </div>
-      </header>
+      <SabiHeader
+        showAuth={true}
+        rightLinks={[
+          { label: 'Back', href: '/partners', variant: 'secondary' },
+          { label: 'Apply Now', href: '/partners/resellers/apply', variant: 'primary' },
+        ]}
+      />
 
       {/* Hero */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative">
