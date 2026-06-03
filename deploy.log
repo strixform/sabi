@@ -1,0 +1,116 @@
+<claude-code-hint v="1" type="plugin" value="vercel@claude-plugins-official" />
+Retrieving project…
+Deploying strixformes-projects/sabi
+Uploading [--------------------] (0.0B/138B)
+Uploading [====================] (138.0B/138B)
+Inspect: https://vercel.com/strixformes-projects/sabi/CrE4JcSrWPAPc8X4TcC4h5TjXKW3 [3s]
+Production: https://sabi-2ayzylg2k-strixformes-projects.vercel.app [3s]
+Building...
+Building...
+Building: Running build in Washington, D.C., USA (East) – iad1
+Building: Build machine configuration: 4 cores, 8 GB
+Building: Retrieving list of deployment files...
+Building: Skipping build cache, deployment was triggered without cache.
+Building: Downloading 94 deployment files...
+Building: Running "vercel build"
+Building: Vercel CLI 54.7.1
+Building: Installing dependencies...
+Building: npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+Building: > theowletonline@0.1.0 postinstall
+Building: > prisma generate
+Building: Loaded Prisma config from prisma.config.ts.
+Building: Prisma schema loaded from prisma/schema.prisma.
+Building: ✔ Generated Prisma Client (v7.8.0) to ./node_modules/@prisma/client in 145ms
+Building: Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+Building: added 191 packages in 14s
+Building: 33 packages are looking for funding
+Building: run `npm fund` for details
+Building: Detected Next.js version: 16.2.7
+Building: Running "npm run build"
+Building: > theowletonline@0.1.0 build
+Building: > prisma generate && next build
+Building: Loaded Prisma config from prisma.config.ts.
+Building: Prisma schema loaded from prisma/schema.prisma.
+Building: ✔ Generated Prisma Client (v7.8.0) to ./node_modules/@prisma/client in 128ms
+Building: Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+Building: Applying modifyConfig from Vercel
+Building: Attention: Next.js now collects completely anonymous telemetry regarding usage.
+Building: This information is used to shape Next.js' roadmap and prioritize features.
+Building: You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+Building: https://nextjs.org/telemetry
+Building: ▲ Next.js 16.2.7 (Turbopack)
+Building: - Environments: .env
+Building: Creating an optimized production build ...
+Building: ✓ Compiled successfully in 5.2s
+Building: Running TypeScript ...
+Building: Finished TypeScript in 4.1s ...
+Building: Collecting page data using 3 workers ...
+Building: Generating static pages using 3 workers (0/29) ...
+Building: Generating static pages using 3 workers (7/29)
+Building: Generating static pages using 3 workers (14/29)
+Building: Generating static pages using 3 workers (21/29)
+Building: ✓ Generating static pages using 3 workers (29/29) in 307ms
+Building: Finalizing page optimization ...
+Building: Running onBuildComplete from Vercel
+Building: Detected .env file, it is strongly recommended to use Vercel's env handling instead
+Building: Route (app)
+Building: ┌ ○ /
+Building: ├ ○ /_not-found
+Building: ├ ƒ /api/auth/[auth0]
+Building: ├ ƒ /api/owlet/api-keys
+Building: ├ ƒ /api/owlet/auth/login
+Building: ├ ƒ /api/owlet/auth/me
+Building: ├ ƒ /api/owlet/auth/register
+Building: ├ ƒ /api/owlet/orders
+Building: ├ ƒ /api/owlet/services
+Building: ├ ƒ /api/owlet/wallet
+Building: ├ ƒ /api/owlet/wallet/fund
+Building: ├ ƒ /api/owlet/wallet/webhook
+Building: ├ ƒ /api/sabi/api-keys
+Building: ├ ƒ /api/sabi/auth/login
+Building: ├ ƒ /api/sabi/auth/me
+Building: ├ ƒ /api/sabi/auth/register
+Building: ├ ƒ /api/sabi/orders
+Building: ├ ƒ /api/sabi/services
+Building: ├ ƒ /api/sabi/wallet
+Building: ├ ƒ /api/sabi/wallet/fund
+Building: ├ ƒ /api/sabi/wallet/korapay-webhook
+Building: ├ ƒ /api/sabi/wallet/webhook
+Building: ├ ○ /sabi/api-keys
+Building: ├ ○ /sabi/dashboard
+Building: ├ ○ /sabi/docs
+Building: ├ ○ /sabi/login
+Building: ├ ○ /sabi/order
+Building: ├ ƒ /sabi/orders/[id]
+Building: └ ○ /sabi/register
+Building: ○  (Static)   prerendered as static content
+Building: ƒ  (Dynamic)  server-rendered on demand
+Building: Build Completed in /vercel/output [28s]
+Building: Deploying outputs...
+Building: Deployment completed
+Building: Creating build cache...
+[2K[1A[2K[GProduction: https://sabi-2ayzylg2k-strixformes-projects.vercel.app [41s]
+Completing...
+Aliased: https://sability.io [41s]
+{
+  "status": "ok",
+  "deployment": {
+    "id": "dpl_CrE4JcSrWPAPc8X4TcC4h5TjXKW3",
+    "url": "https://sabi-2ayzylg2k-strixformes-projects.vercel.app",
+    "inspectorUrl": "https://vercel.com/strixformes-projects/sabi/CrE4JcSrWPAPc8X4TcC4h5TjXKW3",
+    "readyState": "READY",
+    "target": "production",
+    "deploymentApiUrl": "https://api.vercel.com/v13/deployments/dpl_CrE4JcSrWPAPc8X4TcC4h5TjXKW3"
+  },
+  "message": "Deployment sabi-2ayzylg2k-strixformes-projects.vercel.app ready.",
+  "next": [
+    {
+      "command": "vercel inspect sabi-2ayzylg2k-strixformes-projects.vercel.app",
+      "when": "Inspect deployment"
+    },
+    {
+      "command": "vercel deploy --prod",
+      "when": "Promote to production"
+    }
+  ]
+}

@@ -212,3 +212,183 @@ model VerificationToken {
 
   @@unique([identifier, token])
 }
+
+// ===== RESELLER PROGRAM MODELS =====
+
+model Reseller {
+  id                String    @id @default(cuid())
+
+  // Business info
+  businessName      String
+  businessEmail     String    @unique
+  businessPhone     String
+  businessAddress   String?
+  country           String    @default("NG")
+
+  // Contact person
+  contactName       String
+  contactEmail      String
+  contactPhone      String
+
+  // Account status
+  status            String    @default("pending")  // pending, approved, active, suspended, rejected
+  approvalDate      DateTime?
+  rejectionReason   String?
+
+  // Billing
+  paymentMethod     String?   // bank_transfer, wallet
+  accountNumber     String?
+  bankCode          String?
+
+  // Dates
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relationships
+  sites             ResellerSite[]
+  billing           ResellerBilling[]
+  supportTickets    SupportTicket[]
+
+  @@index([status])
+  @@index([businessEmail])
+}
+
+model ResellerSite {
+  id                String    @id @default(cuid())
+  resellerId        String
+
+  // Site info
+  siteName          String
+  siteUrl           String?   @unique
+  customDomain      String?   @unique
+
+  // Branding
+  logoUrl           String?
+  primaryColor      String    @default("#3B82F6")
+  secondaryColor    String    @default("#8B5CF6")
+  accentColor       String    @default("#EC4899")
+
+  // Customization
+  heroTitle         String    @default("Real Social Media Engagement")
+  heroSubtitle      String    @default("Powered by Nigerian Users")
+  aboutSection      String?   // Custom HTML/markdown
+  featuresCustom    String?   // JSON array of custom features
+
+  // Status
+  status            String    @default("building")  // building, ready, live, suspended
+  launchedAt        DateTime?
+
+  // API
+  apiKey            String    @unique @default(cuid())
+  apiKeyCreatedAt   DateTime  @default(now())
+
+  // Analytics
+  totalOrders       Int       @default(0)
+  totalRevenue      Int       @default(0)  // kobo
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relationships
+  reseller          Reseller  @relation(fields: [resellerId], references: [id], onDelete: Cascade)
+  orders            ResellerOrder[]
+
+  @@index([resellerId])
+  @@index([status])
+}
+
+model ResellerOrder {
+  id                String    @id @default(cuid())
+  siteId            String
+
+  // Order details (mirrors main order but tracks reseller)
+  serviceType       String
+  targetUrl         String
+  quantity          Int
+
+  // Pricing
+  pricePerUnit      Int       // kobo
+  totalPrice        Int       // kobo
+  platformFee       Int
+
+  // Reseller revenue
+  resellerRevenue   Int       // kobo (what reseller keeps)
+  sabiRevenue       Int       // kobo (what Sabi keeps from markup)
+
+  // Payment
+  paymentMethod     String    @default("flutterwave")
+  transactionRef    String?
+
+  // Status
+  status            String    @default("pending")
+  completedAt       DateTime?
+
+  createdAt         DateTime  @default(now())
+
+  // Relationships
+  site              ResellerSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId])
+  @@index([status])
+}
+
+model ResellerBilling {
+  id                String    @id @default(cuid())
+  resellerId        String
+
+  // Billing period
+  billingMonth      DateTime  // First day of billing month
+
+  // Charges
+  setupFee          Int       @default(5000000)  // N50,000 in kobo (one-time on first month)
+  maintenanceFee    Int       @default(1000000)  // N10,000/month in kobo
+  orderCommission   Int       @default(0)        // Commission from orders (calculated)
+
+  totalAmount       Int       // Total due for month
+  amountPaid        Int       @default(0)
+
+  // Status
+  status            String    @default("pending")  // pending, paid, overdue
+  dueDate           DateTime
+  paidDate          DateTime?
+
+  // Invoice
+  invoiceNumber     String?   @unique
+  invoiceUrl        String?
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relationships
+  reseller          Reseller  @relation(fields: [resellerId], references: [id], onDelete: Cascade)
+
+  @@index([resellerId])
+  @@index([status])
+  @@index([billingMonth])
+}
+
+model SupportTicket {
+  id                String    @id @default(cuid())
+  resellerId        String
+
+  // Ticket info
+  subject           String
+  description       String
+  priority          String    @default("medium")  // low, medium, high, urgent
+
+  // Status
+  status            String    @default("open")  // open, in_progress, resolved, closed
+
+  // Tracking
+  assignedTo        String?
+  resolvedAt        DateTime?
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relationships
+  reseller          Reseller  @relation(fields: [resellerId], references: [id], onDelete: Cascade)
+
+  @@index([resellerId])
+  @@index([status])
+}
