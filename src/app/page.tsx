@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SiInstagram, SiTwitter, SiTiktok, SiYoutube, SiFacebook, SiGlobe } from 'react-icons/si';
 
 export default function Home() {
   return (
@@ -42,7 +43,7 @@ export default function Home() {
                 Real Social Media Engagement
               </span>
               <br />
-              <span className="text-white">from Nigeria's Gaming Community</span>
+              <span className="text-white">Powered by Real Nigerian Users</span>
             </h1>
 
             <p className="text-xl md:text-2xl text-slate-300 max-w-3xl mx-auto">
@@ -53,12 +54,12 @@ export default function Home() {
           {/* Trust Badges */}
           <div className="grid grid-cols-3 md:grid-cols-6 gap-4 max-w-4xl mx-auto pt-8">
             {[
-              { icon: '👥', label: '50K+ Users', val: 'Real' },
-              { icon: '🎮', label: 'Active Gamers', val: '99%' },
-              { icon: '💬', label: 'Engagement Rate', val: '8-25%' },
-              { icon: '📈', label: 'ROI Average', val: '300-500%' },
-              { icon: '🌍', label: 'Nigeria Only', val: 'Verified' },
-              { icon: '⚡', label: 'Instant Start', val: '24hrs' },
+              { icon: '👥', label: '50K+ Users', val: 'Active' },
+              { icon: '✓', label: 'Real Verified', val: '100%' },
+              { icon: '💬', label: 'Engagement', val: '8-25%' },
+              { icon: '📈', label: 'Avg ROI', val: '300-500%' },
+              { icon: '🌍', label: 'Nigeria Based', val: 'Verified' },
+              { icon: '⚡', label: 'Fast Delivery', val: '24hrs' },
             ].map((badge, i) => (
               <div key={i} className="p-4 bg-slate-800/30 border border-slate-700/50 rounded-lg hover:border-slate-600/80 transition">
                 <div className="text-2xl mb-1">{badge.icon}</div>
@@ -99,18 +100,18 @@ export default function Home() {
 
         <div className="grid md:grid-cols-3 gap-6">
           {[
-            { icon: '📷', name: 'Instagram', services: '6 Services' },
-            { icon: '𝕏', name: 'Twitter/X', services: '5 Services' },
-            { icon: '🎵', name: 'TikTok', services: '5 Services' },
-            { icon: '📺', name: 'YouTube', services: '5 Services' },
-            { icon: '👍', name: 'Facebook', services: '3 Services' },
-            { icon: '🌐', name: 'Website & Conversion', services: '4 Services' },
+            { Icon: SiInstagram, name: 'Instagram', services: '6 Services', color: 'text-pink-500' },
+            { Icon: SiTwitter, name: 'Twitter/X', services: '5 Services', color: 'text-black dark:text-white' },
+            { Icon: SiTiktok, name: 'TikTok', services: '5 Services', color: 'text-black dark:text-white' },
+            { Icon: SiYoutube, name: 'YouTube', services: '5 Services', color: 'text-red-600' },
+            { Icon: SiFacebook, name: 'Facebook', services: '3 Services', color: 'text-blue-600' },
+            { Icon: SiGlobe, name: 'Website & Conversion', services: '4 Services', color: 'text-slate-400' },
           ].map((platform, i) => (
             <div
               key={i}
-              className="p-6 bg-slate-800/30 border border-slate-700/50 rounded-lg hover:border-slate-600/80 transition group cursor-pointer"
+              className="p-6 bg-slate-800/30 border border-slate-700/50 rounded-lg hover:border-blue-500/50 transition group cursor-pointer"
             >
-              <div className={`text-4xl mb-3`}>{platform.icon}</div>
+              <platform.Icon className={`text-4xl mb-3 ${platform.color}`} />
               <h3 className="font-bold text-lg mb-1 group-hover:text-blue-400 transition">{platform.name}</h3>
               <p className="text-sm text-slate-400">{platform.services}</p>
             </div>
@@ -121,39 +122,43 @@ export default function Home() {
       {/* Why Choose Us */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-slate-800/50">
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-black mb-4">Why OWLETONLINE?</h2>
+          <h2 className="text-4xl font-black mb-4">
+            <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+              Why Sabi?
+            </span>
+          </h2>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
           {[
             {
               title: '100% Real & Active Users',
-              desc: 'Every follower, like, comment, and engagement comes from real, verified Nigerian users who are actually active.',
+              desc: 'Every follower, like, comment, and engagement comes from real, verified Nigerian users who are genuinely active.',
             },
             {
-              title: 'Gaming-Powered Economy',
-              desc: 'Users earn real money by engaging. They\'re financially motivated to actually use your product/service.',
+              title: 'Performance-Driven Community',
+              desc: 'Users are financially incentivized to engage. Real motivation leads to real, lasting results.',
             },
             {
-              title: '99% Engagement Rate',
-              desc: 'Unlike fake followers (1-3%), our community maintains 8-25% real engagement rates consistently.',
+              title: '8-25% Engagement Rate',
+              desc: 'Real engagement that converts. Unlike fake followers (1-3%), our users actually interact with your content.',
             },
             {
-              title: '300-500% ROI',
-              desc: 'Real customers. Real conversions. 8-25x better than traditional fake engagement.',
+              title: '300-500% ROI Average',
+              desc: 'Real customers. Real sales. Measurable, sustainable growth from day one.',
             },
             {
-              title: 'Zero Bots. Zero Fakes.',
-              desc: 'No automation. Every user proved identity and completes real actions. Sustainable growth only.',
+              title: 'Zero Automation',
+              desc: 'No bots. No scripts. Every engagement is completed by a real person with verified identity.',
             },
             {
-              title: 'Instant Delivery',
-              desc: 'Orders execute within 24 hours. Real users begin engaging immediately after purchase.',
+              title: '24-Hour Delivery',
+              desc: 'Orders execute fast. Real users begin engaging within hours, not weeks.',
             },
           ].map((item, i) => (
-            <div key={i} className="p-6 bg-slate-800/20 border border-slate-700/30 rounded-lg">
+            <div key={i} className="p-6 bg-slate-800/20 border border-slate-700/30 rounded-lg hover:border-blue-500/30 transition">
               <div className="flex gap-4">
-                <div className="text-2xl">✓</div>
+                <div className="text-2xl text-blue-400">✓</div>
                 <div>
                   <h3 className="font-bold text-lg mb-2">{item.title}</h3>
                   <p className="text-slate-400 text-sm">{item.desc}</p>
@@ -178,7 +183,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t border-slate-800/50 py-8 text-center text-slate-500 text-sm">
-        <p>© 2026 Owletonline. All rights reserved. | 100% Real Nigerian Engagement Only</p>
+        <p>© 2026 Sabi. All rights reserved. | Real Engagement. Real Growth.</p>
       </footer>
     </div>
   );
