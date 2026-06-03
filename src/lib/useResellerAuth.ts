@@ -10,7 +10,7 @@ interface ResellerData {
   status: string;
 }
 
-export function useResellerAuth() {
+export function useResellerAuth(options?: { redirectOnUnauth?: boolean }) {
   const router = useRouter();
   const [reseller, setReseller] = useState<ResellerData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -25,7 +25,11 @@ export function useResellerAuth() {
       const response = await fetch('/api/reseller/auth/me');
       if (!response.ok) {
         if (response.status === 401) {
-          router.push('/reseller/login');
+          // 401 is expected on public pages when not logged in
+          // Only redirect if explicitly requested
+          if (options?.redirectOnUnauth) {
+            router.push('/reseller/login');
+          }
           return;
         }
         throw new Error('Failed to fetch reseller info');
@@ -34,7 +38,10 @@ export function useResellerAuth() {
       setReseller(data.reseller);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
-      router.push('/reseller/login');
+      // Only redirect on actual errors, not on 401 (which means not authenticated)
+      if (options?.redirectOnUnauth) {
+        router.push('/reseller/login');
+      }
     } finally {
       setLoading(false);
     }
