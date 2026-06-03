@@ -1,0 +1,159 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ===== SABI USER MODELS =====
+
+model SabiUser {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String?   // Optional if using OAuth
+  name          String
+  businessName  String?   // If reseller
+  phone         String?
+  country       String    @default("NG")
+
+  // Email verification
+  emailVerified Boolean   @default(false)
+  verifyCode    String?
+  verifyCodeExpiry DateTime?
+
+  // OAuth integration
+  googleId      String?   @unique
+
+  // Profile
+  avatarUrl     String?
+  referralCode  String?   @unique // For partner referrals
+  referredByCode String?  // Who referred this user
+
+  // Session
+  sessionToken  String?   // Hashed
+  sessionExpiry DateTime?
+
+  // Account status
+  status        String    @default("active") // active, suspended, banned
+  apiKeyHash    String?   // For API access
+  apiKeyCreatedAt DateTime?
+
+  // Preferences
+  webhookUrl    String?   // For API order callbacks
+  notifyEmail   Boolean   @default(true)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relationships
+  orders        SabiOrder[]
+  wallet        SabiWallet?
+  apiTokens     SabiApiToken[]
+  transactions  SabiTransaction[]
+
+  @@index([email])
+  @@index([status])
+  @@index([referralCode])
+}
+
+model SabiWallet {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  balance       Int       @default(0)        // kobo (NGN)
+  totalFunded   Int       @default(0)
+  totalSpent    Int       @default(0)
+  totalRefunded Int       @default(0)
+  updatedAt     DateTime  @updatedAt
+
+  // Relationships
+  user          SabiUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SabiOrder {
+  id                    String    @id @default(cuid())
+  userId                String
+
+  // Order details
+  serviceType           String    // 'followers', 'likes', 'comments', 'shares', 'views', 'engagement'
+  targetUrl             String
+  quantity              Int
+
+  // Pricing (in kobo)
+  pricePerUnit          Int
+  totalPrice            Int
+  platformFee           Int       // 15% of totalPrice
+
+  // Payment
+  paymentMethod         String    @default("flutterwave") // flutterwave, wallet
+  transactionRef        String?   // Flutterwave txRef
+
+  // Execution
+  status                String    @default("pending") // pending, processing, executing, completed, failed, cancelled
+  gamesz360CampaignId   String?   // FK to ads.gamerz360.com Campaign
+  gamesz360AdvertiserId String?   // Internal advertiser created for this order
+
+  // Progress tracking
+  completedQuantity     Int       @default(0)
+  completionPercentage  Int       @default(0)
+  estimatedCompletion   DateTime?
+
+  // Metadata
+  orderedVia            String    @default("web") // web, api, sms, etc.
+  clientId              String?   // For API orders, track which reseller placed it
+  customRef             String?   // Customer's reference code
+
+  // Refund
+  refundedAmount        Int       @default(0)
+  refundReason          String?
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  completedAt           DateTime?
+
+  // Relationships
+  user                  SabiUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([gamesz360CampaignId])
+  @@index([serviceType])
+  @@index([createdAt])
+}
+
+model SabiTransaction {
+  id            String    @id @default(cuid())
+  userId        String
+  orderId       String?   // Optional, links to order
+
+  type          String    // 'fund_pending', 'fund', 'spend', 'refund', 'bonus'
+  amount        Int       // kobo
+  reference     String?   // Flutterwave txRef or internal reference
+  description   String?
+
+  createdAt     DateTime  @default(now())
+
+  // Relationships
+  user          SabiUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model SabiApiToken {
+  id            String    @id @default(cuid())
+  userId        String
+
+  name          String    // e.g., "Mobile App", "Dashboard Integration"
+  tokenHash     String    // SHA256(token)
+  lastUsedAt    DateTime?
+  expiresAt     DateTime?
+
+  createdAt     DateTime  @default(now())
+
+  // Relationships
+  user          SabiUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
