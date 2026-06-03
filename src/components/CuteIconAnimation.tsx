@@ -5,7 +5,7 @@ import { ReactNode } from 'react';
 
 interface CuteIconAnimationProps {
   children: ReactNode;
-  type?: 'bounce' | 'spin' | 'wiggle' | 'float' | 'pulse-glow' | 'flip' | 'jiggle' | 'zoom';
+  type?: 'bounce' | 'spin' | 'wiggle' | 'float' | 'pulse_glow' | 'flip' | 'jiggle' | 'zoom';
   delay?: number;
   duration?: number;
   className?: string;

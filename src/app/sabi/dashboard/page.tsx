@@ -141,7 +141,7 @@ export default function DashboardPage() {
                         TOTAL SPENT
                       </AnimateInText>
                     </motion.span>
-                    <CuteIconAnimation type="pulse-glow" duration={1.5}>
+                    <CuteIconAnimation type="pulse_glow" duration={1.5}>
                       <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/30 to-pink-500/30 flex items-center justify-center">
                         <span className="text-2xl">📊</span>
                       </div>
