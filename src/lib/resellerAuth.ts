@@ -23,7 +23,7 @@ export async function verifyResellerToken(): Promise<ResellerPayload | null> {
     }
 
     const verified = await jwtVerify(token, JWT_SECRET);
-    return verified.payload as ResellerPayload;
+    return verified.payload as unknown as ResellerPayload;
   } catch (error) {
     console.error('Token verification failed:', error);
     return null;

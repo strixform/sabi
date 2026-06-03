@@ -56,7 +56,9 @@ export async function GET(request: NextRequest) {
     const currentDate = new Date();
     const currentMonthKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
 
-    const currentInvoice = invoices.find(i => i.billingMonth.startsWith(currentMonthKey));
+    const currentInvoice = invoices.find(i =>
+      String(i.billingMonth).startsWith(currentMonthKey)
+    );
 
     return NextResponse.json({
       success: true,

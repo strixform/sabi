@@ -66,8 +66,8 @@ export default function AnalyticsPage() {
   const completedOrders = stats.completedOrders;
   const processingOrders = stats.processingOrders;
 
-  const stats = [
-    { label: 'Total Orders', value: orders.length, color: 'blue', icon: '📦' },
+  const statCards = [
+    { label: 'Total Orders', value: stats.totalOrders, color: 'blue', icon: '📦' },
     { label: 'Total Revenue', value: `₦${totalRevenue.toLocaleString()}`, color: 'green', icon: '💰' },
     { label: 'Completed', value: completedOrders, color: 'green', icon: '✓' },
     { label: 'Processing', value: processingOrders, color: 'blue', icon: '⏳' },
@@ -132,7 +132,7 @@ export default function AnalyticsPage() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="grid md:grid-cols-4 gap-6 mb-12"
         >
-          {stats.map((stat, i) => (
+          {statCards.map((stat, i) => (
             <InteractiveCard key={i} glowColor={stat.color as any}>
               <div className="p-6">
                 <div className="flex items-start justify-between mb-4">

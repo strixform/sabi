@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPrismaClient } from '@/lib/prisma';
-import bcrypt from 'bcrypt';
 import { SignJWT } from 'jose';
 
 const JWT_SECRET = new TextEncoder().encode(
