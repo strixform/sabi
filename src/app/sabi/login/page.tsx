@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { signIn } from 'next-auth/react';
 import { SiGoogle } from 'react-icons/si';
+import { FiTarget } from 'react-icons/fi';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
 import { GradientText } from '@/components/AnimatedText';
 import { AnimateInText } from '@/components/AnimateInText';
@@ -66,7 +67,7 @@ export default function LoginPage() {
         >
           <div className="flex items-center justify-center gap-2 mb-4">
             <CuteIconAnimation type="bounce" duration={1.5}>
-              <div className="text-4xl">🎯</div>
+              <FiTarget className="w-8 h-8 text-blue-400" />
             </CuteIconAnimation>
             <h1 className="text-4xl font-black">
               <GradientText>SABI</GradientText>

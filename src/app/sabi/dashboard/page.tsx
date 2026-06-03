@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { FiCreditCard, FiTrendingUp, FiArrowUpRight, FiInbox } from 'react-icons/fi';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
 import { GradientText } from '@/components/AnimatedText';
 import { FloatingElement } from '@/components/FloatingElement';
@@ -88,7 +89,7 @@ export default function DashboardPage() {
                     </motion.span>
                     <CuteIconAnimation type="bounce" duration={2}>
                       <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/30 to-purple-500/30 flex items-center justify-center">
-                        <span className="text-2xl">💳</span>
+                        <FiCreditCard className="w-6 h-6 text-blue-400" />
                       </div>
                     </CuteIconAnimation>
                   </div>
@@ -143,7 +144,7 @@ export default function DashboardPage() {
                     </motion.span>
                     <CuteIconAnimation type="pulse_glow" duration={1.5}>
                       <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/30 to-pink-500/30 flex items-center justify-center">
-                        <span className="text-2xl">📊</span>
+                        <FiTrendingUp className="w-6 h-6 text-purple-400" />
                       </div>
                     </CuteIconAnimation>
                   </div>
@@ -184,7 +185,7 @@ export default function DashboardPage() {
                     </motion.span>
                     <CuteIconAnimation type="float" duration={3}>
                       <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500/30 to-rose-500/30 flex items-center justify-center">
-                        <span className="text-2xl">🚀</span>
+                        <FiArrowUpRight className="w-6 h-6 text-pink-400" />
                       </div>
                     </CuteIconAnimation>
                   </div>
@@ -310,7 +311,7 @@ export default function DashboardPage() {
                 transition={{ duration: 3, repeat: Infinity }}
               >
                 <CuteIconAnimation type="spin" duration={3}>
-                  <div className="text-6xl">📭</div>
+                  <FiInbox className="w-16 h-16 mx-auto text-slate-500" />
                 </CuteIconAnimation>
                 <p className="text-slate-400 text-lg">
                   <AnimateInText type="fade" delay={0.2}>
