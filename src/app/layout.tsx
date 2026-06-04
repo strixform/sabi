@@ -5,6 +5,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 import { AccessibilitySettings } from '@/components/AccessibilitySettings';
+import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 
 const poppins = Poppins({ weight: ['400', '600', '700', '900'], subsets: ['latin'] });
 const spaceMono = Space_Mono({ weight: ['400', '700'], subsets: ['latin'] });
@@ -30,8 +31,15 @@ export default function RootLayout({
     <html lang="en" className="scroll-smooth">
       <head>
         <meta name="theme-color" content="#0f172a" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="SABI" />
+        <meta name="application-name" content="SABI" />
+        <meta name="description" content="Place SMM orders with verified Nigerian gamers" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/favicon.svg" />
+        <link rel="manifest" href="/manifest.json" />
 
         {/* Google Analytics */}
         {process.env.NEXT_PUBLIC_GA_ID && (
@@ -70,6 +78,9 @@ export default function RootLayout({
           </div>
         </div>
 
+        {/* PWA Install Prompt */}
+        <PWAInstallPrompt />
+
         {/* Accessibility Settings */}
         <AccessibilitySettings />
 
@@ -78,6 +89,38 @@ export default function RootLayout({
 
         {/* Vercel Speed Insights */}
         <SpeedInsights />
+
+        {/* Service Worker Registration */}
+        <Script id="sw-register" strategy="afterInteractive">
+          {`
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                .then((registration) => {
+                  console.log('[PWA] Service Worker registered:', registration);
+                })
+                .catch((error) => {
+                  console.log('[PWA] Service Worker registration failed:', error);
+                });
+            }
+
+            // Install prompt handling
+            let installPrompt = null;
+            window.addEventListener('beforeinstallprompt', (e) => {
+              e.preventDefault();
+              installPrompt = e;
+              console.log('[PWA] Install prompt available');
+            });
+
+            // Auto-show install prompt on dashboard (optional)
+            if (window.location.pathname === '/sabi/dashboard' && installPrompt) {
+              console.log('[PWA] Ready to install');
+            }
+
+            window.addEventListener('appinstalled', () => {
+              console.log('[PWA] SABI installed!');
+            });
+          `}
+        </Script>
       </body>
     </html>
   );
