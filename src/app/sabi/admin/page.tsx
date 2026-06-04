@@ -52,8 +52,7 @@ export default function AdminPage() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [showDistributionPanel, setShowDistributionPanel] = useState(false);
-  const [distributingOrders, setDistributingOrders] = useState(false);
+  const [forwardingOrders, setForwardingOrders] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -86,20 +85,14 @@ export default function AdminPage() {
       setLoading(true);
 
       // Fetch orders and stats
-      const [ordersRes, taskerRes, statsRes] = await Promise.all([
+      const [ordersRes, statsRes] = await Promise.all([
         fetch('/api/sabi/admin/orders'),
-        fetch('/api/sabi/admin/taskers'),
         fetch('/api/sabi/admin/stats'),
       ]);
 
       if (ordersRes.ok) {
         const ordersData = await ordersRes.json();
         setOrders(ordersData.orders || []);
-      }
-
-      if (taskerRes.ok) {
-        const taskerData = await taskerRes.json();
-        setTaskers(taskerData.taskers || []);
       }
 
       if (statsRes.ok) {
@@ -137,45 +130,48 @@ export default function AdminPage() {
     ? orders
     : orders.filter(o => o.status === filterStatus);
 
-  const handleDistributeTasks = async () => {
+  const handleForwardToGamerz360 = async () => {
     if (selectedOrders.size === 0) {
       setErrorMessage('Please select at least one order');
       return;
     }
 
     try {
-      setDistributingOrders(true);
+      setForwardingOrders(true);
       setErrorMessage('');
       setSuccessMessage('');
 
       const selectedOrderList = Array.from(selectedOrders);
+      const ordersToForward = orders.filter(o => selectedOrderList.includes(o.id));
 
-      const res = await fetch('/api/sabi/admin/push-to-taskers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orderIds: selectedOrderList,
-          taskerIds: taskers.map(t => t.id),
-        }),
-      });
+      // Generate Gamerz360 import data
+      const gamerz360Data = {
+        source: 'SABI Admin',
+        timestamp: new Date().toISOString(),
+        totalOrders: ordersToForward.length,
+        orders: ordersToForward.map(o => ({
+          id: o.id,
+          service: o.serviceType,
+          quantity: o.quantity,
+          url: o.targetUrl,
+          amount: o.totalPrice,
+          customer: o.user.email,
+        })),
+      };
 
-      const data = await res.json();
+      // Copy to clipboard or download
+      const json = JSON.stringify(gamerz360Data, null, 2);
+      await navigator.clipboard.writeText(json);
 
-      if (data.success) {
-        setSuccessMessage(
-          `✅ Successfully pushed ${data.tasksCreated} tasks to ${data.taskersAssigned} taskers`
-        );
-        setSelectedOrders(new Set());
-        setShowDistributionPanel(false);
-        setTimeout(() => fetchAdminData(), 1000);
-      } else {
-        setErrorMessage(data.error || 'Failed to distribute tasks');
-      }
+      setSuccessMessage(
+        `✅ ${ordersToForward.length} orders copied to clipboard! Paste in Gamerz360 Admin to continue.`
+      );
+      setSelectedOrders(new Set());
     } catch (err) {
-      setErrorMessage('Error distributing tasks');
+      setErrorMessage('Error preparing orders for Gamerz360');
       console.error(err);
     } finally {
-      setDistributingOrders(false);
+      setForwardingOrders(false);
     }
   };
 
@@ -200,9 +196,9 @@ export default function AdminPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-4xl font-black mb-2">
-                <GradientText>Admin Panel</GradientText>
+                <GradientText>SABI Orders</GradientText>
               </h1>
-              <p className="text-sm text-slate-400">Manage orders & distribute tasks to taskers</p>
+              <p className="text-sm text-slate-400">View all sabi orders • Forward to Gamerz360 Admin</p>
             </div>
             <div className="text-right">
               <p className="text-sm text-slate-400">Logged in as</p>
@@ -302,8 +298,10 @@ export default function AdminPage() {
             >
               <InteractiveCard glowColor="orange">
                 <div className="p-6">
-                  <p className="text-sm text-slate-400 mb-2">Available Taskers</p>
-                  <p className="text-3xl font-bold text-orange-400">{stats.availableTaskers}</p>
+                  <p className="text-sm text-slate-400 mb-2">Total Revenue</p>
+                  <p className="text-3xl font-bold text-orange-400">
+                    ₦{(stats.totalRevenue / 100000).toFixed(1)}K
+                  </p>
                 </div>
               </InteractiveCard>
             </motion.div>
@@ -322,8 +320,8 @@ export default function AdminPage() {
               <div className="flex items-center justify-between mb-6 pb-6 border-b border-slate-700/50">
                 <div className="flex items-center gap-4">
                   <h3 className="text-2xl font-bold flex items-center gap-2">
-                    <FiZap className="w-6 h-6 text-yellow-400" />
-                    Orders to Distribute
+                    <FiZap className="w-6 h-6 text-blue-400" />
+                    All SABI Orders
                   </h3>
                   <span className="text-sm bg-slate-700/50 px-3 py-1 rounded-full text-slate-300">
                     {selectedOrders.size} selected
@@ -354,98 +352,35 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Batch Push Button */}
+              {/* Forward to Gamerz360 Button */}
               {selectedOrders.size > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="mb-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg"
+                  className="mb-6 p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg"
                 >
-                  <div className="flex items-center justify-between">
-                    <p className="text-blue-300">
-                      Push <strong>{selectedOrders.size}</strong> orders to taskers
-                    </p>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                      <p className="text-orange-300 font-semibold">
+                        <strong>{selectedOrders.size}</strong> order{selectedOrders.size !== 1 ? 's' : ''} ready for Gamerz360
+                      </p>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Copy order data and paste in Gamerz360 Admin to push to taskers
+                      </p>
+                    </div>
                     <motion.button
-                      onClick={() => setShowDistributionPanel(!showDistributionPanel)}
-                      className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold rounded-lg transition flex items-center gap-2"
+                      onClick={handleForwardToGamerz360}
+                      className="px-6 py-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold rounded-lg transition flex items-center gap-2 whitespace-nowrap"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      disabled={distributingOrders}
+                      disabled={forwardingOrders}
                     >
                       <FiSend className="w-4 h-4" />
-                      {distributingOrders ? 'Distributing...' : 'Distribute Now'}
+                      {forwardingOrders ? 'Copying...' : 'Copy & Forward'}
                     </motion.button>
                   </div>
                 </motion.div>
               )}
-
-              {/* Distribution Panel */}
-              <AnimatePresence>
-                {showDistributionPanel && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="mb-6 p-6 bg-slate-800/50 border border-slate-700/50 rounded-lg"
-                  >
-                    <h4 className="text-lg font-bold mb-4">Available Taskers</h4>
-                    <div className="space-y-3 max-h-48 overflow-y-auto">
-                      {taskers.length > 0 ? (
-                        taskers.map((tasker) => (
-                          <div
-                            key={tasker.id}
-                            className="p-4 bg-slate-700/30 border border-slate-700/50 rounded-lg flex items-center justify-between"
-                          >
-                            <div>
-                              <p className="font-semibold text-white">{tasker.name}</p>
-                              <p className="text-xs text-slate-400 mb-2">@{tasker.username}</p>
-                              <div className="flex items-center gap-4 text-sm">
-                                <span className="text-slate-400">
-                                  Load: <span className="text-yellow-400">{tasker.currentLoad}/{tasker.maxCapacity}</span>
-                                </span>
-                                <span className="text-slate-400">
-                                  <span className="text-orange-400">{tasker.pointsPerTask}</span> pts/task
-                                </span>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm text-slate-400 mb-1">Specializations</p>
-                              <div className="flex flex-wrap gap-1 justify-end">
-                                {tasker.specializations.slice(0, 2).map((spec, idx) => (
-                                  <span key={idx} className="text-xs bg-slate-600/50 px-2 py-1 rounded">
-                                    {spec}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-slate-400 text-center py-4">No taskers available</p>
-                      )}
-                    </div>
-
-                    <div className="mt-6 flex gap-3">
-                      <motion.button
-                        onClick={handleDistributeTasks}
-                        disabled={distributingOrders || taskers.length === 0}
-                        className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-lg transition flex items-center justify-center gap-2"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        <FiSend className="w-5 h-5" />
-                        {distributingOrders ? 'Pushing to Taskers...' : `Push ${selectedOrders.size} Orders`}
-                      </motion.button>
-                      <button
-                        onClick={() => setShowDistributionPanel(false)}
-                        className="px-6 py-3 bg-slate-700/50 hover:bg-slate-700 text-white font-semibold rounded-lg transition"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
 
               {/* Orders Table */}
               <div className="overflow-x-auto">
