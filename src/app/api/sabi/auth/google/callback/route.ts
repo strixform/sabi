@@ -90,13 +90,30 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Create session
-    await createSabiSession(user.id);
+    // Create session and get token
+    const token = await createSabiSession(user.id);
 
     // Redirect to dashboard
-    return NextResponse.redirect(
+    const response = NextResponse.redirect(
       `${process.env.NEXT_PUBLIC_APP_URL || 'https://sability.io'}/sabi/dashboard`
     );
+
+    // Set cookies on the redirect response
+    response.cookies.set('sabi_session_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60, // 30 days
+    });
+
+    response.cookies.set('sabi_session_id', user.id, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60, // 30 days
+    });
+
+    return response;
   } catch (error) {
     console.error('[Google OAuth] Callback error:', error);
     console.error('[Google OAuth] Error message:', error instanceof Error ? error.message : String(error));

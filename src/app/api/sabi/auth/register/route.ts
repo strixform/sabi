@@ -39,13 +39,30 @@ export async function POST(req: NextRequest) {
       await sendVerificationEmail(email, user.verifyCode, name);
     }
 
-    await createSabiSession(result.userId!);
+    const token = await createSabiSession(result.userId!);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       userId: result.userId,
       message: 'Registration successful. Check your email to verify.',
     });
+
+    // Ensure cookies are set on the response
+    response.cookies.set('sabi_session_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60, // 30 days
+    });
+
+    response.cookies.set('sabi_session_id', result.userId!, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60, // 30 days
+    });
+
+    return response;
   } catch (error) {
     console.error('Register error:', error);
     return NextResponse.json(
