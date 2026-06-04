@@ -21,47 +21,80 @@ export const SabiLogo: React.FC<SabiLogoProps> = ({ size = 'md', className = '' 
       xmlns="http://www.w3.org/2000/svg"
     >
       <defs>
-        <linearGradient id="sabiGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style={{ stopColor: '#3b82f6', stopOpacity: 1 }} />
-          <stop offset="100%" style={{ stopColor: '#8b5cf6', stopOpacity: 1 }} />
+        {/* Main gradient for seed */}
+        <linearGradient id="megaSeedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style={{ stopColor: '#10b981', stopOpacity: 1 }} />
+          <stop offset="50%" style={{ stopColor: '#059669', stopOpacity: 1 }} />
+          <stop offset="100%" style={{ stopColor: '#047857', stopOpacity: 1 }} />
+        </linearGradient>
+
+        {/* Glow effect */}
+        <radialGradient id="seedGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" style={{ stopColor: '#34d399', stopOpacity: 0.4 }} />
+          <stop offset="100%" style={{ stopColor: '#10b981', stopOpacity: 0 }} />
+        </radialGradient>
+
+        {/* Shine gradient */}
+        <linearGradient id="seedShine" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style={{ stopColor: '#ffffff', stopOpacity: 0.6 }} />
+          <stop offset="50%" style={{ stopColor: '#ffffff', stopOpacity: 0.2 }} />
+          <stop offset="100%" style={{ stopColor: '#ffffff', stopOpacity: 0 }} />
         </linearGradient>
       </defs>
 
-      {/* Background Circle */}
-      <circle cx="100" cy="100" r="100" fill="url(#sabiGrad)" />
+      {/* Outer glow circle */}
+      <circle cx="100" cy="100" r="98" fill="url(#seedGlow)" />
 
-      {/* Shopping Cart Body */}
-      <path
-        d="M 60 80 L 65 140 Q 65 150 75 150 L 165 150 Q 175 150 175 140 L 180 80 Z"
-        fill="white"
-        opacity="0.95"
-      />
+      {/* Main seed shape - oval pod */}
+      <ellipse cx="100" cy="95" rx="55" ry="70" fill="url(#megaSeedGrad)" />
 
-      {/* Cart Handle */}
+      {/* Seed shine/highlight */}
+      <ellipse cx="85" cy="65" rx="25" ry="35" fill="url(#seedShine)" opacity="0.8" />
+
+      {/* Seed ridges/texture lines */}
       <path
-        d="M 75 80 Q 120 40 165 80"
-        stroke="white"
-        strokeWidth="6"
+        d="M 85 50 Q 90 65 85 80"
+        stroke="rgba(255,255,255,0.3)"
+        strokeWidth="2"
         fill="none"
-        opacity="0.95"
+        strokeLinecap="round"
+      />
+      <path
+        d="M 100 40 Q 105 65 100 90"
+        stroke="rgba(255,255,255,0.4)"
+        strokeWidth="2"
+        fill="none"
+        strokeLinecap="round"
+      />
+      <path
+        d="M 115 50 Q 110 65 115 80"
+        stroke="rgba(255,255,255,0.3)"
+        strokeWidth="2"
+        fill="none"
         strokeLinecap="round"
       />
 
-      {/* Verified Checkmark (bottom right) */}
-      <circle cx="155" cy="155" r="28" fill="#10b981" />
+      {/* Seed stem/tip */}
+      <ellipse cx="100" cy="35" rx="12" ry="18" fill="url(#megaSeedGrad)" opacity="0.9" />
       <path
-        d="M 145 155 L 152 162 L 168 148"
-        stroke="white"
-        strokeWidth="5"
+        d="M 100 20 Q 98 28 100 35"
+        stroke="rgba(255,255,255,0.5)"
+        strokeWidth="1.5"
         fill="none"
         strokeLinecap="round"
-        strokeLinejoin="round"
       />
 
-      {/* Small accent lines on cart */}
-      <line x1="85" y1="100" x2="85" y2="130" stroke="url(#sabiGrad)" strokeWidth="3" opacity="0.6" />
-      <line x1="120" y1="100" x2="120" y2="130" stroke="url(#sabiGrad)" strokeWidth="3" opacity="0.6" />
-      <line x1="155" y1="100" x2="155" y2="130" stroke="url(#sabiGrad)" strokeWidth="3" opacity="0.6" />
+      {/* Inner highlight on main body */}
+      <ellipse cx="100" cy="100" rx="30" ry="45" fill="rgba(255,255,255,0.15)" />
+
+      {/* Bottom seed detail */}
+      <ellipse cx="100" cy="155" rx="35" ry="15" fill="rgba(255,255,255,0.2)" opacity="0.6" />
+
+      {/* Glow particles effect - small dots */}
+      <circle cx="65" cy="75" r="3" fill="#34d399" opacity="0.7" />
+      <circle cx="135" cy="85" r="2.5" fill="#34d399" opacity="0.6" />
+      <circle cx="75" cy="130" r="2" fill="#34d399" opacity="0.5" />
+      <circle cx="125" cy="125" r="2.5" fill="#34d399" opacity="0.6" />
     </svg>
   );
 };
