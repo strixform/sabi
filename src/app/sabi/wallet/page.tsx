@@ -9,6 +9,8 @@ import { GradientText } from '@/components/AnimatedText';
 import { InteractiveCard } from '@/components/InteractiveCard';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
 import { AnimateInText } from '@/components/AnimateInText';
+import { ModernSabiHeader } from '@/components/ModernSabiHeader';
+import { getCardColor } from '@/lib/designSystem';
 
 export default function WalletPage() {
   const router = useRouter();
@@ -62,20 +64,23 @@ export default function WalletPage() {
   if (!session) return null;
 
   return (
-    <div className="min-h-screen relative bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 overflow-hidden">
+    <div className="min-h-screen relative">
       <AnimatedBackground />
-
-      {/* Header */}
-      <div className="relative z-20 border-b border-slate-700/50 bg-slate-900/80 backdrop-blur-xl sticky top-0">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-black">Wallet</h2>
-          </div>
-        </div>
-      </div>
+      <ModernSabiHeader showNavigation={true} />
 
       {/* Content */}
-      <div className="relative z-10 max-w-6xl mx-auto px-4 py-12">
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
+        {/* Page Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <h1 className="text-5xl font-black mb-2">
+            <GradientText>Wallet</GradientText>
+          </h1>
+          <p className="text-slate-400 text-lg">Manage your funds and track transactions</p>
+        </motion.div>
         {/* Balance Card */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <InteractiveCard glowColor="emerald">

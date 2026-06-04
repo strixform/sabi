@@ -1,6 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
+import { FiCopy, FiTrash2, FiPlus, FiLoader } from 'react-icons/fi';
+import { ModernSabiHeader } from '@/components/ModernSabiHeader';
+import { AnimatedBackground } from '@/components/AnimatedBackground';
+import { InteractiveCard } from '@/components/InteractiveCard';
+import { GradientText } from '@/components/AnimatedText';
+import { getCardColor } from '@/lib/designSystem';
 
 export default function ApiKeysPage() {
   const [keys, setKeys] = useState<any[]>([]);
@@ -69,103 +77,192 @@ export default function ApiKeysPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-4xl font-black mb-2">API Keys</h1>
-        <p className="text-slate-400">Manage your API keys for programmatic access</p>
-      </div>
+    <div className="min-h-screen relative">
+      <AnimatedBackground />
+      <ModernSabiHeader showNavigation={true} />
 
-      {/* Documentation */}
-      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-6 mb-8">
-        <h3 className="font-bold text-blue-400 mb-2">📚 Documentation</h3>
-        <p className="text-sm text-slate-300 mb-3">
-          Use your API key to integrate Sabi into your application. Include it in the Authorization header:
-        </p>
-        <code className="block bg-slate-900 p-3 rounded text-xs text-slate-200 mb-3 overflow-auto">
-          Authorization: Bearer sabi_[keyId]_[token]
-        </code>
-        <a href="/sabi/docs" className="text-blue-400 hover:underline text-sm">
-          View full API documentation →
-        </a>
-      </div>
-
-      {/* Create New Key */}
-      {!showForm ? (
-        <button
-          onClick={() => setShowForm(true)}
-          className="mb-8 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-purple-500/30 transition"
+      <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
+        {/* Page Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8 sm:mb-12"
         >
-          + Create New API Key
-        </button>
-      ) : (
-        <div className="bg-slate-800/50 border border-slate-700/50 rounded-lg p-6 mb-8">
-          <h3 className="text-lg font-bold mb-4">Create New API Key</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold mb-2">Key Name</label>
-              <input
-                type="text"
-                value={newKeyName}
-                onChange={(e) => setNewKeyName(e.target.value)}
-                placeholder="e.g., Mobile App, Dashboard Integration"
-                className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
-              />
-              <p className="text-xs text-slate-400 mt-1">Give your key a descriptive name</p>
-            </div>
-            <div className="flex gap-4">
-              <button
-                onClick={createKey}
-                disabled={!newKeyName.trim() || creatingKey}
-                className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold rounded-lg disabled:opacity-50 transition"
-              >
-                {creatingKey ? 'Creating...' : 'Create Key'}
-              </button>
-              <button
-                onClick={() => setShowForm(false)}
-                className="px-6 py-2 border border-slate-600 text-white font-bold rounded-lg hover:border-slate-400 transition"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          <h1 className="text-5xl font-black mb-2">
+            <GradientText>API Keys</GradientText>
+          </h1>
+          <p className="text-slate-400 text-lg">Manage your API keys for programmatic access</p>
+        </motion.div>
 
-      {/* API Keys List */}
-      <div>
-        <h3 className="text-xl font-bold mb-4">Your API Keys</h3>
-        {loading ? (
-          <p className="text-slate-400">Loading...</p>
-        ) : keys.length === 0 ? (
-          <p className="text-slate-400 bg-slate-800/50 rounded-lg p-4 text-center">
-            No API keys yet. Create one to get started.
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {keys.map((key) => (
-              <div
-                key={key.id}
-                className="bg-slate-800/50 border border-slate-700/50 rounded-lg p-6 flex items-center justify-between"
-              >
-                <div className="flex-1">
-                  <div className="font-bold">{key.name}</div>
-                  <div className="text-xs text-slate-400 mt-1">
-                    Created {new Date(key.createdAt).toLocaleDateString()}
-                    {key.lastUsedAt && (
-                      <> • Last used {new Date(key.lastUsedAt).toLocaleDateString()}</>
-                    )}
+        <div className="space-y-6 sm:space-y-8">
+          {/* Documentation Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <InteractiveCard glowColor="cyan">
+              <div className="p-6 sm:p-8">
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="text-2xl">📚</div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-cyan-400 mb-2">Quick Start</h3>
+                    <p className="text-slate-300 text-sm mb-4">
+                      Use your API key to integrate Sabi into your application. Include it in the Authorization header:
+                    </p>
+                    <div className="bg-slate-900 p-3 rounded-lg border border-slate-700/50 mb-4 overflow-auto">
+                      <code className="text-xs text-slate-200 font-mono">
+                        Authorization: Bearer sabi_[keyId]_[token]
+                      </code>
+                    </div>
+                    <Link href="/sabi/docs" className="text-cyan-400 hover:text-cyan-300 font-semibold text-sm transition">
+                      View full API documentation →
+                    </Link>
                   </div>
                 </div>
-                <button
-                  onClick={() => deleteKey(key.id)}
-                  className="px-4 py-2 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/10 transition text-sm"
-                >
-                  Delete
-                </button>
               </div>
-            ))}
-          </div>
-        )}
+            </InteractiveCard>
+          </motion.div>
+
+          {/* Create New Key Button */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            {!showForm && (
+              <motion.button
+                onClick={() => setShowForm(true)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="w-full px-6 py-4 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-bold rounded-lg transition flex items-center justify-center gap-2 shadow-lg hover:shadow-purple-500/20"
+              >
+                <FiPlus className="w-5 h-5" />
+                Create New API Key
+              </motion.button>
+            )}
+          </motion.div>
+
+          {/* Create Key Form */}
+          <AnimatePresence>
+            {showForm && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+              >
+                <InteractiveCard glowColor="blue">
+                  <div className="p-6 sm:p-8">
+                    <h3 className="text-lg font-bold mb-6">Create New API Key</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-semibold mb-2 text-slate-300">Key Name</label>
+                        <input
+                          type="text"
+                          value={newKeyName}
+                          onChange={(e) => setNewKeyName(e.target.value)}
+                          placeholder="e.g., Mobile App, Dashboard Integration"
+                          className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white placeholder-slate-500 focus:border-blue-500/50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                        />
+                        <p className="text-xs text-slate-400 mt-2">Give your key a descriptive name</p>
+                      </div>
+                      <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                        <motion.button
+                          onClick={createKey}
+                          disabled={!newKeyName.trim() || creatingKey}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition"
+                        >
+                          {creatingKey ? (
+                            <>
+                              <FiLoader className="w-4 h-4 animate-spin inline mr-2" />
+                              Creating...
+                            </>
+                          ) : (
+                            'Create Key'
+                          )}
+                        </motion.button>
+                        <motion.button
+                          onClick={() => setShowForm(false)}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          className="px-6 py-3 border border-slate-600/50 text-white font-bold rounded-lg hover:bg-slate-800/30 transition"
+                        >
+                          Cancel
+                        </motion.button>
+                      </div>
+                    </div>
+                  </div>
+                </InteractiveCard>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* API Keys List */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <div className="space-y-4">
+              <h3 className="text-2xl font-bold">Your API Keys</h3>
+
+              {loading ? (
+                <InteractiveCard glowColor="blue">
+                  <div className="p-8 text-center">
+                    <FiLoader className="w-6 h-6 animate-spin mx-auto mb-3 text-blue-400" />
+                    <p className="text-slate-400">Loading your API keys...</p>
+                  </div>
+                </InteractiveCard>
+              ) : keys.length === 0 ? (
+                <InteractiveCard glowColor="blue">
+                  <div className="p-8 text-center">
+                    <p className="text-slate-400 mb-2">No API keys yet</p>
+                    <p className="text-sm text-slate-500">Create your first API key to get started with programmatic access</p>
+                  </div>
+                </InteractiveCard>
+              ) : (
+                <div className="grid gap-4">
+                  {keys.map((key, idx) => {
+                    const cardColor = getCardColor(idx);
+                    return (
+                      <motion.div
+                        key={key.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.05 }}
+                      >
+                        <InteractiveCard glowColor={cardColor.glow as any}>
+                          <div className="p-6 sm:p-7 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                            <div className="flex-1">
+                              <h4 className="font-bold text-white text-lg mb-1">{key.name}</h4>
+                              <div className="text-xs text-slate-400 space-y-1">
+                                <p>Created {new Date(key.createdAt).toLocaleDateString()}</p>
+                                {key.lastUsedAt && (
+                                  <p>Last used {new Date(key.lastUsedAt).toLocaleDateString()}</p>
+                                )}
+                              </div>
+                            </div>
+                            <motion.button
+                              onClick={() => deleteKey(key.id)}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              className="px-4 py-2 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/10 transition flex items-center gap-2 text-sm"
+                            >
+                              <FiTrash2 className="w-4 h-4" />
+                              Delete
+                            </motion.button>
+                          </div>
+                        </InteractiveCard>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </div>
       </div>
     </div>
   );
