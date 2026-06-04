@@ -137,15 +137,16 @@ export default function DashboardPage() {
                 </AnimateInText>
               </motion.p>
             </div>
-            <motion.button
-              onClick={() => setShowValues(!showValues)}
-              className="px-4 py-2 bg-slate-700/50 hover:bg-slate-600 rounded-lg transition flex items-center gap-2 font-semibold"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+            <button
+              onClick={() => {
+                setShowValues(prev => !prev);
+              }}
+              className="px-4 py-2 bg-slate-700/50 hover:bg-slate-600 rounded-lg transition flex items-center gap-2 font-semibold cursor-pointer"
               title={showValues ? 'Hide values' : 'Show values'}
+              type="button"
             >
               {showValues ? '👁️ Hide' : '🔒 Show'}
-            </motion.button>
+            </button>
           </div>
         </motion.div>
 
