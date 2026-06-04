@@ -35,6 +35,7 @@ export default function DashboardPage() {
   const [session, setSession] = useState<SessionUser | null>(null);
   const [tier, setTier] = useState(TIER_SYSTEM.NOVICE);
   const [progress, setProgress] = useState(0);
+  const [showValues, setShowValues] = useState(true);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -116,23 +117,36 @@ export default function DashboardPage() {
           transition={{ duration: 0.6 }}
           className="space-y-2"
         >
-          <h1 className="text-5xl font-black">
-            <GradientText>
-              <AnimateInText type="blur" delay={0.1}>
-                Welcome Back
-              </AnimateInText>
-            </GradientText>
-          </h1>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="text-lg text-slate-400"
-          >
-            <AnimateInText type="slide" delay={0.4}>
-              Manage your account and track your orders in real-time
-            </AnimateInText>
-          </motion.p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-5xl font-black">
+                <GradientText>
+                  <AnimateInText type="blur" delay={0.1}>
+                    Welcome Back
+                  </AnimateInText>
+                </GradientText>
+              </h1>
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+                className="text-lg text-slate-400"
+              >
+                <AnimateInText type="slide" delay={0.4}>
+                  Manage your account and track your orders in real-time
+                </AnimateInText>
+              </motion.p>
+            </div>
+            <motion.button
+              onClick={() => setShowValues(!showValues)}
+              className="px-4 py-2 bg-slate-700/50 hover:bg-slate-600 rounded-lg transition flex items-center gap-2 font-semibold"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              title={showValues ? 'Hide values' : 'Show values'}
+            >
+              {showValues ? '👁️ Hide' : '🔒 Show'}
+            </motion.button>
+          </div>
         </motion.div>
 
         {/* Stats Grid - Animated */}
@@ -169,7 +183,7 @@ export default function DashboardPage() {
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: 0.4 }}
                     >
-                      ₦{loading ? '...' : (wallet.balance / 100).toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+                      {loading ? '...' : showValues ? `₦${(wallet.balance / 100).toLocaleString('en-NG', { minimumFractionDigits: 2 })}` : '••••••'}
                     </motion.div>
                     <AnimateInText type="fade" delay={0.5}>
                       <p className="text-sm text-slate-400">Ready to spend</p>
@@ -224,7 +238,7 @@ export default function DashboardPage() {
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: 0.5 }}
                     >
-                      ₦{loading ? '...' : (wallet.spent / 100).toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+                      {loading ? '...' : showValues ? `₦${(wallet.spent / 100).toLocaleString('en-NG', { minimumFractionDigits: 2 })}` : '••••••'}
                     </motion.div>
                     <AnimateInText type="fade" delay={0.6}>
                       <p className="text-sm text-slate-400">All-time investment</p>
