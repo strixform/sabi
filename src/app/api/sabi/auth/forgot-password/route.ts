@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requestPasswordReset } from '@/lib/sabiAuth';
+import { sendPasswordResetEmail } from '@/lib/email';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(req: NextRequest) {
   try {
@@ -22,8 +24,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // In production, send email with reset link
-    // Email content would include: ${process.env.NEXT_PUBLIC_APP_URL}/sabi/reset-password?token=${result.resetToken}
+    // Send password reset email
+    const user = await prisma.sabiUser.findUnique({ where: { email } });
+    if (user && result.resetToken) {
+      await sendPasswordResetEmail(email, result.resetToken, user.name);
+    }
 
     return NextResponse.json({
       success: true,

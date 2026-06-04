@@ -1,5 +1,8 @@
 import type { Metadata } from 'next';
 import { Poppins, Space_Mono, Outfit } from 'next/font/google';
+import Script from 'next/script';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 import { AccessibilitySettings } from '@/components/AccessibilitySettings';
 
@@ -29,6 +32,28 @@ export default function RootLayout({
         <meta name="theme-color" content="#0f172a" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/favicon.svg" />
+
+        {/* Google Analytics */}
+        {process.env.NEXT_PUBLIC_GA_ID && (
+          <>
+            <Script
+              strategy="afterInteractive"
+              src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`}
+            />
+            <Script
+              id="google-analytics"
+              strategy="afterInteractive"
+              dangerouslySetInnerHTML={{
+                __html: `
+                  window.dataLayer = window.dataLayer || [];
+                  function gtag(){dataLayer.push(arguments);}
+                  gtag('js', new Date());
+                  gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}');
+                `,
+              }}
+            />
+          </>
+        )}
       </head>
       <body className={`${outfit.className} bg-slate-950 text-white antialiased`}>
         <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
@@ -47,6 +72,12 @@ export default function RootLayout({
 
         {/* Accessibility Settings */}
         <AccessibilitySettings />
+
+        {/* Vercel Analytics */}
+        <Analytics />
+
+        {/* Vercel Speed Insights */}
+        <SpeedInsights />
       </body>
     </html>
   );

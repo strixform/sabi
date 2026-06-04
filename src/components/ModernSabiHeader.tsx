@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiLogOut, FiHome, FiShoppingCart, FiKey, FiBook, FiMenu, FiX } from 'react-icons/fi';
+import { FiLogOut, FiHome, FiShoppingCart, FiKey, FiBook, FiMenu, FiX, FiCreditCard } from 'react-icons/fi';
 import { SabiLogo } from './SabiLogo';
 
 interface ModernSabiHeaderProps {
@@ -39,7 +39,7 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 sm:h-16 lg:h-20">
           {/* Logo & Branding */}
-          <Link href="/sabi/dashboard" className="flex items-center gap-2 sm:gap-3 group">
+          <Link href="/" className="flex items-center gap-2 sm:gap-3 group">
             <motion.div
               className="flex-shrink-0"
               whileHover={{ scale: 1.08 }}
@@ -119,6 +119,19 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
               />
               <span className="text-xs text-emerald-300 font-semibold">Live</span>
             </motion.div>
+
+            {/* Fund Wallet Button */}
+            <Link href="/sabi/wallet">
+              <motion.button
+                className="p-2 lg:px-4 lg:py-2 rounded-lg bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-emerald-300 hover:from-green-500/30 hover:to-emerald-500/30 border border-emerald-500/30 hover:border-emerald-500/50 transition-all flex items-center gap-2 text-sm font-semibold group"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                title="Fund Wallet"
+              >
+                <FiCreditCard className="w-4 h-4" />
+                <span className="hidden lg:inline">Fund Wallet</span>
+              </motion.button>
+            </Link>
 
             {/* Logout */}
             <motion.button

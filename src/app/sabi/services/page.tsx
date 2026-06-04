@@ -127,9 +127,9 @@ export default function ServicesPage() {
                 {service.name}
               </h3>
 
-              {/* Platform */}
+              {/* Category */}
               <p className="text-sm text-slate-400 mb-3 capitalize">
-                {service.platform}
+                {service.category}
               </p>
 
               {/* Description */}

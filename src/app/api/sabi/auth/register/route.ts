@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { registerSabiUser, createSabiSession } from '@/lib/sabiAuth';
 import { getRateLimitKey, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit';
+import { sendVerificationEmail } from '@/lib/email';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,12 +33,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Send verification email
+    const user = await prisma.sabiUser.findUnique({ where: { id: result.userId! } });
+    if (user && user.verifyCode) {
+      await sendVerificationEmail(email, user.verifyCode, name);
+    }
+
     await createSabiSession(result.userId!);
 
     return NextResponse.json({
       success: true,
       userId: result.userId,
-      message: 'Registration successful. Please verify your email.',
+      message: 'Registration successful. Check your email to verify.',
     });
   } catch (error) {
     console.error('Register error:', error);
