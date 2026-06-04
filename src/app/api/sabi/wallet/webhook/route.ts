@@ -29,11 +29,42 @@ export async function POST(req: NextRequest) {
     const txRef = webhook.data.tx_ref;
     const userIdMatch = txRef.match(/^sabi_([a-z0-9]+)_/);
     if (!userIdMatch) {
+      console.error('Invalid tx_ref format:', txRef);
       return NextResponse.json({ error: 'Invalid tx_ref format' }, { status: 400 });
     }
 
     const userId = userIdMatch[1];
+
+    // Verify user exists
+    const user = await prisma.sabiUser.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      console.error('User not found for ID:', userId);
+      return NextResponse.json({ error: 'User not found' }, { status: 400 });
+    }
+
+    // Check for duplicate transaction
+    const existingTxn = await prisma.sabiTransaction.findFirst({
+      where: {
+        userId,
+        reference: txRef,
+      },
+    });
+
+    if (existingTxn) {
+      console.log('Duplicate transaction detected:', txRef);
+      return NextResponse.json({ success: true }, { status: 200 });
+    }
+
     const amountInKobo = Math.round(webhook.data.amount * 100);
+
+    // Validate amount is reasonable (≤ 10M naira)
+    if (amountInKobo > 1000000000) {
+      console.error('Suspiciously large amount:', webhook.data.amount);
+      return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
+    }
 
     const creditResult = await creditSabiWallet(userId, amountInKobo, txRef);
 

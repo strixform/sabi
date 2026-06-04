@@ -100,13 +100,16 @@ export default function WalletPage() {
                     {showBalance ? `₦${(wallet.balance / 100).toLocaleString()}` : '••••••'}
                   </motion.div>
                   <motion.button
-                    onClick={() => setShowBalance(!showBalance)}
-                    className="px-3 py-2 bg-slate-700/50 hover:bg-slate-600 rounded-lg transition text-sm font-semibold"
-                    whileHover={{ scale: 1.05 }}
+                    onClick={() => {
+                      setShowBalance(!showBalance);
+                      console.log('Balance visibility toggled to:', !showBalance);
+                    }}
+                    className="px-4 py-2 bg-slate-600 hover:bg-slate-500 rounded-lg transition text-base font-bold border border-slate-500"
+                    whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
-                    title={showBalance ? 'Hide balance' : 'Show balance'}
+                    title={showBalance ? 'Click to hide balance' : 'Click to show balance'}
                   >
-                    {showBalance ? '👁️' : '👁️‍🗨️'}
+                    {showBalance ? '👁️ Hide' : '🔒 Show'}
                   </motion.button>
                 </div>
               </div>

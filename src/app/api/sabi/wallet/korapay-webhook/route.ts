@@ -28,6 +28,12 @@ export async function POST(req: NextRequest) {
 
     const { reference, amount, email } = parseKorapayWebhook(payload);
 
+    // Validate email format to prevent abuse
+    if (!email || !email.includes('@')) {
+      console.error('Invalid email format in webhook:', email);
+      return NextResponse.json({ success: true }, { status: 200 });
+    }
+
     const user = await prisma.sabiUser.findUnique({
       where: { email },
     });
@@ -37,7 +43,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true }, { status: 200 });
     }
 
+    // Check for duplicate transaction
+    const existingTxn = await prisma.sabiTransaction.findFirst({
+      where: {
+        userId: user.id,
+        reference,
+      },
+    });
+
+    if (existingTxn) {
+      console.log('Duplicate transaction detected:', reference);
+      return NextResponse.json({ success: true }, { status: 200 });
+    }
+
     const amountInKobo = Math.round(amount * 100);
+
+    // Validate amount is reasonable (≤ 10M naira)
+    if (amountInKobo > 1000000000) {
+      console.error('Suspiciously large amount:', amount);
+      return NextResponse.json({ success: true }, { status: 200 });
+    }
+
     const creditResult = await creditSabiWallet(user.id, amountInKobo, reference);
 
     if (!creditResult.success) {
