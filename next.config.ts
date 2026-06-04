@@ -34,7 +34,7 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        source: '/sabi-*.png',
+        source: '/:path(sabi-.*\\.png)',
         headers: [
           {
             key: 'Cache-Control',
@@ -43,7 +43,7 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        source: '/sabi-*.svg',
+        source: '/:path(sabi-.*\\.svg)',
         headers: [
           {
             key: 'Cache-Control',
