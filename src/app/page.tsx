@@ -29,7 +29,7 @@ function HomeContent() {
 
       {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 lg:py-12 relative">
-        <div className="text-center space-y-3 sm:space-y-4 lg:space-y-5">
+        <div className="text-center space-y-1 sm:space-y-2 lg:space-y-3">
           {/* Floating Badge */}
           <FloatingElement delay={0} duration={3} distance={10}>
             <motion.div
@@ -50,7 +50,7 @@ function HomeContent() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.3, ease: 'easeOut' }}
               >
-                <GradientText className="block mb-2">
+                <GradientText className="block mb-0">
                   <AnimateInText type="blur" delay={0.4}>
                     Real Social Media Engagement
                   </AnimateInText>
@@ -61,7 +61,7 @@ function HomeContent() {
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
-              className="text-white mt-3"
+              className="text-white mt-1"
             >
               <AnimateInText type="slide" delay={0.7}>
                 Powered by Real Nigerian Users
