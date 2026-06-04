@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { registerSabiUser, createSabiSession } from '@/lib/sabiAuth';
+import { getRateLimitKey, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit';
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting: 3 registration attempts per 10 minutes per IP
+    const rateLimitKey = getRateLimitKey(req, 'register');
+    const rateLimit = checkRateLimit(rateLimitKey, 3, 600000);
+
+    if (!rateLimit.allowed) {
+      return rateLimitResponse(3, rateLimit.resetTime);
+    }
+
     const body = await req.json();
     const { email, password, name, businessName } = body;
 

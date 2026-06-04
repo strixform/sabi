@@ -201,6 +201,72 @@ export async function clearSabiSession(): Promise<void> {
   cookieStore.delete('sabi_session_id');
 }
 
+// Request password reset
+export async function requestPasswordReset(
+  email: string
+): Promise<{ success: boolean; error?: string; resetToken?: string }> {
+  try {
+    const user = await prisma.sabiUser.findUnique({ where: { email } });
+    if (!user) {
+      return { success: false, error: 'Email not found' };
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenHash = hashToken(resetToken);
+    const resetExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await prisma.sabiUser.update({
+      where: { id: user.id },
+      data: {
+        resetToken: resetTokenHash,
+        resetTokenExpiry: resetExpiry,
+      },
+    });
+
+    return { success: true, resetToken };
+  } catch (error) {
+    console.error('Reset request error:', error);
+    return { success: false, error: 'Request failed' };
+  }
+}
+
+// Reset password with token
+export async function resetPassword(
+  resetToken: string,
+  newPassword: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const resetTokenHash = hashToken(resetToken);
+
+    const user = await prisma.sabiUser.findFirst({
+      where: {
+        resetToken: resetTokenHash,
+        resetTokenExpiry: { gt: new Date() },
+      },
+    });
+
+    if (!user) {
+      return { success: false, error: 'Invalid or expired reset link' };
+    }
+
+    const passwordHash = await hash(newPassword, 10);
+
+    await prisma.sabiUser.update({
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        resetToken: null,
+        resetTokenExpiry: null,
+      },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Reset password error:', error);
+    return { success: false, error: 'Reset failed' };
+  }
+}
+
 // Generate API key
 export async function generateSabiApiKey(userId: string, name: string): Promise<{ key: string; error?: string } | null> {
   try {
