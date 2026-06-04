@@ -39,6 +39,10 @@ model SabiUser {
   apiKeyHash    String?   // For API access
   apiKeyCreatedAt DateTime?
 
+  // Password reset
+  resetToken    String?   // Hashed reset token
+  resetTokenExpiry DateTime?
+
   // Preferences
   webhookUrl    String?   // For API order callbacks
   notifyEmail   Boolean   @default(true)

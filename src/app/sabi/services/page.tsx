@@ -181,10 +181,11 @@ export default function ServicesPage() {
 
               {/* Engagement Rate */}
               <div className="text-center">
-                <p className="text-xs text-slate-500 mb-1">Average Engagement</p>
+                <p className="text-xs text-slate-500 mb-1">Engagement Rate</p>
                 <p className="text-lg font-bold text-cyan-400">
-                  {service.avgEngagement}% - {(service.avgEngagement * 1.5).toFixed(1)}%
+                  8% - 25%+
                 </p>
+                <p className="text-xs text-slate-400 mt-2">Real verified users</p>
               </div>
             </motion.div>
           ))}
