@@ -14,13 +14,7 @@ export default function ResellersPage() {
   return (
     <div className="min-h-screen relative">
       <AnimatedBackground />
-      <SabiHeader
-        showAuth={true}
-        rightLinks={[
-          { label: 'Back', href: '/partners', variant: 'secondary' },
-          { label: 'Apply Now', href: '/partners/resellers/apply', variant: 'primary' },
-        ]}
-      />
+      <SabiHeader showNavigation={false} />
 
       {/* Hero */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative">

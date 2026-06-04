@@ -16,6 +16,7 @@ import { GradientText } from '@/components/AnimatedText';
 import { InteractiveCard } from '@/components/InteractiveCard';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
 import { AnimateInText } from '@/components/AnimateInText';
+import { SabiHeader } from '@/components/SabiHeader';
 import type { Service } from '@/lib/servicesCatalog';
 import { PLATFORMS } from '@/lib/servicesCatalog';
 
@@ -355,15 +356,16 @@ export default function OrderPage() {
   return (
     <div className="min-h-screen relative bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 overflow-hidden">
       <AnimatedBackground />
+      <SabiHeader showNavigation={false} />
 
-      {/* Header with progress */}
-      <div className="relative z-20 border-b border-slate-700/50 bg-slate-900/80 backdrop-blur-xl sticky top-0">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-3xl font-black">New Order</h2>
-            <div className="text-right">
-              <p className="text-sm text-slate-400">Wallet Balance</p>
-              <p className="text-2xl font-bold text-emerald-400">
+      {/* Order Header with Wallet & Progress */}
+      <div className="relative z-20 border-b border-slate-700/50 bg-slate-900/40 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <h2 className="text-2xl sm:text-3xl font-black">New Order</h2>
+            <div className="text-right text-sm sm:text-base">
+              <p className="text-xs sm:text-sm text-slate-400">Wallet Balance</p>
+              <p className="text-xl sm:text-2xl font-bold text-emerald-400">
                 ₦{(wallet.balance / 100).toLocaleString()}
               </p>
             </div>
@@ -396,7 +398,7 @@ export default function OrderPage() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 max-w-6xl mx-auto px-4 py-12">
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
         <AnimatePresence mode="wait">
           {/* Step 1: Platform Selection */}
           {currentStep === 'platform' && (
@@ -407,25 +409,25 @@ export default function OrderPage() {
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.3 }}
             >
-              <div className="mb-8">
-                <h2 className="text-4xl font-black mb-2">
+              <div className="mb-6 sm:mb-8">
+                <h2 className="text-2xl sm:text-4xl font-black mb-2">
                   <GradientText>Choose Your Platform</GradientText>
                 </h2>
-                <p className="text-slate-400 text-lg">
+                <p className="text-slate-400 text-sm sm:text-lg">
                   <AnimateInText type="fade" delay={0.1}>
                     Select where you want to grow your presence
                   </AnimateInText>
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
                 {Object.entries(PLATFORMS).map(([label, value]) => {
                   const Icon = PLATFORM_ICONS[value];
                   return (
                     <motion.button
                       key={value}
                       onClick={() => setSelectedPlatform(value)}
-                      className={`p-6 rounded-xl border-2 transition-all ${
+                      className={`p-3 sm:p-6 rounded-lg sm:rounded-xl border-2 transition-all ${
                         selectedPlatform === value
                           ? `border-blue-500 bg-blue-500/10`
                           : 'border-slate-700/50 bg-slate-800/50 hover:border-slate-600'
@@ -433,8 +435,8 @@ export default function OrderPage() {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
-                      {Icon && <Icon className="text-4xl mb-2" />}
-                      <p className="font-bold text-white">{label}</p>
+                      {Icon && <Icon className="text-2xl sm:text-4xl mb-1 sm:mb-2" />}
+                      <p className="font-bold text-white text-xs sm:text-sm">{label}</p>
                       {selectedPlatform === value && (
                         <motion.div
                           className="mt-2 flex items-center justify-center text-blue-400"

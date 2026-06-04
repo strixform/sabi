@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiCreditCard, FiTrendingUp, FiArrowUpRight, FiInbox, FiAward, FiZap, FiTarget } from 'react-icons/fi';
+import { SabiHeader } from '@/components/SabiHeader';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
 import { GradientText } from '@/components/AnimatedText';
 import { FloatingElement } from '@/components/FloatingElement';
@@ -105,8 +106,9 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen relative">
       <AnimatedBackground />
+      <SabiHeader showNavigation={true} />
 
-      <div className="relative z-10 space-y-8">
+      <div className="relative z-10 space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -443,19 +445,6 @@ export default function DashboardPage() {
                     </AnimateInText>
                   </Link>
                 </motion.div>
-                {session?.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL && (
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="relative group">
-                    <div className="absolute inset-0 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl blur-lg opacity-75 group-hover:opacity-100 transition" />
-                    <Link
-                      href="/sabi/admin"
-                      className="relative block px-8 py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold rounded-xl transition"
-                    >
-                      <AnimateInText type="fade" delay={1.4}>
-                        📊 Admin Panel
-                      </AnimateInText>
-                    </Link>
-                  </motion.div>
-                )}
               </motion.div>
             </div>
           </div>

@@ -14,7 +14,7 @@ export default function PartnersPage() {
   return (
     <div className="min-h-screen relative">
       <AnimatedBackground />
-      <SabiHeader showAuth={true} />
+      <SabiHeader showNavigation={false} />
 
       {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative">
