@@ -1,4 +1,72 @@
-# Sabi Deployment & Testing Guide
+# SABI Production Deployment Guide
+
+**Status**: ✅ Security hardened and production-ready  
+**Date**: June 4, 2026  
+**Next Step**: Configure new production Flutterwave keys
+
+---
+
+## Overview
+
+SABI has completed a comprehensive security audit (see SECURITY_AUDIT.md). All critical vulnerabilities have been remediated. The platform is ready for production deployment with new Flutterwave live keys.
+
+---
+
+## 🚀 PRODUCTION DEPLOYMENT STEPS
+
+### Step 1: Get Production Flutterwave Keys
+- Obtain 3 keys from Flutterwave dashboard (Settings → API Keys)
+  - `FLW_SECRET_KEY` - Secret key (keep private)
+  - `NEXT_PUBLIC_FLW_PUBLIC_KEY` - Public key
+  - `FLW_WEBHOOK_HASH` - Webhook secret
+
+### Step 2: Configure Vercel Environment Variables
+1. Vercel Dashboard → SABI Project → Settings → Environment Variables
+2. Add/update these variables for **Production**:
+   ```
+   FLW_SECRET_KEY = pk_live_...
+   NEXT_PUBLIC_FLW_PUBLIC_KEY = pk_live_...
+   FLW_WEBHOOK_HASH = webhook_secret...
+   TURSO_AUTH_TOKEN = your_token
+   RESEND_API_KEY = your_key
+   NEXT_PUBLIC_APP_URL = https://sability.io
+   NODE_ENV = production
+   ```
+
+### Step 3: Configure Flutterwave Webhook
+1. Flutterwave Dashboard → Settings → Webhooks
+2. Add webhook URL:
+   ```
+   https://sability.io/api/sabi/wallet/webhook
+   ```
+3. Event: `charge.completed`
+
+### Step 4: Test Production Setup
+```bash
+# Test endpoint health
+curl https://sability.io/api/health
+
+# Test payment flow:
+1. Register at https://sability.io/sabi/register
+2. Fund wallet with ₦5,000 (test with card: 4242 4242 4242 4242)
+3. Verify wallet credited
+4. Place test order
+5. Verify campaign created in Gamerz360
+```
+
+### Step 5: Deploy
+```bash
+git push origin main
+# Vercel auto-deploys - check deployment status
+```
+
+### Step 6: Verify Production
+- [ ] Webhook logs show received payments
+- [ ] Wallet balances update correctly
+- [ ] Orders show correct campaign IDs
+- [ ] Error logs are clear
+
+---
 
 ## Phase 1: Database & Backend ✅ COMPLETE
 
