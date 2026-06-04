@@ -16,7 +16,7 @@ import { GradientText } from '@/components/AnimatedText';
 import { InteractiveCard } from '@/components/InteractiveCard';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
 import { AnimateInText } from '@/components/AnimateInText';
-import { SabiHeader } from '@/components/SabiHeader';
+import { ModernSabiHeader } from '@/components/ModernSabiHeader';
 import type { Service } from '@/lib/servicesCatalog';
 import { PLATFORMS } from '@/lib/servicesCatalog';
 
@@ -356,7 +356,7 @@ export default function OrderPage() {
   return (
     <div className="min-h-screen relative bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 overflow-hidden">
       <AnimatedBackground />
-      <SabiHeader showNavigation={false} />
+      <ModernSabiHeader showNavigation={true} />
 
       {/* Order Header with Wallet & Progress */}
       <div className="relative z-20 border-b border-slate-700/50 bg-slate-900/40 backdrop-blur-sm">
