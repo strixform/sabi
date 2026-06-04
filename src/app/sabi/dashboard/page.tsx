@@ -22,10 +22,16 @@ const TIER_SYSTEM = {
   MYTHIC: { level: 6, minSpent: 50000000, label: '🔥 Mythic', color: 'from-red-400 to-rose-600', badge: 'Unstoppable' },
 };
 
+interface SessionUser {
+  id: string;
+  email: string;
+  name: string;
+}
+
 export default function DashboardPage() {
   const [wallet, setWallet] = useState({ balance: 0, spent: 0, active: 0 });
   const [loading, setLoading] = useState(true);
-  const [session, setSession] = useState(null);
+  const [session, setSession] = useState<SessionUser | null>(null);
   const [tier, setTier] = useState(TIER_SYSTEM.NOVICE);
   const [progress, setProgress] = useState(0);
 
@@ -437,6 +443,19 @@ export default function DashboardPage() {
                     </AnimateInText>
                   </Link>
                 </motion.div>
+                {session?.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL && (
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="relative group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl blur-lg opacity-75 group-hover:opacity-100 transition" />
+                    <Link
+                      href="/sabi/admin"
+                      className="relative block px-8 py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold rounded-xl transition"
+                    >
+                      <AnimateInText type="fade" delay={1.4}>
+                        📊 Admin Panel
+                      </AnimateInText>
+                    </Link>
+                  </motion.div>
+                )}
               </motion.div>
             </div>
           </div>
