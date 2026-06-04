@@ -61,7 +61,7 @@ function HomeContent() {
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
-              className="text-white -mt-4 sm:-mt-2 lg:mt-0"
+              className="text-white -mt-8 sm:-mt-4 lg:-mt-1"
             >
               <AnimateInText type="slide" delay={0.7}>
                 Powered by Real Nigerian Users
