@@ -21,80 +21,75 @@ export const SabiLogo: React.FC<SabiLogoProps> = ({ size = 'md', className = '' 
       xmlns="http://www.w3.org/2000/svg"
     >
       <defs>
-        {/* Main gradient for seed */}
-        <linearGradient id="megaSeedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style={{ stopColor: '#10b981', stopOpacity: 1 }} />
-          <stop offset="50%" style={{ stopColor: '#059669', stopOpacity: 1 }} />
-          <stop offset="100%" style={{ stopColor: '#047857', stopOpacity: 1 }} />
+        {/* Gradient for triangles - growth upward */}
+        <linearGradient id="triangleGrad" x1="50%" y1="0%" x2="50%" y2="100%">
+          <stop offset="0%" style={{ stopColor: '#06b6d4', stopOpacity: 1 }} />
+          <stop offset="50%" style={{ stopColor: '#0ea5e9', stopOpacity: 1 }} />
+          <stop offset="100%" style={{ stopColor: '#3b82f6', stopOpacity: 1 }} />
         </linearGradient>
 
         {/* Glow effect */}
-        <radialGradient id="seedGlow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" style={{ stopColor: '#34d399', stopOpacity: 0.4 }} />
-          <stop offset="100%" style={{ stopColor: '#10b981', stopOpacity: 0 }} />
+        <radialGradient id="triGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" style={{ stopColor: '#06b6d4', stopOpacity: 0.5 }} />
+          <stop offset="100%" style={{ stopColor: '#0ea5e9', stopOpacity: 0 }} />
         </radialGradient>
 
-        {/* Shine gradient */}
-        <linearGradient id="seedShine" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style={{ stopColor: '#ffffff', stopOpacity: 0.6 }} />
-          <stop offset="50%" style={{ stopColor: '#ffffff', stopOpacity: 0.2 }} />
-          <stop offset="100%" style={{ stopColor: '#ffffff', stopOpacity: 0 }} />
+        {/* Accent gradient for inner triangles */}
+        <linearGradient id="innerTriGrad" x1="50%" y1="0%" x2="50%" y2="100%">
+          <stop offset="0%" style={{ stopColor: '#10b981', stopOpacity: 1 }} />
+          <stop offset="50%" style={{ stopColor: '#06b6d4', stopOpacity: 1 }} />
+          <stop offset="100%" style={{ stopColor: '#3b82f6', stopOpacity: 1 }} />
         </linearGradient>
       </defs>
 
       {/* Outer glow circle */}
-      <circle cx="100" cy="100" r="98" fill="url(#seedGlow)" />
+      <circle cx="100" cy="100" r="98" fill="url(#triGlow)" />
 
-      {/* Main seed shape - oval pod */}
-      <ellipse cx="100" cy="95" rx="55" ry="70" fill="url(#megaSeedGrad)" />
-
-      {/* Seed shine/highlight */}
-      <ellipse cx="85" cy="65" rx="25" ry="35" fill="url(#seedShine)" opacity="0.8" />
-
-      {/* Seed ridges/texture lines */}
-      <path
-        d="M 85 50 Q 90 65 85 80"
-        stroke="rgba(255,255,255,0.3)"
-        strokeWidth="2"
-        fill="none"
-        strokeLinecap="round"
-      />
-      <path
-        d="M 100 40 Q 105 65 100 90"
-        stroke="rgba(255,255,255,0.4)"
-        strokeWidth="2"
-        fill="none"
-        strokeLinecap="round"
-      />
-      <path
-        d="M 115 50 Q 110 65 115 80"
-        stroke="rgba(255,255,255,0.3)"
-        strokeWidth="2"
-        fill="none"
-        strokeLinecap="round"
+      {/* Outermost Triangle - Largest */}
+      <polygon
+        points="100,30 160,160 40,160"
+        fill="url(#triangleGrad)"
+        opacity="0.9"
       />
 
-      {/* Seed stem/tip */}
-      <ellipse cx="100" cy="35" rx="12" ry="18" fill="url(#megaSeedGrad)" opacity="0.9" />
-      <path
-        d="M 100 20 Q 98 28 100 35"
-        stroke="rgba(255,255,255,0.5)"
-        strokeWidth="1.5"
-        fill="none"
-        strokeLinecap="round"
+      {/* Second Triangle */}
+      <polygon
+        points="100,50 145,150 55,150"
+        fill="url(#innerTriGrad)"
+        opacity="0.85"
+        style={{ filter: 'drop-shadow(0 0 4px rgba(6,182,212,0.4))' }}
       />
 
-      {/* Inner highlight on main body */}
-      <ellipse cx="100" cy="100" rx="30" ry="45" fill="rgba(255,255,255,0.15)" />
+      {/* Third Triangle */}
+      <polygon
+        points="100,70 130,140 70,140"
+        fill="url(#triangleGrad)"
+        opacity="0.8"
+      />
 
-      {/* Bottom seed detail */}
-      <ellipse cx="100" cy="155" rx="35" ry="15" fill="rgba(255,255,255,0.2)" opacity="0.6" />
+      {/* Fourth Triangle */}
+      <polygon
+        points="100,85 118,130 82,130"
+        fill="url(#innerTriGrad)"
+        opacity="0.75"
+        style={{ filter: 'drop-shadow(0 0 2px rgba(16,185,129,0.5))' }}
+      />
 
-      {/* Glow particles effect - small dots */}
-      <circle cx="65" cy="75" r="3" fill="#34d399" opacity="0.7" />
-      <circle cx="135" cy="85" r="2.5" fill="#34d399" opacity="0.6" />
-      <circle cx="75" cy="130" r="2" fill="#34d399" opacity="0.5" />
-      <circle cx="125" cy="125" r="2.5" fill="#34d399" opacity="0.6" />
+      {/* Center small triangle - Core */}
+      <polygon
+        points="100,100 110,120 90,120"
+        fill="url(#triangleGrad)"
+        opacity="0.9"
+        style={{ filter: 'drop-shadow(0 0 3px rgba(6,182,212,0.6))' }}
+      />
+
+      {/* Center dot - Unity point */}
+      <circle cx="100" cy="110" r="2.5" fill="#ffffff" opacity="0.9" />
+
+      {/* Accent glow points on outer triangle */}
+      <circle cx="160" cy="160" r="2" fill="#06b6d4" opacity="0.7" />
+      <circle cx="40" cy="160" r="2" fill="#10b981" opacity="0.7" />
+      <circle cx="100" cy="35" r="2" fill="#0ea5e9" opacity="0.8" />
     </svg>
   );
 };
