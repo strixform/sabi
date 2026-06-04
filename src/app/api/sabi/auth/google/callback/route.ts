@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
         code,
-        client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "99067746147-30ip8ot6mkiq41ojb3mpdg3atv9ug0fv.apps.googleusercontent.com",
+        client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "685195293928-3aqb2gaq85a92ctc145rgnddk2j7jdr6.apps.googleusercontent.com",
         client_secret: process.env.GOOGLE_CLIENT_SECRET || '',
         redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL || 'https://sability.io'}/api/sabi/auth/google/callback`,
         grant_type: 'authorization_code',
