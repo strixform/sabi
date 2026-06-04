@@ -132,7 +132,7 @@ export const COMPONENT_COLOR_MAP = {
 } as const;
 
 // Get a color from the palette in rotation (for card coloring)
-export function getCardColor(index: number): typeof COMPONENT_COLOR_MAP.card1 {
+export function getCardColor(index: number) {
   const colors = Object.values(COMPONENT_COLOR_MAP);
   return colors[index % colors.length];
 }
