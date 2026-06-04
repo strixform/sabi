@@ -34,7 +34,10 @@ export async function GET(req: NextRequest) {
     });
 
     if (!tokenResponse.ok) {
-      console.error('[Google OAuth] Token exchange failed:', await tokenResponse.text());
+      const errorText = await tokenResponse.text();
+      console.error('[Google OAuth] Token exchange failed:', errorText);
+      console.error('[Google OAuth] Status:', tokenResponse.status);
+      console.error('[Google OAuth] Client Secret set:', !!process.env.GOOGLE_CLIENT_SECRET);
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_APP_URL || 'https://sability.io'}/sabi/login?error=google_token_failed`
       );
@@ -96,6 +99,8 @@ export async function GET(req: NextRequest) {
     );
   } catch (error) {
     console.error('[Google OAuth] Callback error:', error);
+    console.error('[Google OAuth] Error message:', error instanceof Error ? error.message : String(error));
+    console.error('[Google OAuth] Stack:', error instanceof Error ? error.stack : 'N/A');
     return NextResponse.redirect(
       `${process.env.NEXT_PUBLIC_APP_URL || 'https://sability.io'}/sabi/login?error=google_exception`
     );
