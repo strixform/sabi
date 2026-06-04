@@ -14,7 +14,8 @@ import { AnimateInText } from '@/components/AnimateInText';
 import { CuteIconAnimation, FloatingIcon } from '@/components/CuteIconAnimation';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useTranslation } from '@/lib/i18n-client';
-import SabiHeader from '@/components/SabiHeader';
+import { ModernSabiHeader } from '@/components/ModernSabiHeader';
+import { WanderingParticles } from '@/components/WanderingParticles';
 
 function HomeContent() {
   const { language, switchLanguage, t } = useTranslation();
@@ -22,12 +23,13 @@ function HomeContent() {
   return (
     <div className="min-h-screen relative">
       <AnimatedBackground />
+      <WanderingParticles />
 
-      <SabiHeader showNavigation={false} />
+      <ModernSabiHeader showNavigation={false} />
 
       {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative">
-        <div className="text-center space-y-8">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-14 lg:py-16 relative">
+        <div className="text-center space-y-5 sm:space-y-6">
           {/* Floating Badge */}
           <FloatingElement delay={0} duration={3} distance={10}>
             <motion.div
@@ -91,7 +93,7 @@ function HomeContent() {
 
           {/* Trust Badges - Animated */}
           <StaggerContainer staggerDelay={0.1} delay={1.5}>
-            <div className="grid grid-cols-3 md:grid-cols-6 gap-4 max-w-4xl mx-auto pt-8">
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-4 max-w-4xl mx-auto pt-5">
               {[
                 { Icon: FiUsers, label: '50K+', val: 'Users', color: 'blue' },
                 { Icon: FiCheckCircle, label: '100%', val: 'Verified', color: 'blue' },
@@ -122,7 +124,7 @@ function HomeContent() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 2 }}
-            className="flex flex-col md:flex-row gap-4 justify-center pt-8"
+            className="flex flex-col md:flex-row gap-4 justify-center pt-5"
           >
             <motion.div
               whileHover={{ scale: 1.05 }}
@@ -158,12 +160,12 @@ function HomeContent() {
       </section>
 
       {/* Services Preview */}
-      <section id="services" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-slate-800/50">
+      <section id="services" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-14 lg:py-16border-t border-slate-800/50">
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           transition={{ duration: 0.8 }}
-          className="text-center mb-12"
+          className="text-center mb-8"
         >
           <h2 className="text-4xl font-black mb-4">
             <GradientText>
@@ -208,12 +210,12 @@ function HomeContent() {
       </section>
 
       {/* Why Choose Us */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-slate-800/50">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-14 lg:py-16border-t border-slate-800/50">
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           transition={{ duration: 0.8 }}
-          className="text-center mb-12"
+          className="text-center mb-8"
         >
           <h2 className="text-4xl font-black mb-4">
             <GradientText>
@@ -225,7 +227,7 @@ function HomeContent() {
         </motion.div>
 
         <StaggerContainer staggerDelay={0.12}>
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-2 gap-6">
             {[
               {
                 title: '100% Real & Active Users',
@@ -293,12 +295,12 @@ function HomeContent() {
       </section>
 
       {/* How It Works Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-slate-800/50">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-14 lg:py-16border-t border-slate-800/50">
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           transition={{ duration: 0.8 }}
-          className="text-center mb-12"
+          className="text-center mb-8"
         >
           <h2 className="text-4xl font-black mb-4">
             <GradientText>
@@ -350,12 +352,12 @@ function HomeContent() {
       </section>
 
       {/* Detailed Benefits Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-slate-800/50">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-14 lg:py-16border-t border-slate-800/50">
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           transition={{ duration: 0.8 }}
-          className="text-center mb-12"
+          className="text-center mb-8"
         >
           <h2 className="text-4xl font-black mb-4">
             <GradientText>
@@ -373,7 +375,7 @@ function HomeContent() {
 
         <div className="space-y-8">
           <StaggerContainer staggerDelay={0.12}>
-            <div className="grid md:grid-cols-2 gap-8">
+            <div className="grid md:grid-cols-2 gap-6">
               {[
                 {
                   title: 'Real People = Real Results',
@@ -445,12 +447,12 @@ function HomeContent() {
       </section>
 
       {/* Real Success Stories */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-slate-800/50">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-14 lg:py-16border-t border-slate-800/50">
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           transition={{ duration: 0.8 }}
-          className="text-center mb-12"
+          className="text-center mb-8"
         >
           <h2 className="text-4xl font-black mb-4">
             <GradientText>
@@ -520,12 +522,12 @@ function HomeContent() {
       </section>
 
       {/* Trust & Security Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-slate-800/50">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-14 lg:py-16border-t border-slate-800/50">
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           transition={{ duration: 0.8 }}
-          className="text-center mb-12"
+          className="text-center mb-8"
         >
           <h2 className="text-4xl font-black mb-4">
             <GradientText>
@@ -542,7 +544,7 @@ function HomeContent() {
         </motion.div>
 
         <StaggerContainer staggerDelay={0.12}>
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-2 gap-6">
             {[
               { title: 'Data Encryption', desc: 'All data encrypted in transit and at rest using industry standards', Icon: FiLock },
               { title: '100% Compliance', desc: 'Fully compliant with GDPR, CCPA, and Nigerian data protection laws', Icon: FiShield },
@@ -591,12 +593,12 @@ function HomeContent() {
       </section>
 
       {/* FAQ Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-slate-800/50">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-14 lg:py-16border-t border-slate-800/50">
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           transition={{ duration: 0.8 }}
-          className="text-center mb-12"
+          className="text-center mb-8"
         >
           <h2 className="text-4xl font-black mb-4">
             <GradientText>
@@ -657,7 +659,7 @@ function HomeContent() {
       </section>
 
       {/* Footer CTA */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-slate-800/50 text-center">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-14 lg:py-16border-t border-slate-800/50 text-center">
         <motion.h2
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
