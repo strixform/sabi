@@ -12,7 +12,10 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      wallet,
+      balance: wallet?.balance || 0,
+      totalFunded: wallet?.totalFunded || 0,
+      totalSpent: wallet?.totalSpent || 0,
+      totalRefunded: wallet?.totalRefunded || 0,
       transactions,
     });
   } catch (error) {

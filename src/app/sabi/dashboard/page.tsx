@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { FiCreditCard, FiTrendingUp, FiArrowUpRight, FiInbox } from 'react-icons/fi';
+import { FiCreditCard, FiTrendingUp, FiArrowUpRight, FiInbox, FiAward, FiZap, FiTarget } from 'react-icons/fi';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
 import { GradientText } from '@/components/AnimatedText';
 import { FloatingElement } from '@/components/FloatingElement';
@@ -12,26 +12,87 @@ import { InteractiveCard } from '@/components/InteractiveCard';
 import { AnimateInText } from '@/components/AnimateInText';
 import { CuteIconAnimation, FloatingIcon } from '@/components/CuteIconAnimation';
 
+const TIER_SYSTEM = {
+  NOVICE: { level: 0, minSpent: 0, label: '🆕 Novice', color: 'from-slate-400 to-slate-500', badge: 'Just Started' },
+  JUNIOR: { level: 1, minSpent: 50000, label: '🪶 Junior', color: 'from-blue-400 to-blue-500', badge: 'Growing' },
+  EXPLORER: { level: 2, minSpent: 250000, label: '🔍 Explorer', color: 'from-cyan-400 to-blue-500', badge: 'Active' },
+  MASTER: { level: 3, minSpent: 1000000, label: '⭐ Master', color: 'from-purple-400 to-purple-500', badge: 'Experienced' },
+  ELITE: { level: 4, minSpent: 5000000, label: '💎 Elite', color: 'from-pink-400 to-rose-500', badge: 'Premium' },
+  LEGEND: { level: 5, minSpent: 20000000, label: '👑 Legend', color: 'from-amber-400 to-orange-500', badge: 'Legendary' },
+  MYTHIC: { level: 6, minSpent: 50000000, label: '🔥 Mythic', color: 'from-red-400 to-rose-600', badge: 'Unstoppable' },
+};
+
 export default function DashboardPage() {
   const [wallet, setWallet] = useState({ balance: 0, spent: 0, active: 0 });
   const [loading, setLoading] = useState(true);
+  const [session, setSession] = useState(null);
+  const [tier, setTier] = useState(TIER_SYSTEM.NOVICE);
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/sabi/auth/me');
+        if (!res.ok) {
+          window.location.href = '/sabi/login';
+          return;
+        }
+        const data = await res.json();
+        setSession(data.user);
+      } catch {
+        window.location.href = '/sabi/login';
+      }
+    };
+
     const fetchWallet = async () => {
       try {
-        const res = await fetch('/api/sabi/wallet');
-        const data = await res.json();
+        const walletRes = await fetch('/api/sabi/wallet');
+        if (!walletRes.ok) {
+          window.location.href = '/sabi/login';
+          return;
+        }
+        const walletData = await walletRes.json();
+
+        const ordersRes = await fetch('/api/sabi/orders');
+        const ordersData = await ordersRes.json();
+        const activeOrders = ordersData.orders?.filter((o: any) => o.status === 'pending' || o.status === 'processing' || o.status === 'executing').length || 0;
+
+        const spent = walletData.totalSpent || 0;
+
+        // Calculate tier
+        let currentTier = TIER_SYSTEM.NOVICE;
+        let nextTier = TIER_SYSTEM.JUNIOR;
+
+        const tiers = Object.values(TIER_SYSTEM).sort((a, b) => a.minSpent - b.minSpent);
+
+        for (let i = 0; i < tiers.length; i++) {
+          if (spent >= tiers[i].minSpent) {
+            currentTier = tiers[i];
+            nextTier = tiers[i + 1] || tiers[i];
+          }
+        }
+
+        // Calculate progress to next tier
+        const currentMin = currentTier.minSpent;
+        const nextMin = nextTier.minSpent;
+        const progressValue = nextMin > currentMin ? ((spent - currentMin) / (nextMin - currentMin)) * 100 : 100;
+
         setWallet({
-          balance: data.balance || 0,
-          spent: data.spent || 0,
-          active: data.active || 0,
+          balance: walletData.balance || 0,
+          spent: spent,
+          active: activeOrders,
         });
-      } catch {
-        console.error('Failed to fetch wallet');
+
+        setTier(currentTier);
+        setProgress(Math.min(progressValue, 100));
+      } catch (err) {
+        console.error('Failed to fetch wallet:', err);
       } finally {
         setLoading(false);
       }
     };
+
+    checkAuth();
     fetchWallet();
   }, []);
 
@@ -207,6 +268,104 @@ export default function DashboardPage() {
             </StaggerItem>
           </div>
         </StaggerContainer>
+
+        {/* Tier & Usage Level Section */}
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Tier Card */}
+          <StaggerItem>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+              className={`relative overflow-hidden rounded-2xl p-8 bg-gradient-to-br ${tier.color} border border-white/20 backdrop-blur-xl`}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-50" />
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="text-3xl">{tier.label.split(' ')[0]}</div>
+                    <div>
+                      <h3 className="text-xl font-bold text-white">{tier.label.split(' ').slice(1).join(' ')}</h3>
+                      <p className="text-sm text-white/80">{tier.badge}</p>
+                    </div>
+                  </div>
+                  <CuteIconAnimation type="bounce" duration={2}>
+                    <FiAward className="w-8 h-8 text-white/80" />
+                  </CuteIconAnimation>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-semibold text-white/90">Progress to Next Level</span>
+                      <span className="text-xs font-bold text-white/70">{Math.round(progress)}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
+                      <motion.div
+                        className="h-full bg-white/80 rounded-full"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${progress}%` }}
+                        transition={{ duration: 1, ease: 'easeOut' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-white/80">Total Spent:</span>
+                    <span className="font-bold text-white">₦{loading ? '...' : (wallet.spent / 100).toLocaleString('en-NG')}</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </StaggerItem>
+
+          {/* Usage Level Card */}
+          <StaggerItem>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+              className="relative overflow-hidden rounded-2xl p-8 bg-gradient-to-br from-amber-500/40 to-orange-500/40 border border-white/20 backdrop-blur-xl"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-50" />
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-lg font-bold text-white">Usage Level</h3>
+                    <p className="text-sm text-white/80">Based on your activity</p>
+                  </div>
+                  <CuteIconAnimation type="pulse_glow" duration={2}>
+                    <FiZap className="w-8 h-8 text-white/80" />
+                  </CuteIconAnimation>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white/10 rounded-lg p-4 backdrop-blur">
+                      <p className="text-xs text-white/70 font-semibold mb-1">Active Orders</p>
+                      <p className="text-2xl font-black text-white">{loading ? '...' : wallet.active}</p>
+                    </div>
+                    <div className="bg-white/10 rounded-lg p-4 backdrop-blur">
+                      <p className="text-xs text-white/70 font-semibold mb-1">Available Balance</p>
+                      <p className="text-xl font-black text-white">₦{loading ? '...' : (wallet.balance / 100).toLocaleString('en-NG', { maximumFractionDigits: 0 })}</p>
+                    </div>
+                  </div>
+
+                  <motion.div
+                    className="bg-white/15 rounded-lg p-3 border border-white/20"
+                    animate={{ scale: [1, 1.02, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    <p className="text-xs font-semibold text-white/90">💡 Smart Tip</p>
+                    <p className="text-xs text-white/70 mt-1">
+                      {wallet.balance < 500000 ? 'Fund your wallet to unlock more campaign possibilities!' : 'You\'re all set! Ready to place your next order.'}
+                    </p>
+                  </motion.div>
+                </div>
+              </div>
+            </motion.div>
+          </StaggerItem>
+        </div>
 
         {/* Hero CTA */}
         <motion.div

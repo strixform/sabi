@@ -3,13 +3,11 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { signIn } from 'next-auth/react';
-import { SiGoogle } from 'react-icons/si';
 import { FiTarget } from 'react-icons/fi';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
 import { GradientText } from '@/components/AnimatedText';
 import { AnimateInText } from '@/components/AnimateInText';
-import { CuteIconAnimation, FloatingIcon } from '@/components/CuteIconAnimation';
+import { CuteIconAnimation } from '@/components/CuteIconAnimation';
 import { InteractiveCard } from '@/components/InteractiveCard';
 
 export default function LoginPage() {
@@ -44,15 +42,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setLoading(true);
-    try {
-      await signIn('google', { redirect: true, redirectTo: '/sabi/dashboard' });
-    } catch (err) {
-      setError('Google login failed');
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen relative flex items-center justify-center">
@@ -160,36 +149,6 @@ export default function LoginPage() {
               </AnimateInText>
             </motion.button>
 
-            {/* Divider */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.8 }}
-              className="flex items-center gap-4"
-            >
-              <div className="flex-1 h-px bg-slate-700/50"></div>
-              <span className="text-xs text-slate-500">OR</span>
-              <div className="flex-1 h-px bg-slate-700/50"></div>
-            </motion.div>
-
-            {/* Google Login Button */}
-            <motion.button
-              type="button"
-              onClick={handleGoogleLogin}
-              disabled={loading}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="w-full px-6 py-3 border-2 border-slate-700 hover:border-blue-400 text-white font-bold rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:bg-slate-800/50"
-            >
-              <FloatingIcon delay={0} speed={3}>
-                <SiGoogle className="text-xl" />
-              </FloatingIcon>
-              <span>
-                <AnimateInText type="fade" delay={0.9}>
-                  Continue with Google
-                </AnimateInText>
-              </span>
-            </motion.button>
           </motion.form>
         </InteractiveCard>
 

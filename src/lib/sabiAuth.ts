@@ -70,6 +70,7 @@ export async function loginSabiUser(
 ): Promise<{ success: boolean; error?: string; userId?: string }> {
   try {
     const user = await prisma.sabiUser.findUnique({ where: { email } });
+
     if (!user || !user.passwordHash) {
       return { success: false, error: 'Invalid credentials' };
     }
