@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   FiArrowLeft, FiLoader, FiCheck, FiX, FiTrendingUp, FiUsers, FiZap,
-  FiChevronDown, FiFilter, FiRefreshCw, FiSend, FiAlertCircle, FiCheckCircle
+  FiChevronDown, FiFilter, FiRefreshCw, FiSend, FiAlertCircle, FiCheckCircle, FiSettings
 } from 'react-icons/fi';
 import { GradientText } from '@/components/AnimatedText';
 import { InteractiveCard } from '@/components/InteractiveCard';
@@ -460,11 +460,21 @@ export default function AdminPage() {
           </InteractiveCard>
         </motion.div>
 
-        {/* Back Button */}
-        <motion.div className="mt-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}>
-          <Link href="/sabi/dashboard">
+        {/* Navigation Buttons */}
+        <motion.div className="mt-8 flex gap-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}>
+          <Link href="/sabi/admin/settings" className="flex-1">
             <motion.button
-              className="px-6 py-3 bg-slate-700/50 hover:bg-slate-600 text-white font-semibold rounded-lg transition flex items-center gap-2"
+              className="w-full px-6 py-3 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/50 text-blue-300 font-semibold rounded-lg transition flex items-center justify-center gap-2"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <FiSettings className="w-5 h-5" />
+              Settings
+            </motion.button>
+          </Link>
+          <Link href="/sabi/dashboard" className="flex-1">
+            <motion.button
+              className="w-full px-6 py-3 bg-slate-700/50 hover:bg-slate-600 text-white font-semibold rounded-lg transition flex items-center justify-center gap-2"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >

@@ -396,3 +396,14 @@ model SupportTicket {
   @@index([resellerId])
   @@index([status])
 }
+
+model SABIAdminConfig {
+  id                    String    @id @default(cuid())
+  minOrderQuantity      Int       @default(5)
+  maxOrderQuantity      Int       @default(5000)
+  updatedAt             DateTime  @updatedAt
+  updatedBy             String?
+  createdAt             DateTime  @default(now())
+
+  @@unique([id])
+}
