@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 import { SabiLogo } from './SabiLogo';
 
 interface LogoImageProps {
@@ -29,9 +28,9 @@ export const LogoImage: React.FC<LogoImageProps> = ({
   variant = 'primary'
 }) => {
   const sizeMap = {
-    sm: { width: 32, height: 32, className: 'w-8 h-8' },
-    md: { width: 48, height: 48, className: 'w-10 h-10 md:w-12 md:h-12' },
-    lg: { width: 64, height: 64, className: 'w-16 h-16' },
+    sm: { className: 'w-8 h-8' },
+    md: { className: 'w-10 h-10 md:w-12 md:h-12' },
+    lg: { className: 'w-16 h-16' },
   };
 
   const sizeConfig = sizeMap[size];
@@ -54,15 +53,12 @@ export const LogoImage: React.FC<LogoImageProps> = ({
 
   return (
     <div className={`${sizeConfig.className} ${className} flex items-center justify-center`}>
-      <Image
+      <img
         src={logoPath}
         alt="Sabi Logo"
-        width={sizeConfig.width}
-        height={sizeConfig.height}
-        priority
         onError={() => setImageError(true)}
         className="w-full h-full object-contain"
-        unoptimized={logoPath.endsWith('.svg')}
+        loading="eager"
       />
     </div>
   );
