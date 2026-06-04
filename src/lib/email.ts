@@ -112,3 +112,4 @@ export async function sendVerificationEmail(
     return { success: false, error: 'Failed to send email' };
   }
 }
+

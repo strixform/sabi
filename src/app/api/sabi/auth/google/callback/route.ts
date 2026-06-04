@@ -1,0 +1,102 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { hash } from 'bcryptjs';
+import { createSabiSession } from '@/lib/sabiAuth';
+import crypto from 'crypto';
+
+const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
+const GOOGLE_USERINFO_URL = 'https://openidconnect.googleapis.com/v1/userinfo';
+
+export async function GET(req: NextRequest) {
+  try {
+    const searchParams = req.nextUrl.searchParams;
+    const code = searchParams.get('code');
+    const state = searchParams.get('state');
+
+    if (!code) {
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL || 'https://sability.io'}/sabi/login?error=google_no_code`
+      );
+    }
+
+    // Exchange code for tokens
+    const tokenResponse = await fetch(GOOGLE_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "99067746147-30ip8ot6mkiq41ojb3mpdg3atv9ug0fv.apps.googleusercontent.com",
+        client_secret: process.env.GOOGLE_CLIENT_SECRET || '',
+        redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL || 'https://sability.io'}/api/sabi/auth/google/callback`,
+        grant_type: 'authorization_code',
+      }),
+    });
+
+    if (!tokenResponse.ok) {
+      console.error('[Google OAuth] Token exchange failed:', await tokenResponse.text());
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL || 'https://sability.io'}/sabi/login?error=google_token_failed`
+      );
+    }
+
+    const tokens = await tokenResponse.json();
+    const accessToken = tokens.access_token;
+
+    // Get user info
+    const userInfoResponse = await fetch(GOOGLE_USERINFO_URL, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (!userInfoResponse.ok) {
+      console.error('[Google OAuth] User info fetch failed:', await userInfoResponse.text());
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL || 'https://sability.io'}/sabi/login?error=google_profile_failed`
+      );
+    }
+
+    const googleUser = await userInfoResponse.json();
+    const { email, name, sub: googleId } = googleUser;
+
+    if (!email) {
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL || 'https://sability.io'}/sabi/login?error=google_no_email`
+      );
+    }
+
+    // Find or create user
+    let user = await prisma.sabiUser.findUnique({ where: { email } });
+
+    if (!user) {
+      // Create new user with Google ID
+      user = await prisma.sabiUser.create({
+        data: {
+          email,
+          name: name || email.split('@')[0],
+          googleId,
+          emailVerified: true, // Google emails are verified
+          passwordHash: await hash(crypto.randomBytes(32).toString('hex'), 10), // Random password
+          wallet: { create: {} },
+        },
+      });
+    } else if (!user.googleId) {
+      // Link Google account to existing user
+      user = await prisma.sabiUser.update({
+        where: { id: user.id },
+        data: { googleId, emailVerified: true },
+      });
+    }
+
+    // Create session
+    await createSabiSession(user.id);
+
+    // Redirect to dashboard
+    return NextResponse.redirect(
+      `${process.env.NEXT_PUBLIC_APP_URL || 'https://sability.io'}/sabi/dashboard`
+    );
+  } catch (error) {
+    console.error('[Google OAuth] Callback error:', error);
+    return NextResponse.redirect(
+      `${process.env.NEXT_PUBLIC_APP_URL || 'https://sability.io'}/sabi/login?error=google_exception`
+    );
+  }
+}

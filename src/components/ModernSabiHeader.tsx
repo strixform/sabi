@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiLogOut, FiHome, FiShoppingCart, FiKey, FiBook, FiMenu, FiX, FiCreditCard } from 'react-icons/fi';
-import { SabiLogo } from './SabiLogo';
+import { LogoImage } from './LogoImage';
 
 interface ModernSabiHeaderProps {
   showNavigation?: boolean;
@@ -15,6 +15,21 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
   const pathname = usePathname();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // Check if user is logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const response = await fetch('/api/sabi/auth/me', { credentials: 'include' });
+        setIsLoggedIn(response.ok);
+      } catch {
+        setIsLoggedIn(false);
+      }
+    };
+
+    checkSession();
+  }, [pathname]);
 
   const handleLogout = async () => {
     try {
@@ -45,7 +60,7 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
               whileHover={{ scale: 1.08 }}
               whileTap={{ scale: 0.95 }}
             >
-              <SabiLogo size="sm" className="sm:w-10 sm:h-10 lg:w-12 lg:h-12" />
+              <LogoImage size="sm" className="sm:w-10 sm:h-10 lg:w-12 lg:h-12" />
             </motion.div>
             <div className="hidden sm:flex flex-col">
               <motion.h1
@@ -105,45 +120,51 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
 
           {/* Right Actions */}
           <div className="flex items-center gap-2 lg:gap-4">
-            {/* Status Indicator */}
-            <motion.div
-              className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-            >
+            {/* Status Indicator - Only show when logged in */}
+            {isLoggedIn && (
               <motion.div
-                className="w-2 h-2 rounded-full bg-emerald-400"
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              />
-              <span className="text-xs text-emerald-300 font-semibold">Live</span>
-            </motion.div>
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+              >
+                <motion.div
+                  className="w-2 h-2 rounded-full bg-emerald-400"
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
+                <span className="text-xs text-emerald-300 font-semibold">Live</span>
+              </motion.div>
+            )}
 
-            {/* Fund Wallet Button */}
-            <Link href="/sabi/wallet">
+            {/* Fund Wallet Button - Only show when logged in */}
+            {isLoggedIn && (
+              <Link href="/sabi/wallet">
+                <motion.button
+                  className="p-2 lg:px-4 lg:py-2 rounded-lg bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-emerald-300 hover:from-green-500/30 hover:to-emerald-500/30 border border-emerald-500/30 hover:border-emerald-500/50 transition-all flex items-center gap-2 text-sm font-semibold group"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  title="Fund Wallet"
+                >
+                  <FiCreditCard className="w-4 h-4" />
+                  <span className="hidden lg:inline">Fund Wallet</span>
+                </motion.button>
+              </Link>
+            )}
+
+            {/* Logout - Only show when logged in */}
+            {isLoggedIn && (
               <motion.button
-                className="p-2 lg:px-4 lg:py-2 rounded-lg bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-emerald-300 hover:from-green-500/30 hover:to-emerald-500/30 border border-emerald-500/30 hover:border-emerald-500/50 transition-all flex items-center gap-2 text-sm font-semibold group"
+                onClick={handleLogout}
+                className="p-2 lg:px-4 lg:py-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all flex items-center gap-2 text-sm font-semibold group"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                title="Fund Wallet"
+                title="Logout"
               >
-                <FiCreditCard className="w-4 h-4" />
-                <span className="hidden lg:inline">Fund Wallet</span>
+                <FiLogOut className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+                <span className="hidden lg:inline">Logout</span>
               </motion.button>
-            </Link>
-
-            {/* Logout */}
-            <motion.button
-              onClick={handleLogout}
-              className="p-2 lg:px-4 lg:py-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all flex items-center gap-2 text-sm font-semibold group"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              title="Logout"
-            >
-              <FiLogOut className="w-4 h-4 group-hover:rotate-12 transition-transform" />
-              <span className="hidden lg:inline">Logout</span>
-            </motion.button>
+            )}
 
             {/* Mobile Menu Button */}
             {showNavigation && (
