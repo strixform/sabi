@@ -97,7 +97,7 @@ function HomeContent() {
               {[
                 { Icon: FiUsers, label: '50K+', val: 'Users', color: 'blue' },
                 { Icon: FiCheckCircle, label: '100%', val: 'Verified', color: 'blue' },
-                { Icon: FiMessageCircle, label: '8-25%', val: 'Engagement', color: 'purple' },
+                { Icon: FiMessageCircle, label: '55-95%', val: 'Engagement', color: 'purple' },
                 { Icon: FiTrendingUp, label: '300-500%', val: 'ROI', color: 'pink' },
                 { Icon: FiGlobe, label: '100%', val: 'Nigeria', color: 'cyan' },
                 { Icon: FiZap, label: '24hrs', val: 'Delivery', color: 'blue' },

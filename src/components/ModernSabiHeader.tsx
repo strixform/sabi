@@ -54,7 +54,7 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 sm:h-16 lg:h-20">
           {/* Logo & Branding */}
-          <Link href="/" className="flex items-center gap-2 sm:gap-3 group">
+          <Link href={isLoggedIn ? "/sabi/dashboard" : "/"} className="flex items-center gap-2 sm:gap-3 group">
             <motion.div
               className="flex-shrink-0"
               whileHover={{ scale: 1.08 }}
@@ -150,6 +150,30 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
                   <span className="hidden lg:inline">Fund Wallet</span>
                 </motion.button>
               </Link>
+            )}
+
+            {/* Login/Signup - Only show when NOT logged in */}
+            {!isLoggedIn && (
+              <div className="flex items-center gap-2">
+                <Link href="/sabi/login">
+                  <motion.button
+                    className="px-4 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-all text-sm font-semibold"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    Sign In
+                  </motion.button>
+                </Link>
+                <Link href="/sabi/register">
+                  <motion.button
+                    className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white transition-all text-sm font-semibold"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    Sign Up
+                  </motion.button>
+                </Link>
+              </div>
             )}
 
             {/* Logout - Only show when logged in */}
