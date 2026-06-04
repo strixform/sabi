@@ -21,15 +21,19 @@ export async function POST(req: NextRequest) {
     // Verify payment with Flutterwave
     const verification = await verifyFlwTransaction(transactionId);
 
+    console.log('[WALLET CALLBACK] Verification result:', verification);
+
     if (!verification.success) {
+      console.error('[WALLET CALLBACK] Verification failed:', verification.error);
       return NextResponse.json(
-        { error: 'Payment verification failed', success: false },
+        { error: verification.error || 'Payment verification failed', success: false },
         { status: 400 }
       );
     }
 
     // Check if payment was successful
     if (verification.status !== 'successful') {
+      console.error('[WALLET CALLBACK] Payment not successful:', verification.status);
       return NextResponse.json(
         { error: `Payment ${verification.status}`, success: false },
         { status: 400 }
