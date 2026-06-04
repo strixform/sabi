@@ -141,21 +141,65 @@ async function createGamesz360Campaign(
   brandName: string
 ): Promise<{ success: boolean; campaignId?: string; advertiserId?: string; error?: string }> {
   try {
-    const mockCampaignId = `sabi_${orderId.substring(0, 8)}`;
-    const mockAdvertiserId = `adv_sabi_${userId.substring(0, 8)}`;
+    const user = await prisma.sabiUser.findUnique({
+      where: { id: userId },
+      select: { email: true },
+    });
 
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    if (!user) {
+      return { success: false, error: 'User not found' };
+    }
+
+    // Call gamerz360 integration endpoint
+    const gamerz360ApiUrl = process.env.GAMERZ360_API_URL || 'https://gamerz360.com';
+    const integrationToken = process.env.SABI_INTEGRATION_TOKEN;
+
+    if (!integrationToken) {
+      console.error('SABI_INTEGRATION_TOKEN not set');
+      return { success: false, error: 'Integration not configured' };
+    }
+
+    const payload = {
+      sabiOrderId: orderId,
+      serviceType: serviceId,
+      targetUrl,
+      quantity,
+      totalPrice: budgetInKobo,
+      sabiUserId: userId,
+      sabiUserEmail: user.email,
+      webhookUrl: `${process.env.SABI_BASE_URL || 'https://sability.io'}/api/webhooks/gamerz360`,
+    };
+
+    const response = await fetch(`${gamerz360ApiUrl}/api/admin/sabi/orders`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${integrationToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('Gamerz360 integration error:', errorData);
+      return {
+        success: false,
+        error: `Failed to create campaign: ${response.status}`,
+      };
+    }
+
+    const data = await response.json();
 
     return {
       success: true,
-      campaignId: mockCampaignId,
-      advertiserId: mockAdvertiserId,
+      campaignId: data.campaignId,
+      advertiserId: data.advertiserId,
     };
   } catch (error) {
     console.error('Campaign creation error:', error);
     return {
       success: false,
-      error: 'Failed to create campaign',
+      error: String(error),
     };
   }
 }
