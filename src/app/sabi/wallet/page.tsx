@@ -19,6 +19,7 @@ export default function WalletPage() {
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<any>(null);
   const [showBalance, setShowBalance] = useState(true);
+  const [fundLoading, setFundLoading] = useState(false);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -153,12 +154,53 @@ export default function WalletPage() {
               </div>
 
               <motion.button
-                className="w-full mt-6 px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold rounded-lg transition flex items-center justify-center gap-2"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                onClick={async () => {
+                  const amountStr = prompt('Enter amount to fund (₦):', '1000');
+                  if (!amountStr) return;
+
+                  const amount = parseInt(amountStr);
+                  if (isNaN(amount) || amount < 500 || amount > 10000000) {
+                    alert('Amount must be between ₦500 and ₦10,000,000');
+                    return;
+                  }
+
+                  setFundLoading(true);
+                  try {
+                    const res = await fetch('/api/sabi/wallet/fund', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ amount }),
+                      credentials: 'include',
+                    });
+                    const data = await res.json();
+                    if (data.paymentLink) {
+                      window.location.href = data.paymentLink;
+                    } else {
+                      alert('Failed to initialize payment: ' + (data.error || 'Unknown error'));
+                    }
+                  } catch (err) {
+                    console.error('Fund error:', err);
+                    alert('Failed to initiate payment. Please try again.');
+                  } finally {
+                    setFundLoading(false);
+                  }
+                }}
+                disabled={fundLoading}
+                className="w-full mt-6 px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 disabled:from-slate-600 disabled:to-slate-600 text-white font-bold rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                whileHover={{ scale: fundLoading ? 1 : 1.05 }}
+                whileTap={{ scale: fundLoading ? 1 : 0.95 }}
               >
-                <FiCreditCard className="w-5 h-5" />
-                Fund Wallet (Flutterwave)
+                {fundLoading ? (
+                  <>
+                    <FiLoader className="w-5 h-5 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <FiCreditCard className="w-5 h-5" />
+                    Fund Wallet (Flutterwave)
+                  </>
+                )}
               </motion.button>
             </div>
           </InteractiveCard>
