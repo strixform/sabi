@@ -74,7 +74,7 @@ export function PWAInstallPrompt() {
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <img
-                    src="/sabi-logo.png"
+                    src="/sabi-logo.png?v=2024060501"
                     alt="SABI Logo"
                     className="w-16 h-16"
                   />
