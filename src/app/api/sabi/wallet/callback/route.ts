@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSabiSession } from '@/lib/sabiAuth';
 import { getPrismaClient } from '@/lib/prisma';
-import { verifyFlwPayment } from '@/lib/sabiFlutterwave';
+import { verifyFlwTransaction } from '@/lib/sabiFlutterwave';
 
 const prisma = getPrismaClient();
 
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify payment with Flutterwave
-    const verification = await verifyFlwPayment(transactionId);
+    const verification = await verifyFlwTransaction(transactionId);
 
     if (!verification.success) {
       return NextResponse.json(
