@@ -18,6 +18,7 @@ export default function WalletPage() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<any>(null);
+  const [showBalance, setShowBalance] = useState(true);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -90,13 +91,24 @@ export default function WalletPage() {
                   <FiCreditCard className="w-6 h-6" />
                   Wallet Balance
                 </h3>
-                <motion.div
-                  className="text-4xl font-black text-emerald-400"
-                  initial={{ scale: 0.8 }}
-                  animate={{ scale: 1 }}
-                >
-                  ₦{(wallet.balance / 100).toLocaleString()}
-                </motion.div>
+                <div className="flex items-center gap-4">
+                  <motion.div
+                    className="text-4xl font-black text-emerald-400"
+                    initial={{ scale: 0.8 }}
+                    animate={{ scale: 1 }}
+                  >
+                    {showBalance ? `₦${(wallet.balance / 100).toLocaleString()}` : '••••••'}
+                  </motion.div>
+                  <motion.button
+                    onClick={() => setShowBalance(!showBalance)}
+                    className="px-3 py-2 bg-slate-700/50 hover:bg-slate-600 rounded-lg transition text-sm font-semibold"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    title={showBalance ? 'Hide balance' : 'Show balance'}
+                  >
+                    {showBalance ? '👁️' : '👁️‍🗨️'}
+                  </motion.button>
+                </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
@@ -107,7 +119,9 @@ export default function WalletPage() {
                   transition={{ delay: 0.1 }}
                 >
                   <p className="text-xs text-slate-400 mb-1">Total Funded</p>
-                  <p className="text-lg font-bold">₦{(wallet.totalFunded / 100).toLocaleString()}</p>
+                  <p className="text-lg font-bold">
+                    {showBalance ? `₦${(wallet.totalFunded / 100).toLocaleString()}` : '••••••'}
+                  </p>
                 </motion.div>
 
                 <motion.div
@@ -117,7 +131,9 @@ export default function WalletPage() {
                   transition={{ delay: 0.2 }}
                 >
                   <p className="text-xs text-slate-400 mb-1">Total Spent</p>
-                  <p className="text-lg font-bold text-orange-400">₦{(wallet.totalSpent / 100).toLocaleString()}</p>
+                  <p className="text-lg font-bold text-orange-400">
+                    {showBalance ? `₦${(wallet.totalSpent / 100).toLocaleString()}` : '••••••'}
+                  </p>
                 </motion.div>
 
                 <motion.div
@@ -127,7 +143,9 @@ export default function WalletPage() {
                   transition={{ delay: 0.3 }}
                 >
                   <p className="text-xs text-slate-400 mb-1">Total Refunded</p>
-                  <p className="text-lg font-bold text-blue-400">₦{(wallet.totalRefunded / 100).toLocaleString()}</p>
+                  <p className="text-lg font-bold text-blue-400">
+                    {showBalance ? `₦${(wallet.totalRefunded / 100).toLocaleString()}` : '••••••'}
+                  </p>
                 </motion.div>
               </div>
 
@@ -155,7 +173,9 @@ export default function WalletPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-slate-400 mb-1">Available Balance</p>
-                    <p className="text-2xl font-bold">₦{(wallet.balance / 100).toLocaleString()}</p>
+                    <p className="text-2xl font-bold">
+                      {showBalance ? `₦${(wallet.balance / 100).toLocaleString()}` : '••••••'}
+                    </p>
                   </div>
                   <div className="text-3xl">💰</div>
                 </div>

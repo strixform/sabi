@@ -1,23 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSabiSession } from '@/lib/sabiAuth';
 import { getSabiWallet, getSabiTransactions } from '@/lib/sabiWallet';
-import { getCachedWallet, setCachedWallet } from '@/lib/redis';
 
 export async function GET(req: NextRequest) {
   try {
     const session = await getSabiSession();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // Try cache first (5 minute TTL)
-    let cachedData = await getCachedWallet(session.id);
-    if (cachedData) {
-      return NextResponse.json({
-        success: true,
-        ...cachedData,
-        cached: true,
-      });
-    }
-
+    // Fetch wallet data directly (no Redis caching for faster response)
     const wallet = await getSabiWallet(session.id);
     const transactions = await getSabiTransactions(session.id, 20);
 
@@ -29,14 +19,12 @@ export async function GET(req: NextRequest) {
       transactions,
     };
 
-    // Cache for 5 minutes
-    await setCachedWallet(session.id, data, 300);
-
     return NextResponse.json({
       success: true,
       ...data,
     });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed' }, { status: 500 });
+    console.error('Wallet API error:', error);
+    return NextResponse.json({ error: 'Failed to fetch wallet' }, { status: 500 });
   }
 }
