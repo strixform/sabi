@@ -77,10 +77,10 @@ export async function POST(req: NextRequest) {
     await prisma.sabiTransaction.create({
       data: {
         userId: session.id,
-        type: 'credit',
+        type: 'fund',
         amount: amountInKobo,
-        description: `Wallet funded via Flutterwave (Ref: ${transactionId})`,
-        status: 'completed',
+        reference: transactionId,
+        description: `Wallet funded via Flutterwave`,
       },
     });
 
