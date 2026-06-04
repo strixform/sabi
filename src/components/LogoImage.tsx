@@ -36,7 +36,7 @@ export const LogoImage: React.FC<LogoImageProps> = ({
 
   const sizeConfig = sizeMap[size];
   // Cache bust version - increment to force fresh logo load across all devices
-  const cacheVersion = '?v=2024060501';
+  const cacheVersion = '?v=2024060502';
   const logoPath = (variant === 'secondary' ? '/sabi-logo-secondary.png' : '/sabi-logo.png') + cacheVersion;
 
   // Try to load the image, fall back to SVG if not found
