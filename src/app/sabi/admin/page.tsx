@@ -197,22 +197,22 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen relative bg-gradient-to-br from-purple-950 via-pink-950 to-purple-950 overflow-hidden">
+    <div className="min-h-screen relative bg-gradient-to-br from-blue-950 via-blue-900 to-slate-950 overflow-hidden">
       <AnimatedBackground />
 
       {/* Header */}
-      <div className="relative z-20 border-b border-purple-500/30 bg-gradient-to-r from-purple-900/80 to-pink-900/80 backdrop-blur-xl sticky top-0">
+      <div className="relative z-20 border-b border-cyan-500/30 bg-gradient-to-r from-blue-900/80 to-cyan-900/80 backdrop-blur-xl sticky top-0">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-4xl font-black mb-2">
                 <GradientText>SABI Orders</GradientText>
               </h1>
-              <p className="text-sm text-purple-300">View all sabi orders • Forward to Gamerz360 Admin</p>
+              <p className="text-sm text-cyan-300">View all sabi orders • Forward to Gamerz360 Admin</p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-purple-300">Logged in as</p>
-              <p className="text-lg font-bold text-pink-400">{adminEmail}</p>
+              <p className="text-sm text-cyan-300">Logged in as</p>
+              <p className="text-lg font-bold text-cyan-400">{adminEmail}</p>
             </div>
           </div>
         </div>
@@ -474,7 +474,7 @@ export default function AdminPage() {
         <motion.div className="mt-8 flex gap-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}>
           <Link href="/sabi/admin/settings" className="flex-1">
             <motion.button
-              className="w-full px-6 py-3 bg-gradient-to-r from-pink-500/30 to-purple-500/30 hover:from-pink-500/50 hover:to-purple-500/50 border border-pink-500/50 text-pink-300 font-semibold rounded-lg transition flex items-center justify-center gap-2"
+              className="w-full px-6 py-3 bg-gradient-to-r from-blue-500/30 to-cyan-500/30 hover:from-blue-500/50 hover:to-cyan-500/50 border border-cyan-500/50 text-cyan-300 font-semibold rounded-lg transition flex items-center justify-center gap-2"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -484,7 +484,7 @@ export default function AdminPage() {
           </Link>
           <Link href="/sabi/dashboard" className="flex-1">
             <motion.button
-              className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold rounded-lg transition flex items-center justify-center gap-2"
+              className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-semibold rounded-lg transition flex items-center justify-center gap-2"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >

@@ -14,7 +14,7 @@ import { AnimateInText } from '@/components/AnimateInText';
 import { CuteIconAnimation, FloatingIcon } from '@/components/CuteIconAnimation';
 
 const TIER_SYSTEM = {
-  NOVICE: { level: 0, minSpent: 0, label: '🆕 Novice', color: 'from-slate-400 to-slate-500', badge: 'Just Started' },
+  NOVICE: { level: 0, minSpent: 0, label: '🆕 Novice', color: 'from-blue-400 to-cyan-500', badge: 'Just Started' },
   JUNIOR: { level: 1, minSpent: 50000, label: '🪶 Junior', color: 'from-blue-400 to-blue-500', badge: 'Growing' },
   EXPLORER: { level: 2, minSpent: 250000, label: '🔍 Explorer', color: 'from-cyan-400 to-blue-500', badge: 'Active' },
   MASTER: { level: 3, minSpent: 1000000, label: '⭐ Master', color: 'from-purple-400 to-purple-500', badge: 'Experienced' },
