@@ -12,6 +12,7 @@ export async function GET(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams;
     const code = searchParams.get('code');
     const state = searchParams.get('state');
+    // Migrations applied - database ready
 
     if (!code) {
       return NextResponse.redirect(
