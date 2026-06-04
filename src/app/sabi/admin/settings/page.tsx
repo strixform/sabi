@@ -138,22 +138,22 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen relative bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 overflow-hidden">
+    <div className="min-h-screen relative bg-gradient-to-br from-purple-950 via-pink-950 to-purple-950 overflow-hidden">
       <AnimatedBackground />
 
       {/* Header */}
-      <div className="relative z-20 border-b border-slate-700/50 bg-slate-900/80 backdrop-blur-xl sticky top-0">
+      <div className="relative z-20 border-b border-purple-500/30 bg-gradient-to-r from-purple-900/80 to-pink-900/80 backdrop-blur-xl sticky top-0">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-4xl font-black mb-2">
                 <GradientText>SABI Settings</GradientText>
               </h1>
-              <p className="text-sm text-slate-400">Configure order quantity limits for all services</p>
+              <p className="text-sm text-purple-300">Configure order quantity limits for all services</p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-slate-400">Logged in as</p>
-              <p className="text-lg font-bold text-emerald-400">{adminEmail}</p>
+              <p className="text-sm text-purple-300">Logged in as</p>
+              <p className="text-lg font-bold text-pink-400">{adminEmail}</p>
             </div>
           </div>
         </div>
@@ -193,7 +193,7 @@ export default function SettingsPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <InteractiveCard glowColor="blue">
+          <InteractiveCard glowColor="purple">
             <div className="p-8">
               <h2 className="text-2xl font-bold mb-6 text-white flex items-center gap-2">
                 ⚙️ Order Quantity Configuration
@@ -256,7 +256,7 @@ export default function SettingsPage() {
                 <motion.button
                   onClick={handleSave}
                   disabled={saving}
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-slate-600 disabled:to-slate-600 text-white font-semibold rounded-lg transition flex items-center justify-center gap-2"
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 disabled:from-slate-600 disabled:to-slate-600 text-white font-semibold rounded-lg transition flex items-center justify-center gap-2"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
@@ -266,7 +266,7 @@ export default function SettingsPage() {
 
                 <Link href="/sabi/admin" className="flex-1">
                   <motion.button
-                    className="w-full px-6 py-3 bg-slate-700/50 hover:bg-slate-600 text-white font-semibold rounded-lg transition flex items-center justify-center gap-2"
+                    className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold rounded-lg transition flex items-center justify-center gap-2"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
@@ -286,7 +286,7 @@ export default function SettingsPage() {
           transition={{ delay: 0.3 }}
           className="mt-8"
         >
-          <InteractiveCard glowColor="emerald">
+          <InteractiveCard glowColor="pink">
             <div className="p-6">
               <h3 className="text-lg font-bold mb-4 text-white">ℹ️ How It Works</h3>
               <div className="space-y-3 text-slate-300 text-sm">
