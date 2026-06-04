@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { SiInstagram, SiTiktok, SiYoutube, SiFacebook } from 'react-icons/si';
+import { SiInstagram, SiTiktok, SiYoutube, SiFacebook, SiTwitch, SiSnapchat, SiSpotify, SiWhatsapp, SiPinterest, SiThreads, SiTelegram } from 'react-icons/si';
 import { SiX } from 'react-icons/si';
 import { FiGlobe, FiTarget, FiUsers, FiCheckCircle, FiMessageCircle, FiTrendingUp, FiZap, FiCreditCard, FiBarChart2, FiArrowUpRight, FiLock, FiDollarSign, FiInbox, FiAward, FiShield, FiHeadphones } from 'react-icons/fi';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
@@ -29,7 +29,7 @@ function HomeContent() {
 
       {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 lg:py-12 relative">
-        <div className="text-center space-y-1 sm:space-y-2 lg:space-y-3">
+        <div className="text-center space-y-0 sm:space-y-1 lg:space-y-2">
           {/* Floating Badge */}
           <FloatingElement delay={0} duration={3} distance={10}>
             <motion.div
@@ -43,7 +43,7 @@ function HomeContent() {
           </FloatingElement>
 
           {/* Main Title with Premium Text Animation */}
-          <h1 className="text-5xl md:text-7xl font-black leading-tight">
+          <h1 className="text-5xl md:text-7xl font-black leading-tight m-0">
             <div className="overflow-hidden h-fit">
               <motion.div
                 initial={{ opacity: 0, y: 80 }}
@@ -61,7 +61,7 @@ function HomeContent() {
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
-              className="text-white mt-1"
+              className="text-white -mt-1 sm:mt-0"
             >
               <AnimateInText type="slide" delay={0.7}>
                 Powered by Real Nigerian Users
@@ -175,19 +175,24 @@ function HomeContent() {
             </GradientText>
           </h2>
           <AnimateInText type="fade" delay={0.3}>
-            <p className="text-slate-300">Real engagement across 30+ digital services</p>
+            <p className="text-slate-300">Real engagement across 40+ digital services</p>
           </AnimateInText>
         </motion.div>
 
         <StaggerContainer staggerDelay={0.1}>
-          <div className="grid md:grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
+          <div className="grid md:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
             {[
               { Icon: SiInstagram, name: 'Instagram', services: '6 Services', color: 'pink', glowColor: 'pink' },
               { Icon: SiX, name: 'Twitter/X', services: '5 Services', color: 'white', glowColor: 'cyan' },
               { Icon: SiTiktok, name: 'TikTok', services: '5 Services', color: 'white', glowColor: 'purple' },
-              { Icon: SiYoutube, name: 'YouTube', services: '5 Services', color: 'red', glowColor: 'blue' },
-              { Icon: SiFacebook, name: 'Facebook', services: '3 Services', color: 'blue', glowColor: 'blue' },
-              { Icon: FiGlobe, name: 'Website & Conversion', services: '4 Services', color: 'slate', glowColor: 'cyan' },
+              { Icon: SiYoutube, name: 'YouTube', services: '5 Services', color: 'red', glowColor: 'red' },
+              { Icon: SiTwitch, name: 'Twitch', services: '4 Services', color: 'purple', glowColor: 'purple' },
+              { Icon: SiSnapchat, name: 'Snapchat', services: '3 Services', color: 'yellow', glowColor: 'yellow' },
+              { Icon: SiSpotify, name: 'Spotify', services: '4 Services', color: 'green', glowColor: 'green' },
+              { Icon: SiWhatsapp, name: 'WhatsApp', services: '2 Services', color: 'green', glowColor: 'green' },
+              { Icon: SiPinterest, name: 'Pinterest', services: '3 Services', color: 'red', glowColor: 'red' },
+              { Icon: SiThreads, name: 'Threads', services: '3 Services', color: 'slate', glowColor: 'cyan' },
+              { Icon: SiTelegram, name: 'Telegram', services: '2 Services', color: 'blue', glowColor: 'blue' },
             ].map((platform, i) => (
               <StaggerItem key={i}>
                 <InteractiveCard glowColor={platform.glowColor as any} delay={0}>
