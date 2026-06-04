@@ -28,8 +28,8 @@ function HomeContent() {
       <ModernSabiHeader showNavigation={false} />
 
       {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-14 lg:py-16 relative">
-        <div className="text-center space-y-5 sm:space-y-6">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 lg:py-12 relative">
+        <div className="text-center space-y-3 sm:space-y-4 lg:space-y-5">
           {/* Floating Badge */}
           <FloatingElement delay={0} duration={3} distance={10}>
             <motion.div
@@ -165,7 +165,7 @@ function HomeContent() {
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           transition={{ duration: 0.8 }}
-          className="text-center mb-8"
+          className="text-center mb-5 sm:mb-6 lg:mb-8"
         >
           <h2 className="text-4xl font-black mb-4">
             <GradientText>
@@ -180,7 +180,7 @@ function HomeContent() {
         </motion.div>
 
         <StaggerContainer staggerDelay={0.1}>
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
             {[
               { Icon: SiInstagram, name: 'Instagram', services: '6 Services', color: 'pink', glowColor: 'pink' },
               { Icon: SiX, name: 'Twitter/X', services: '5 Services', color: 'white', glowColor: 'cyan' },
@@ -215,7 +215,7 @@ function HomeContent() {
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           transition={{ duration: 0.8 }}
-          className="text-center mb-8"
+          className="text-center mb-5 sm:mb-6 lg:mb-8"
         >
           <h2 className="text-4xl font-black mb-4">
             <GradientText>
@@ -227,7 +227,7 @@ function HomeContent() {
         </motion.div>
 
         <StaggerContainer staggerDelay={0.12}>
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 gap-4 sm:gap-5 lg:gap-6">
             {[
               {
                 title: '100% Real & Active Users',
@@ -300,7 +300,7 @@ function HomeContent() {
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           transition={{ duration: 0.8 }}
-          className="text-center mb-8"
+          className="text-center mb-5 sm:mb-6 lg:mb-8"
         >
           <h2 className="text-4xl font-black mb-4">
             <GradientText>
@@ -317,7 +317,7 @@ function HomeContent() {
         </motion.div>
 
         <StaggerContainer staggerDelay={0.15}>
-          <div className="grid md:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
             {[
               { step: '1', title: 'Create Account', desc: 'Sign up in 30 seconds with email or Google', Icon: FiUsers },
               { step: '2', title: 'Fund Wallet', desc: 'Add funds via Flutterwave (secure, instant)', Icon: FiCreditCard },
@@ -357,7 +357,7 @@ function HomeContent() {
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           transition={{ duration: 0.8 }}
-          className="text-center mb-8"
+          className="text-center mb-5 sm:mb-6 lg:mb-8"
         >
           <h2 className="text-4xl font-black mb-4">
             <GradientText>
@@ -375,7 +375,7 @@ function HomeContent() {
 
         <div className="space-y-8">
           <StaggerContainer staggerDelay={0.12}>
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-2 gap-4 sm:gap-5 lg:gap-6">
               {[
                 {
                   title: 'Real People = Real Results',
@@ -452,7 +452,7 @@ function HomeContent() {
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           transition={{ duration: 0.8 }}
-          className="text-center mb-8"
+          className="text-center mb-5 sm:mb-6 lg:mb-8"
         >
           <h2 className="text-4xl font-black mb-4">
             <GradientText>
@@ -469,7 +469,7 @@ function HomeContent() {
         </motion.div>
 
         <StaggerContainer staggerDelay={0.15}>
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
             {[
               {
                 name: 'Chioma O.',
@@ -527,7 +527,7 @@ function HomeContent() {
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           transition={{ duration: 0.8 }}
-          className="text-center mb-8"
+          className="text-center mb-5 sm:mb-6 lg:mb-8"
         >
           <h2 className="text-4xl font-black mb-4">
             <GradientText>
@@ -544,7 +544,7 @@ function HomeContent() {
         </motion.div>
 
         <StaggerContainer staggerDelay={0.12}>
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 gap-4 sm:gap-5 lg:gap-6">
             {[
               { title: 'Data Encryption', desc: 'All data encrypted in transit and at rest using industry standards', Icon: FiLock },
               { title: '100% Compliance', desc: 'Fully compliant with GDPR, CCPA, and Nigerian data protection laws', Icon: FiShield },
@@ -598,7 +598,7 @@ function HomeContent() {
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           transition={{ duration: 0.8 }}
-          className="text-center mb-8"
+          className="text-center mb-5 sm:mb-6 lg:mb-8"
         >
           <h2 className="text-4xl font-black mb-4">
             <GradientText>
@@ -610,7 +610,7 @@ function HomeContent() {
         </motion.div>
 
         <StaggerContainer staggerDelay={0.1}>
-          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-4 sm:gap-5 lg:gap-6 max-w-4xl mx-auto">
             {[
               {
                 q: 'Will my account get banned?',

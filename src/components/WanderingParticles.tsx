@@ -8,12 +8,12 @@ export const WanderingParticles: React.FC = () => {
     id: i,
     delay: Math.random() * 2,
     duration: 8 + Math.random() * 4,
-    size: 2 + Math.random() * 4,
+    size: 3 + Math.random() * 5,
     startX: Math.random() * 100,
     startY: Math.random() * 100,
     offsetX: (Math.random() - 0.5) * 200,
     offsetY: (Math.random() - 0.5) * 200,
-    opacity: 0.1 + Math.random() * 0.3,
+    opacity: 0.25 + Math.random() * 0.4,
   }));
 
   return (
@@ -28,8 +28,8 @@ export const WanderingParticles: React.FC = () => {
             top: `${particle.startY}%`,
             width: `${particle.size}px`,
             height: `${particle.size}px`,
-            background: `radial-gradient(circle, rgba(16,185,129,${particle.opacity}), rgba(5,150,105,0))`,
-            boxShadow: `0 0 ${particle.size * 2}px rgba(16,185,129,${particle.opacity * 0.8})`,
+            background: `radial-gradient(circle, rgba(16,185,129,${particle.opacity * 1.2}), rgba(5,150,105,0))`,
+            boxShadow: `0 0 ${particle.size * 2}px rgba(16,185,129,${particle.opacity * 1.2})`,
           }}
           animate={{
             x: [0, particle.offsetX, 0],
@@ -56,8 +56,8 @@ export const WanderingParticles: React.FC = () => {
             top: `${particle.startY}%`,
             width: `${particle.size + 2}px`,
             height: `${particle.size + 2}px`,
-            background: `radial-gradient(circle, rgba(59,130,246,${particle.opacity}), rgba(139,92,246,0))`,
-            boxShadow: `0 0 ${particle.size * 3}px rgba(139,92,246,${particle.opacity})`,
+            background: `radial-gradient(circle, rgba(59,130,246,${particle.opacity * 1.2}), rgba(139,92,246,0))`,
+            boxShadow: `0 0 ${particle.size * 3}px rgba(139,92,246,${particle.opacity * 1.2})`,
           }}
           animate={{
             x: [particle.offsetX, -particle.offsetX, particle.offsetX],
@@ -84,8 +84,8 @@ export const WanderingParticles: React.FC = () => {
             top: `${particle.startY}%`,
             width: `${particle.size * 1.5}px`,
             height: `${particle.size * 1.5}px`,
-            background: `radial-gradient(circle, rgba(6,182,212,${particle.opacity}), transparent)`,
-            boxShadow: `0 0 ${particle.size * 4}px rgba(6,182,212,${particle.opacity * 0.6})`,
+            background: `radial-gradient(circle, rgba(6,182,212,${particle.opacity * 1.3}), transparent)`,
+            boxShadow: `0 0 ${particle.size * 4}px rgba(6,182,212,${particle.opacity * 1.2})`,
           }}
           animate={{
             x: [-particle.offsetX, particle.offsetX, -particle.offsetX],
