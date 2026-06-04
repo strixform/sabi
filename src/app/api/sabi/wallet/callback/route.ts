@@ -1,0 +1,94 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getSabiSession } from '@/lib/sabiAuth';
+import { getPrismaClient } from '@/lib/prisma';
+import { verifyFlwPayment } from '@/lib/sabiFlutterwave';
+
+const prisma = getPrismaClient();
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await getSabiSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { transactionId, status } = await req.json();
+
+    if (!transactionId) {
+      return NextResponse.json({ error: 'Transaction ID required' }, { status: 400 });
+    }
+
+    // Verify payment with Flutterwave
+    const verification = await verifyFlwPayment(transactionId);
+
+    if (!verification.success) {
+      return NextResponse.json(
+        { error: 'Payment verification failed', success: false },
+        { status: 400 }
+      );
+    }
+
+    const paymentData = verification.data;
+
+    // Check if payment was successful
+    if (paymentData.status !== 'successful') {
+      return NextResponse.json(
+        { error: `Payment ${paymentData.status}`, success: false },
+        { status: 400 }
+      );
+    }
+
+    // Get or create wallet
+    let wallet = await prisma.sabiWallet.findUnique({
+      where: { userId: session.id },
+    });
+
+    if (!wallet) {
+      wallet = await prisma.sabiWallet.create({
+        data: {
+          userId: session.id,
+          balance: 0,
+          totalFunded: 0,
+          totalSpent: 0,
+          totalRefunded: 0,
+        },
+      });
+    }
+
+    // Add funds to wallet
+    const amountInKobo = paymentData.amount; // Flutterwave returns in kobo
+    const newBalance = wallet.balance + amountInKobo;
+
+    const updatedWallet = await prisma.sabiWallet.update({
+      where: { id: wallet.id },
+      data: {
+        balance: newBalance,
+        totalFunded: wallet.totalFunded + amountInKobo,
+      },
+    });
+
+    // Log transaction
+    await prisma.sabiTransaction.create({
+      data: {
+        userId: session.id,
+        type: 'credit',
+        amount: amountInKobo,
+        description: `Wallet funded via Flutterwave (Ref: ${transactionId})`,
+        status: 'completed',
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Payment verified and wallet credited',
+      amount: amountInKobo,
+      newBalance: updatedWallet.balance,
+    });
+  } catch (error) {
+    console.error('[WALLET CALLBACK] Error:', error);
+    return NextResponse.json(
+      { error: 'Failed to process payment callback', success: false },
+      { status: 500 }
+    );
+  }
+}
