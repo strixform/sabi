@@ -22,12 +22,12 @@ export default function WalletPage() {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const res = await fetch('/api/sabi/auth/me');
+        const res = await fetch('/api/sabi/auth/me', { credentials: 'include' });
         const data = await res.json();
         if (data.success) {
           setSession(data.user);
           // Fetch wallet
-          const walletRes = await fetch('/api/sabi/wallet');
+          const walletRes = await fetch('/api/sabi/wallet', { credentials: 'include' });
           const walletData = await walletRes.json();
           if (walletData.success) {
             setWallet({
