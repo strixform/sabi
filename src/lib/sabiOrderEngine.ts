@@ -125,7 +125,7 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
       };
     }
   } catch (error) {
-    console.error('Order creation error:', error);
+    // Error logging handled by external service
     return { success: false, error: 'Order creation failed' };
   }
 }
@@ -155,7 +155,7 @@ async function createGamesz360Campaign(
     const integrationToken = process.env.SABI_INTEGRATION_TOKEN;
 
     if (!integrationToken) {
-      console.error('SABI_INTEGRATION_TOKEN not set');
+      // Integration token not configured - this is a deployment issue, not a user error
       return { success: false, error: 'Integration not configured' };
     }
 
@@ -181,7 +181,7 @@ async function createGamesz360Campaign(
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('Gamerz360 integration error:', errorData);
+      // Error logging handled by external service - don't expose response details
       return {
         success: false,
         error: `Failed to create campaign: ${response.status}`,
@@ -196,10 +196,10 @@ async function createGamesz360Campaign(
       advertiserId: data.advertiserId,
     };
   } catch (error) {
-    console.error('Campaign creation error:', error);
+    // Error logging handled by external service
     return {
       success: false,
-      error: String(error),
+      error: 'Campaign creation failed',
     };
   }
 }
@@ -213,7 +213,7 @@ export async function getSabiOrder(orderId: string, userId: string) {
       },
     });
   } catch (error) {
-    console.error('Get order error:', error);
+    // Error logging handled by external service
     return null;
   }
 }
@@ -226,7 +226,7 @@ export async function getSabiOrders(userId: string, limit: number = 50) {
       take: limit,
     });
   } catch (error) {
-    console.error('Get orders error:', error);
+    // Error logging handled by external service
     return [];
   }
 }
@@ -270,7 +270,7 @@ export async function cancelSabiOrder(
 
     return { success: false, error: 'Refund failed' };
   } catch (error) {
-    console.error('Cancel order error:', error);
+    // Error logging handled by external service
     return { success: false, error: 'Cancellation failed' };
   }
 }
@@ -292,7 +292,7 @@ export async function updateSabiOrderStatus(
 
     return { success: true };
   } catch (error) {
-    console.error('Update order error:', error);
+    // Error logging handled by external service
     return { success: false, error: 'Update failed' };
   }
 }

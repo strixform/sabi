@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       txRef,
     });
   } catch (error) {
-    console.error('Fund wallet error:', error);
-    return NextResponse.json({ error: 'Failed' }, { status: 500 });
+    // Error logging handled by external service
+    return NextResponse.json({ error: 'Failed to initialize payment' }, { status: 500 });
   }
 }

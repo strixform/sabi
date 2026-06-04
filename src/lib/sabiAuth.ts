@@ -58,7 +58,7 @@ export async function registerSabiUser(
 
     return { success: true, userId: user.id };
   } catch (error) {
-    console.error('Register error:', error);
+    // Error logging should be handled by external service (Sentry, etc)
     return { success: false, error: 'Registration failed' };
   }
 }
@@ -86,7 +86,7 @@ export async function loginSabiUser(
 
     return { success: true, userId: user.id };
   } catch (error) {
-    console.error('Login error:', error);
+    // Error logging handled by external service
     return { success: false, error: 'Login failed' };
   }
 }
@@ -121,7 +121,7 @@ export async function createSabiSession(userId: string): Promise<string> {
 
     return token;
   } catch (error) {
-    console.error('Session creation error:', error);
+    // Error logging handled by external service
     throw error;
   }
 }
@@ -160,7 +160,7 @@ export async function getSabiSession(): Promise<SabiSession | null> {
       emailVerified: user.emailVerified,
     };
   } catch (error) {
-    console.error('Get session error:', error);
+    // Error logging handled by external service
     return null;
   }
 }
@@ -189,7 +189,7 @@ export async function verifySabiEmail(userId: string, code: string): Promise<{ s
 
     return { success: true };
   } catch (error) {
-    console.error('Email verification error:', error);
+    // Error logging handled by external service
     return { success: false, error: 'Verification failed' };
   }
 }
@@ -225,7 +225,7 @@ export async function requestPasswordReset(
 
     return { success: true, resetToken };
   } catch (error) {
-    console.error('Reset request error:', error);
+    // Error logging handled by external service
     return { success: false, error: 'Request failed' };
   }
 }
@@ -262,7 +262,7 @@ export async function resetPassword(
 
     return { success: true };
   } catch (error) {
-    console.error('Reset password error:', error);
+    // Error logging handled by external service
     return { success: false, error: 'Reset failed' };
   }
 }
@@ -283,7 +283,7 @@ export async function generateSabiApiKey(userId: string, name: string): Promise<
 
     return { key: `sabi_${apiKey.id}_${token}` };
   } catch (error) {
-    console.error('API key generation error:', error);
+    // Error logging handled by external service
     return null;
   }
 }

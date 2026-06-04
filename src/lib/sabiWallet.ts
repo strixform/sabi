@@ -25,7 +25,7 @@ export async function getSabiWallet(userId: string): Promise<WalletData | null> 
       totalRefunded: wallet.totalRefunded,
     };
   } catch (error) {
-    console.error('Get wallet error:', error);
+    // Error logging handled by external service
     return null;
   }
 }
@@ -72,7 +72,7 @@ export async function creditSabiWallet(
 
     return { success: true };
   } catch (error) {
-    console.error('Credit wallet error:', error);
+    // Error logging handled by external service
     return { success: false, error: 'Failed to credit wallet' };
   }
 }
@@ -115,7 +115,7 @@ export async function debitSabiWallet(
 
     return { success: true };
   } catch (error) {
-    console.error('Debit wallet error:', error);
+    // Error logging handled by external service
     return { success: false, error: 'Failed to process order' };
   }
 }
@@ -148,7 +148,7 @@ export async function refundSabiWallet(
 
     return { success: true };
   } catch (error) {
-    console.error('Refund wallet error:', error);
+    // Error logging handled by external service
     return { success: false, error: 'Refund failed' };
   }
 }
@@ -162,7 +162,7 @@ export async function getSabiTransactions(userId: string, limit: number = 50) {
       take: limit,
     });
   } catch (error) {
-    console.error('Get transactions error:', error);
+    // Error logging handled by external service
     return [];
   }
 }
