@@ -63,14 +63,24 @@ export default function AdminPage() {
         const res = await fetch('/api/sabi/auth/me');
         const data = await res.json();
 
-        if (data.success && data.user?.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL) {
-          setAuthorized(true);
-          setAdminEmail(data.user.email);
-          fetchAdminData();
+        if (data.success && data.user?.email) {
+          const expectedAdmin = process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'Olusehinde09@gmail.com';
+          const userEmail = data.user.email.toLowerCase();
+          const adminEmail = expectedAdmin.toLowerCase();
+
+          if (userEmail === adminEmail) {
+            setAuthorized(true);
+            setAdminEmail(data.user.email);
+            fetchAdminData();
+          } else {
+            console.error(`Admin check failed: ${userEmail} !== ${adminEmail}`);
+            router.push('/sabi/dashboard');
+          }
         } else {
-          router.push('/sabi/dashboard');
+          router.push('/sabi/login');
         }
       } catch (err) {
+        console.error('Auth check error:', err);
         router.push('/sabi/login');
       } finally {
         setLoading(false);
