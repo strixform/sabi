@@ -69,14 +69,18 @@ export function PWAInstallPrompt() {
           exit={{ opacity: 0, y: 20 }}
           className="fixed bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-auto sm:w-96 z-50"
         >
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg shadow-2xl overflow-hidden border border-blue-500/50 backdrop-blur-sm">
+          <div className="bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-400 rounded-lg shadow-2xl overflow-hidden border border-cyan-400/50 backdrop-blur-sm">
             <div className="p-4">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="text-2xl">📱</div>
+                  <img
+                    src="/sabi-favicon.png"
+                    alt="SABI Logo"
+                    className="w-10 h-10 rounded-lg shadow-lg"
+                  />
                   <div>
-                    <h3 className="font-bold text-white">Install SABI</h3>
-                    <p className="text-xs text-blue-100">Quick access from your home screen</p>
+                    <h3 className="font-black text-white text-lg">SABI</h3>
+                    <p className="text-xs text-blue-50">Install to home screen</p>
                   </div>
                 </div>
                 <motion.button
@@ -92,15 +96,15 @@ export function PWAInstallPrompt() {
               <div className="grid grid-cols-2 gap-3">
                 <motion.button
                   onClick={() => setShowPrompt(false)}
-                  className="px-4 py-2 bg-blue-700/50 hover:bg-blue-700 text-white text-sm font-semibold rounded transition"
+                  className="px-4 py-2 bg-blue-700/70 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg border border-blue-500/30 transition"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  Not Now
+                  Later
                 </motion.button>
                 <motion.button
                   onClick={handleInstall}
-                  className="px-4 py-2 bg-white text-blue-600 text-sm font-bold rounded flex items-center justify-center gap-2 hover:bg-blue-50 transition"
+                  className="px-4 py-2 bg-white text-blue-700 text-sm font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-cyan-50 shadow-lg transition"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
@@ -109,8 +113,8 @@ export function PWAInstallPrompt() {
                 </motion.button>
               </div>
 
-              <p className="text-xs text-blue-100 mt-3">
-                ✨ Offline access • Push notifications • App-like experience
+              <p className="text-xs text-blue-50 mt-3 font-medium">
+                💫 Offline mode • Push alerts • No ads • Fast access
               </p>
             </div>
           </div>

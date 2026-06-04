@@ -37,8 +37,9 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="SABI" />
         <meta name="application-name" content="SABI" />
         <meta name="description" content="Place SMM orders with verified Nigerian gamers" />
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/favicon.svg" />
+        <link rel="icon" href="/sabi-favicon.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/sabi-favicon.png" />
+        <link rel="shortcut icon" href="/sabi-favicon.png" type="image/png" />
         <link rel="manifest" href="/manifest.json" />
 
         {/* Google Analytics */}
