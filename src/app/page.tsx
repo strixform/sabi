@@ -43,7 +43,7 @@ function HomeContent() {
           </FloatingElement>
 
           {/* Main Title with Premium Text Animation */}
-          <h1 className="text-5xl md:text-7xl font-black leading-tight m-0">
+          <h1 className="text-5xl md:text-7xl font-black leading-tight m-0 -my-1 sm:my-0">
             <div className="overflow-hidden h-fit">
               <motion.div
                 initial={{ opacity: 0, y: 80 }}
@@ -61,7 +61,7 @@ function HomeContent() {
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
-              className="text-white -mt-1 sm:mt-0"
+              className="text-white -mt-4 sm:-mt-2 lg:mt-0"
             >
               <AnimateInText type="slide" delay={0.7}>
                 Powered by Real Nigerian Users
