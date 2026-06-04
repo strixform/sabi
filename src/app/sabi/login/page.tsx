@@ -78,7 +78,7 @@ export default function LoginPage() {
               type="button"
               onClick={() => {
                 const params = new URLSearchParams({
-                  client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "99067746147-30ip8ot6mkiq41ojb3mpdg3atv9ug0fv.apps.googleusercontent.com",
+                  client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "685195293928-3aqb2gaq85a92ctc145rgnddk2j7jdr6.apps.googleusercontent.com",
                   redirect_uri: `${typeof window !== 'undefined' ? window.location.origin : 'https://sability.io'}/api/sabi/auth/google/callback`,
                   response_type: 'code',
                   scope: 'openid email profile',
