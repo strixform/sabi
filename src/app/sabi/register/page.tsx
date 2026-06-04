@@ -3,12 +3,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { FiTarget } from 'react-icons/fi';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
-import { GradientText } from '@/components/AnimatedText';
 import { AnimateInText } from '@/components/AnimateInText';
-import { CuteIconAnimation, FloatingIcon } from '@/components/CuteIconAnimation';
 import { InteractiveCard } from '@/components/InteractiveCard';
+import { LogoImage } from '@/components/LogoImage';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
@@ -72,14 +70,12 @@ export default function RegisterPage() {
           transition={{ duration: 0.6 }}
           className="text-center mb-8"
         >
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <CuteIconAnimation type="bounce" duration={1.5}>
-              <FiTarget className="w-8 h-8 text-blue-400" />
-            </CuteIconAnimation>
-            <h1 className="text-4xl font-black">
-              <GradientText>SABI</GradientText>
-            </h1>
-          </div>
+          <motion.div
+            className="flex items-center justify-center mb-6"
+            whileHover={{ scale: 1.05 }}
+          >
+            <LogoImage size="lg" className="w-32 h-32" />
+          </motion.div>
           <p className="text-slate-400 text-sm">
             <AnimateInText type="fade" delay={0.2}>
               Join thousands getting real engagement

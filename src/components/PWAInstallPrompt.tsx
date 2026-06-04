@@ -74,13 +74,12 @@ export function PWAInstallPrompt() {
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <img
-                    src="/sabi-favicon.png"
+                    src="/sabi-logo.png"
                     alt="SABI Logo"
-                    className="w-10 h-10 rounded-lg shadow-lg"
+                    className="w-16 h-16"
                   />
                   <div>
-                    <h3 className="font-black text-white text-lg">SABI</h3>
-                    <p className="text-xs text-blue-50">Install to home screen</p>
+                    <p className="text-xs text-blue-50 font-medium">Install to home screen</p>
                   </div>
                 </div>
                 <motion.button

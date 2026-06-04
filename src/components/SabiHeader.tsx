@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { FiLogOut, FiHome, FiShoppingCart, FiKey, FiBook } from 'react-icons/fi';
+import { LogoImage } from './LogoImage';
 
 interface SabiHeaderProps {
   showNavigation?: boolean;
@@ -35,19 +36,14 @@ export const SabiHeader: React.FC<SabiHeaderProps> = ({ showNavigation = true })
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
-          <Link href="/sabi/dashboard" className="flex items-center gap-3 group">
+          <Link href="/sabi/dashboard" className="flex items-center group">
             <motion.div
-              className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-black text-lg md:text-xl group-hover:shadow-lg group-hover:shadow-blue-500/50 transition-shadow"
-              whileHover={{ scale: 1.05 }}
+              className="flex-shrink-0"
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.95 }}
             >
-              🍎
+              <LogoImage size="sm" className="w-10 h-10 md:w-12 md:h-12" />
             </motion.div>
-            <div className="hidden sm:flex flex-col">
-              <h1 className="text-lg md:text-xl font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                SABI
-              </h1>
-              <p className="text-xs text-slate-400 -mt-1">Real Nigerian Engagement</p>
-            </div>
           </Link>
 
           {/* Navigation - Desktop */}

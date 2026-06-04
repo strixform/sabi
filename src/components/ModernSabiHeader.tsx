@@ -54,26 +54,14 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 sm:h-16 lg:h-20">
           {/* Logo & Branding */}
-          <Link href={isLoggedIn ? "/sabi/dashboard" : "/"} className="flex items-center gap-2 sm:gap-3 group">
+          <Link href={isLoggedIn ? "/sabi/dashboard" : "/"} className="flex items-center group">
             <motion.div
               className="flex-shrink-0"
               whileHover={{ scale: 1.08 }}
               whileTap={{ scale: 0.95 }}
             >
-              <LogoImage size="sm" className="sm:w-10 sm:h-10 lg:w-12 lg:h-12" />
+              <LogoImage size="sm" className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14" />
             </motion.div>
-            <div className="hidden sm:flex flex-col">
-              <motion.h1
-                className="text-base lg:text-lg font-black bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent"
-                whileHover={{ letterSpacing: '0.05em' }}
-                transition={{ type: 'spring', stiffness: 300 }}
-              >
-                SABI
-              </motion.h1>
-              <p className="text-xs lg:text-sm text-slate-400 font-medium -mt-0.5">
-                Real Nigerian Engagement
-              </p>
-            </div>
           </Link>
 
           {/* Desktop Navigation */}
