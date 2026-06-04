@@ -28,12 +28,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const paymentData = verification.data;
-
     // Check if payment was successful
-    if (paymentData.status !== 'successful') {
+    if (verification.status !== 'successful') {
       return NextResponse.json(
-        { error: `Payment ${paymentData.status}`, success: false },
+        { error: `Payment ${verification.status}`, success: false },
+        { status: 400 }
+      );
+    }
+
+    const amountInKobo = verification.amount || 0;
+
+    if (amountInKobo <= 0) {
+      return NextResponse.json(
+        { error: 'Invalid amount', success: false },
         { status: 400 }
       );
     }
@@ -56,7 +63,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Add funds to wallet
-    const amountInKobo = paymentData.amount; // Flutterwave returns in kobo
     const newBalance = wallet.balance + amountInKobo;
 
     const updatedWallet = await prisma.sabiWallet.update({
