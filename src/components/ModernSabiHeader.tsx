@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiLogOut, FiHome, FiShoppingCart, FiKey, FiBook, FiMenu, FiX, FiCreditCard } from 'react-icons/fi';
+import { FiLogOut, FiHome, FiShoppingCart, FiKey, FiBook, FiMenu, FiX, FiCreditCard, FiDownload } from 'react-icons/fi';
 import { LogoImage } from './LogoImage';
 
 interface ModernSabiHeaderProps {
@@ -16,6 +16,41 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [showInstallModal, setShowInstallModal] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+
+  useEffect(() => {
+    // Detect iOS Safari
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    setIsIOS(ios);
+
+    // Already installed as PWA?
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsInstalled(true);
+    }
+
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', () => setIsInstalled(true));
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (installPrompt) {
+      await installPrompt.prompt();
+      const { outcome } = await installPrompt.userChoice;
+      if (outcome === 'accepted') setIsInstalled(true);
+      setInstallPrompt(null);
+    } else {
+      // iOS or browsers without beforeinstallprompt → show manual instructions
+      setShowInstallModal(true);
+    }
+  };
 
   // Check if user is logged in
   useEffect(() => {
@@ -178,6 +213,20 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
               </motion.button>
             )}
 
+            {/* Install App Button — always visible, not dependent on browser event */}
+            {!isInstalled && (
+              <motion.button
+                onClick={handleInstallClick}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-300 border border-blue-500/30 hover:border-blue-400/50 hover:from-blue-500/30 hover:to-purple-500/30 transition-all text-xs font-semibold"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                title="Install SABI app"
+              >
+                <FiDownload className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Install App</span>
+              </motion.button>
+            )}
+
             {/* Mobile Menu Button */}
             {showNavigation && (
               <motion.button
@@ -239,6 +288,75 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
           )}
         </AnimatePresence>
       </div>
+
+      {/* Install instructions modal (iOS + browsers without auto-prompt) */}
+      <AnimatePresence>
+        {showInstallModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm px-4 pb-6 sm:pb-0"
+            onClick={() => setShowInstallModal(false)}
+          >
+            <motion.div
+              initial={{ y: 60, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 60, opacity: 0 }}
+              className="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-white font-bold text-lg">Install SABI App</h3>
+                <button onClick={() => setShowInstallModal(false)} className="text-slate-400 hover:text-white">
+                  <FiX className="w-5 h-5" />
+                </button>
+              </div>
+
+              {isIOS ? (
+                <div className="space-y-3 text-sm text-slate-300">
+                  <p className="font-semibold text-white">On iPhone / iPad (Safari):</p>
+                  <div className="flex items-start gap-3">
+                    <span className="w-6 h-6 rounded-full bg-blue-500 text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
+                    <p>Tap the <span className="text-blue-400 font-semibold">Share</span> button at the bottom of Safari (the box with an arrow pointing up)</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="w-6 h-6 rounded-full bg-blue-500 text-white text-xs font-bold flex items-center justify-center shrink-0">2</span>
+                    <p>Scroll down and tap <span className="text-blue-400 font-semibold">"Add to Home Screen"</span></p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="w-6 h-6 rounded-full bg-blue-500 text-white text-xs font-bold flex items-center justify-center shrink-0">3</span>
+                    <p>Tap <span className="text-blue-400 font-semibold">Add</span> — SABI will appear on your home screen like a native app</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3 text-sm text-slate-300">
+                  <p className="font-semibold text-white">On Chrome / Edge (Android or desktop):</p>
+                  <div className="flex items-start gap-3">
+                    <span className="w-6 h-6 rounded-full bg-blue-500 text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
+                    <p>Tap the <span className="text-blue-400 font-semibold">⋮ menu</span> (three dots) in the top-right of Chrome</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="w-6 h-6 rounded-full bg-blue-500 text-white text-xs font-bold flex items-center justify-center shrink-0">2</span>
+                    <p>Tap <span className="text-blue-400 font-semibold">"Add to Home Screen"</span> or <span className="text-blue-400 font-semibold">"Install App"</span></p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="w-6 h-6 rounded-full bg-blue-500 text-white text-xs font-bold flex items-center justify-center shrink-0">3</span>
+                    <p>Tap <span className="text-blue-400 font-semibold">Install</span></p>
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={() => setShowInstallModal(false)}
+                className="mt-6 w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold text-sm"
+              >
+                Got it
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 };
