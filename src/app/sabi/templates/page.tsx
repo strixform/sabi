@@ -50,7 +50,7 @@ export default function TemplatesPage() {
         {loading ? (
           <div className="text-center py-16 text-slate-400">Loading...</div>
         ) : templates.length === 0 ? (
-          <div className="text-center py-16 rounded-2xl border border-slate-700/50 bg-slate-900/40">
+          <div className="text-center py-16 rounded-2xl border border-white/[0.06] bg-white/[0.015]">
             <FiBookmark className="w-10 h-10 text-slate-600 mx-auto mb-3" />
             <p className="text-slate-400 mb-2">No templates yet</p>
             <p className="text-slate-500 text-sm mb-6">After placing an order, use the "Save as Template" option to save it here.</p>
@@ -67,7 +67,7 @@ export default function TemplatesPage() {
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-5 flex items-center gap-4"
+                    className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-5 flex items-center gap-4"
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-white font-bold truncate">{t.name}</p>

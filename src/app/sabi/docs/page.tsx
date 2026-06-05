@@ -168,7 +168,7 @@ export default function DocsPage() {
           </div>
           <InteractiveCard glowColor="blue">
             <div className="p-6 sm:p-8">
-              <div className="bg-slate-900 p-4 rounded-lg border border-slate-700/50 overflow-auto">
+              <div className="bg-[#0A0D14] p-4 rounded-lg border border-white/[0.06] overflow-auto">
                 <code className="text-sm text-slate-200 font-mono">
                   Authorization: Bearer sabi_[keyId]_[token]
                 </code>
@@ -241,7 +241,7 @@ export default function DocsPage() {
                         <Icon className="w-5 h-5" />
                         <h3 className="text-xl font-bold">{example.title}</h3>
                       </div>
-                      <div className="bg-slate-900 p-4 rounded-lg border border-slate-700/50 overflow-auto">
+                      <div className="bg-[#0A0D14] p-4 rounded-lg border border-white/[0.06] overflow-auto">
                         <code className="text-xs text-slate-200 font-mono whitespace-pre-wrap">{example.code}</code>
                       </div>
                     </div>

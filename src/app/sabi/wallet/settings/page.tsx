@@ -50,7 +50,7 @@ export default function WalletSettingsPage() {
           <h1 className="text-3xl font-black text-white mb-2">Wallet Settings</h1>
           <p className="text-slate-400 mb-8">Configure automatic top-up so you never run out of balance mid-campaign.</p>
 
-          <div className="bg-slate-900/60 border border-slate-700/50 rounded-2xl p-8 space-y-6">
+          <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-8 space-y-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <FiZap className="w-5 h-5 text-blue-400" />
@@ -74,7 +74,7 @@ export default function WalletSettingsPage() {
                   <input
                     type="number" value={threshold} onChange={e => setThreshold(e.target.value)} min="100"
                     placeholder="e.g. 5000"
-                    className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white focus:border-blue-500/50 outline-none"
+                    className="w-full px-4 py-3 bg-white/[0.025] border border-white/[0.06] rounded-xl text-white focus:border-blue-500/50 outline-none"
                   />
                 </div>
                 <div>
@@ -82,7 +82,7 @@ export default function WalletSettingsPage() {
                   <input
                     type="number" value={amount} onChange={e => setAmount(e.target.value)} min="500"
                     placeholder="e.g. 10000"
-                    className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white focus:border-blue-500/50 outline-none"
+                    className="w-full px-4 py-3 bg-white/[0.025] border border-white/[0.06] rounded-xl text-white focus:border-blue-500/50 outline-none"
                   />
                   <p className="text-xs text-slate-500 mt-1">A Flutterwave payment link will be sent to your email when triggered.</p>
                 </div>

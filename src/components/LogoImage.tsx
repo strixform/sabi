@@ -46,16 +46,17 @@ export const LogoImage: React.FC<LogoImageProps> = ({
     return <SabiLogo size={size} className={className} />;
   }
 
+  // Render img directly — no wrapper div with background.
+  // The PNG has built-in alpha channel so it blends into any background colour.
   return (
-    <div className={`${sizeClass} ${className} flex items-center justify-center`}>
-      <img
-        src={logoPath}
-        alt="Sabi Logo"
-        onError={() => setImageError(true)}
-        className="w-full h-full object-contain"
-        loading="eager"
-      />
-    </div>
+    <img
+      src={logoPath}
+      alt="Sabi Logo"
+      onError={() => setImageError(true)}
+      className={`${sizeClass} ${className} object-contain`}
+      style={{ background: 'transparent' }}
+      loading="eager"
+    />
   );
 };
 

@@ -125,7 +125,7 @@ export default function OrderTrackingPage() {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="px-4 py-2 bg-slate-800/50 hover:bg-slate-700/50 text-slate-300 rounded-lg transition flex items-center gap-2 border border-slate-700/50"
+              className="px-4 py-2 bg-white/[0.025] hover:bg-slate-700/50 text-slate-300 rounded-lg transition flex items-center gap-2 border border-white/[0.06]"
             >
               <FiArrowLeft className="w-4 h-4" />
               Back to Dashboard
@@ -159,7 +159,7 @@ export default function OrderTrackingPage() {
               <motion.button
                 onClick={saveTemplate} disabled={saving || savedTemplate}
                 whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                className="flex items-center gap-1.5 px-4 py-1.5 bg-slate-700/60 text-slate-300 border border-slate-600 rounded-full text-sm font-bold hover:border-slate-500 disabled:opacity-50 transition"
+                className="flex items-center gap-1.5 px-4 py-1.5 bg-slate-700/60 text-slate-300 border border-white/[0.08] rounded-full text-sm font-bold hover:border-slate-500 disabled:opacity-50 transition"
               >
                 <FiBookmark className="w-3.5 h-3.5" />
                 {savedTemplate ? 'Saved!' : saving ? '...' : 'Save Template'}
@@ -214,12 +214,12 @@ export default function OrderTrackingPage() {
               </div>
 
               {/* Progress Bar */}
-              <div className="mt-10 pt-8 border-t border-slate-700/50">
+              <div className="mt-10 pt-8 border-t border-white/[0.06]">
                 <div className="flex justify-between items-center mb-3">
                   <span className="text-sm font-semibold text-slate-300">Completion</span>
                   <span className="text-sm font-bold text-blue-400">{order.completionPercentage || 0}%</span>
                 </div>
-                <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden border border-slate-700/50">
+                <div className="w-full h-3 bg-[#0F1420] rounded-full overflow-hidden border border-white/[0.06]">
                   <motion.div
                     className="h-full bg-gradient-to-r from-blue-500 to-purple-500"
                     animate={{ width: `${order.completionPercentage || 0}%` }}
@@ -243,30 +243,30 @@ export default function OrderTrackingPage() {
               <div className="p-6 sm:p-8">
                 <h3 className="text-lg font-bold mb-6">Order Details</h3>
                 <div className="space-y-4 text-sm">
-                  <div className="flex justify-between items-center pb-4 border-b border-slate-700/50">
+                  <div className="flex justify-between items-center pb-4 border-b border-white/[0.06]">
                     <span className="text-slate-400">Service Type:</span>
                     <span className="font-bold capitalize text-cyan-400">{order.serviceType}</span>
                   </div>
-                  <div className="flex justify-between items-center pb-4 border-b border-slate-700/50">
+                  <div className="flex justify-between items-center pb-4 border-b border-white/[0.06]">
                     <span className="text-slate-400">Quantity:</span>
                     <span className="font-bold">{order.quantity.toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between items-start pb-4 border-b border-slate-700/50">
+                  <div className="flex justify-between items-start pb-4 border-b border-white/[0.06]">
                     <span className="text-slate-400">Target URL:</span>
                     <span className="font-mono text-xs text-right truncate text-slate-300">{order.targetUrl}</span>
                   </div>
                   {order.estimatedCompletion && order.status !== 'completed' && (
-                    <div className="flex justify-between items-center pb-4 border-b border-slate-700/50">
+                    <div className="flex justify-between items-center pb-4 border-b border-white/[0.06]">
                       <span className="text-slate-400">Est. Completion:</span>
                       <span className="font-bold text-cyan-300">{new Date(order.estimatedCompletion).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
                     </div>
                   )}
-                  <div className="flex justify-between items-center pb-4 border-b border-slate-700/50">
+                  <div className="flex justify-between items-center pb-4 border-b border-white/[0.06]">
                     <span className="text-slate-400">Audience:</span>
                     <span className="font-bold text-cyan-400">🇳🇬 {order.audienceLocation || 'All Nigeria'}{order.audienceGender && order.audienceGender !== 'both' ? ` · ${order.audienceGender}` : ''}</span>
                   </div>
                   {order.commentInstructions && (
-                    <div className="pb-4 border-b border-slate-700/50">
+                    <div className="pb-4 border-b border-white/[0.06]">
                       <span className="text-slate-400 block mb-1">Comment brief{order.commentGender && order.commentGender !== 'both' ? ` (${order.commentGender})` : ''}:</span>
                       <span className="text-slate-300 text-xs">{order.commentInstructions}</span>
                     </div>
@@ -297,19 +297,19 @@ export default function OrderTrackingPage() {
                   const ngn = (k: number) => `₦${(k / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
                   return (
                     <div className="space-y-4 text-sm">
-                      <div className="flex justify-between items-center pb-4 border-b border-slate-700/50">
+                      <div className="flex justify-between items-center pb-4 border-b border-white/[0.06]">
                         <span className="text-slate-400">Base Price:</span>
                         <span className="font-bold">{ngn(baseKobo)}</span>
                       </div>
-                      <div className="flex justify-between items-center pb-4 border-b border-slate-700/50">
+                      <div className="flex justify-between items-center pb-4 border-b border-white/[0.06]">
                         <span className="text-slate-400">Platform Fee (7.5%):</span>
                         <span className="font-bold text-orange-400">{ngn(platformKobo)}</span>
                       </div>
-                      <div className="flex justify-between items-center pb-4 border-b border-slate-700/50">
+                      <div className="flex justify-between items-center pb-4 border-b border-white/[0.06]">
                         <span className="text-slate-400">VAT (7.5%):</span>
                         <span className="font-bold text-orange-400">{ngn(vatKobo)}</span>
                       </div>
-                      <div className="flex justify-between items-center pt-4 text-base bg-slate-800/50 p-4 rounded-lg">
+                      <div className="flex justify-between items-center pt-4 text-base bg-white/[0.025] p-4 rounded-lg">
                         <span className="font-bold text-slate-300">Total Amount:</span>
                         <span className="font-black text-orange-400">{ngn(baseKobo + feeKobo)}</span>
                       </div>
@@ -335,7 +335,7 @@ export default function OrderTrackingPage() {
                   Campaign Information
                 </h3>
                 <div className="space-y-4 text-sm">
-                  <div className="flex justify-between items-center pb-4 border-b border-slate-700/50">
+                  <div className="flex justify-between items-center pb-4 border-b border-white/[0.06]">
                     <span className="text-slate-400">Campaign ID:</span>
                     <span className="font-mono text-xs text-emerald-400 font-bold">{order.gamesz360CampaignId}</span>
                   </div>

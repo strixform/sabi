@@ -518,7 +518,7 @@ export default function OrderPage() {
   }
 
   return (
-    <div className="min-h-screen relative bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 overflow-hidden">
+    <div className="min-h-screen relative bg-[#030507] overflow-hidden">
       <AnimatedBackground />
       <ModernSabiHeader showNavigation={true} />
 

@@ -422,7 +422,7 @@ export default function DashboardPage() {
           />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(59,130,246,0.15)_0%,transparent_70%)]" />
 
-          <div className="relative bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-xl border border-slate-700/30 p-12 text-center">
+          <div className="relative bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-xl border border-white/[0.06]/30 p-12 text-center">
             <div className="space-y-6">
               <div>
                 <motion.h2
@@ -469,7 +469,7 @@ export default function DashboardPage() {
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <Link
                     href="/sabi/docs"
-                    className="block px-8 py-4 border-2 border-slate-600 hover:border-blue-400 text-white font-bold rounded-xl transition hover:bg-slate-800/50 text-center"
+                    className="block px-8 py-4 border-2 border-white/[0.08] hover:border-blue-400 text-white font-bold rounded-xl transition hover:bg-white/[0.025] text-center"
                   >
                     <AnimateInText type="fade" delay={1.3}>
                       View API Docs
@@ -485,7 +485,7 @@ export default function DashboardPage() {
         <div className="grid md:grid-cols-2 gap-6">
           {/* Spending Chart */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
-            className="bg-slate-900/60 border border-slate-700/50 rounded-2xl p-6">
+            className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-white font-bold flex items-center gap-2"><FiTrendingUp className="text-blue-400" /> Spending (8 weeks)</h3>
               {analytics && <span className="text-xs text-slate-400">{analytics.completionRate}% completion rate</span>}
@@ -517,7 +517,7 @@ export default function DashboardPage() {
 
           {/* Referral Widget */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}
-            className="bg-slate-900/60 border border-slate-700/50 rounded-2xl p-6">
+            className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6">
             <h3 className="text-white font-bold flex items-center gap-2 mb-4"><FiShare2 className="text-emerald-400" /> Refer & Earn</h3>
             <p className="text-slate-400 text-sm mb-4">Share your link. Both you and your referral get <span className="text-emerald-400 font-bold">₦500</span> when they place their first order.</p>
             {referral ? (
@@ -525,7 +525,7 @@ export default function DashboardPage() {
                 <div className="flex gap-2 mb-4">
                   <input
                     readOnly value={referral.referralLink}
-                    className="flex-1 px-3 py-2 bg-slate-800/60 border border-slate-700/50 rounded-lg text-xs text-slate-300 outline-none"
+                    className="flex-1 px-3 py-2 bg-white/[0.03] border border-white/[0.06] rounded-lg text-xs text-slate-300 outline-none"
                   />
                   <button
                     onClick={() => { navigator.clipboard.writeText(referral.referralLink); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
@@ -536,11 +536,11 @@ export default function DashboardPage() {
                 </div>
                 {copied && <p className="text-emerald-400 text-xs mb-2">Copied!</p>}
                 <div className="grid grid-cols-2 gap-3 text-center">
-                  <div className="bg-slate-800/60 rounded-xl p-3">
+                  <div className="bg-white/[0.03] rounded-xl p-3">
                     <p className="text-2xl font-black text-white">{referral.totalReferred}</p>
                     <p className="text-xs text-slate-400">Referred</p>
                   </div>
-                  <div className="bg-slate-800/60 rounded-xl p-3">
+                  <div className="bg-white/[0.03] rounded-xl p-3">
                     <p className="text-2xl font-black text-emerald-400">₦{referral.totalEarned.toLocaleString()}</p>
                     <p className="text-xs text-slate-400">Earned</p>
                   </div>

@@ -86,7 +86,8 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
   const isActive = (href: string) => pathname === href;
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-800 bg-gradient-to-b from-slate-950 via-slate-950/95 to-slate-950 backdrop-blur-xl shadow-lg">
+    <header className="sticky top-0 z-50 border-b border-white/[0.05]"
+      style={{ backdropFilter: 'blur(24px) saturate(180%)', background: 'rgba(3,5,7,0.80)' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 sm:h-16 lg:h-20">
           {/* Logo & Branding */}
@@ -109,10 +110,10 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
                 return (
                   <Link key={item.href} href={item.href}>
                     <motion.button
-                      className={`relative px-4 py-2 rounded-lg font-semibold text-sm transition-all flex items-center gap-2 group ${
+                      className={`relative px-4 py-2 rounded-lg font-medium text-sm transition-all duration-300 flex items-center gap-2 tracking-wide ${
                         active
-                          ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-300 border border-blue-500/50'
-                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                          ? 'text-white bg-white/[0.06] border border-white/[0.08]'
+                          : 'text-white/35 hover:text-white/70'
                       }`}
                       whileHover={{ y: -2 }}
                       whileTap={{ scale: 0.95 }}
@@ -165,13 +166,13 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
             {isLoggedIn && (
               <Link href="/sabi/wallet">
                 <motion.button
-                  className="p-2 lg:px-4 lg:py-2 rounded-lg bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-emerald-300 hover:from-green-500/30 hover:to-emerald-500/30 border border-emerald-500/30 hover:border-emerald-500/50 transition-all flex items-center gap-2 text-sm font-semibold group"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  className="p-2 lg:px-4 lg:py-2 rounded-lg border border-white/[0.07] text-white/40 hover:text-white/80 hover:border-white/15 hover:bg-white/[0.04] transition-all duration-300 flex items-center gap-2 text-sm font-medium"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   title="Fund Wallet"
                 >
                   <FiCreditCard className="w-4 h-4" />
-                  <span className="hidden lg:inline">Fund Wallet</span>
+                  <span className="hidden lg:inline tracking-wide">Fund Wallet</span>
                 </motion.button>
               </Link>
             )}
@@ -181,20 +182,20 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
               <div className="flex items-center gap-2">
                 <Link href="/sabi/login">
                   <motion.button
-                    className="px-4 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-all text-sm font-semibold"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                    className="px-4 py-2 rounded-lg text-white/35 hover:text-white/70 transition-all duration-300 text-sm font-medium tracking-wide"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                   >
-                    Sign In
+                    Sign in
                   </motion.button>
                 </Link>
                 <Link href="/sabi/register">
                   <motion.button
-                    className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white transition-all text-sm font-semibold"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                    className="px-5 py-2.5 rounded-xl bg-white/90 hover:bg-white text-black transition-all duration-300 text-sm font-semibold tracking-wide"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                   >
-                    Sign Up
+                    Get started
                   </motion.button>
                 </Link>
               </div>
@@ -204,23 +205,23 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
             {isLoggedIn && (
               <motion.button
                 onClick={handleLogout}
-                className="p-2 lg:px-4 lg:py-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all flex items-center gap-2 text-sm font-semibold group"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                className="p-2 lg:px-4 lg:py-2 rounded-lg text-white/25 hover:text-white/60 hover:bg-white/[0.04] transition-all duration-300 flex items-center gap-2 text-sm font-medium"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 title="Logout"
               >
-                <FiLogOut className="w-4 h-4 group-hover:rotate-12 transition-transform" />
-                <span className="hidden lg:inline">Logout</span>
+                <FiLogOut className="w-4 h-4" />
+                <span className="hidden lg:inline tracking-wide">Logout</span>
               </motion.button>
             )}
 
-            {/* Install App Button — always visible, not dependent on browser event */}
+            {/* Install App Button */}
             {!isInstalled && (
               <motion.button
                 onClick={handleInstallClick}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-300 border border-blue-500/30 hover:border-blue-400/50 hover:from-blue-500/30 hover:to-purple-500/30 transition-all text-xs font-semibold"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/[0.07] text-white/30 hover:text-white/60 hover:border-white/15 hover:bg-white/[0.04] transition-all duration-300 text-xs font-mono"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 title="Install SABI app"
               >
                 <FiDownload className="w-3.5 h-3.5" />
@@ -253,7 +254,7 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="lg:hidden border-t border-slate-800 bg-slate-900/50"
+              className="lg:hidden border-t border-white/[0.05] bg-[#030507]/90"
             >
               <div className="flex flex-col gap-1 py-3">
                 {navItems.map((item, idx) => {

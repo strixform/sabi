@@ -94,7 +94,7 @@ export default function OrdersPage() {
   };
 
   return (
-    <div className="min-h-screen relative bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div className="min-h-screen relative bg-[#030507]">
       <AnimatedBackground />
       <ModernSabiHeader showNavigation={true} />
 
@@ -124,7 +124,7 @@ export default function OrdersPage() {
             { label: 'Completed', value: stats.completed, color: 'text-emerald-400' },
             { label: 'Failed', value: stats.failed, color: 'text-red-400' },
           ].map(s => (
-            <div key={s.label} className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-4 text-center">
+            <div key={s.label} className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4 text-center">
               <p className={`text-2xl font-black ${s.color}`}>{s.value}</p>
               <p className="text-xs text-slate-500 mt-0.5">{s.label}</p>
             </div>
@@ -138,13 +138,13 @@ export default function OrdersPage() {
             <input
               type="text" value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search by service, URL, or order ID..."
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm placeholder-slate-500 focus:border-blue-500/60 outline-none transition"
+              className="w-full pl-10 pr-4 py-2.5 bg-[#0A0D14] border border-white/[0.06] rounded-xl text-white text-sm placeholder-slate-500 focus:border-blue-500/60 outline-none transition"
             />
           </div>
           <div className="flex gap-1.5 flex-wrap">
             {STATUS_TABS.map(t => (
               <button key={t.key} onClick={() => setTab(t.key)}
-                className={`px-3 py-2 rounded-xl text-xs font-bold transition ${tab === t.key ? 'bg-blue-500 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'}`}>
+                className={`px-3 py-2 rounded-xl text-xs font-bold transition ${tab === t.key ? 'bg-blue-500 text-white' : 'bg-[#0F1420] text-slate-400 hover:bg-slate-700 hover:text-white'}`}>
                 {t.label}
               </button>
             ))}
@@ -158,7 +158,7 @@ export default function OrdersPage() {
           </div>
         ) : filtered.length === 0 ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="text-center py-20 rounded-2xl border border-slate-700/50 bg-slate-900/30">
+            className="text-center py-20 rounded-2xl border border-white/[0.06] bg-white/[0.01]">
             <FiInbox className="w-12 h-12 text-slate-600 mx-auto mb-4" />
             <p className="text-slate-400 text-lg mb-1">{search || tab !== 'all' ? 'No matching orders' : 'No orders yet'}</p>
             <p className="text-slate-500 text-sm mb-6">
@@ -180,7 +180,7 @@ export default function OrdersPage() {
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.03 }}
-                    className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-5 hover:border-slate-600/70 transition"
+                    className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-5 hover:border-white/[0.08]/70 transition"
                   >
                     <div className="flex items-start gap-4">
                       {/* Status indicator */}
@@ -209,7 +209,7 @@ export default function OrdersPage() {
                               <span>Progress</span>
                               <span>{order.completionPercentage || 0}%</span>
                             </div>
-                            <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div className="h-1.5 bg-[#0F1420] rounded-full overflow-hidden">
                               <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all"
                                 style={{ width: `${order.completionPercentage || 0}%` }} />
                             </div>

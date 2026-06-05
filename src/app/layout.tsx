@@ -65,7 +65,7 @@ export default function RootLayout({
           </>
         )}
       </head>
-      <body className={`${outfit.className} ${playfair.variable} bg-slate-950 text-white antialiased`}>
+      <body className={`${outfit.className} ${playfair.variable} bg-[#030507] text-white antialiased`}>
         <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
           {/* Premium animated background */}
           <div className="fixed inset-0 overflow-hidden pointer-events-none">

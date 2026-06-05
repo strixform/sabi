@@ -115,7 +115,7 @@ export default function WalletPage() {
                 { label: 'Total Spent', value: wallet.totalSpent, color: 'text-orange-400' },
                 { label: 'Refunded', value: wallet.totalRefunded, color: 'text-blue-400' },
               ].map(s => (
-                <div key={s.label} className="bg-slate-800/60 rounded-xl p-4">
+                <div key={s.label} className="bg-white/[0.03] rounded-xl p-4">
                   <p className="text-xs text-slate-500 mb-1">{s.label}</p>
                   <p className={`text-base font-bold ${s.color}`}>
                     {showBalance ? `₦${(s.value / 100).toLocaleString()}` : '••••'}
@@ -133,7 +133,7 @@ export default function WalletPage() {
             {/* Inline fund panel */}
             {showFundPanel && (
               <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-                className="mt-4 p-4 bg-slate-800/80 rounded-xl border border-slate-700/50 space-y-3">
+                className="mt-4 p-4 bg-[#0F1420]/80 rounded-xl border border-white/[0.06] space-y-3">
                 <p className="text-sm font-semibold text-slate-300">Select or enter amount</p>
                 <div className="grid grid-cols-3 gap-2">
                   {QUICK_AMOUNTS.map(a => (
@@ -145,7 +145,7 @@ export default function WalletPage() {
                 </div>
                 <input type="number" value={fundAmount} onChange={e => setFundAmount(e.target.value)}
                   placeholder="Custom amount (₦)"
-                  className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:border-emerald-500/60 outline-none" />
+                  className="w-full px-4 py-2.5 bg-[#0A0D14] border border-white/[0.06] rounded-lg text-white text-sm focus:border-emerald-500/60 outline-none" />
                 <button
                   disabled={fundLoading || !fundAmount || Number(fundAmount) < 500}
                   onClick={async () => {
@@ -172,8 +172,8 @@ export default function WalletPage() {
 
         {/* Transaction History */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <div className="bg-slate-900/60 border border-slate-700/50 rounded-2xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-700/50 flex items-center gap-2">
+          <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-white/[0.06] flex items-center gap-2">
               <FiClock className="w-4 h-4 text-slate-400" />
               <h3 className="text-white font-bold">Transaction History</h3>
               <span className="ml-auto text-xs text-slate-500">{transactions.length} transactions</span>
@@ -181,7 +181,7 @@ export default function WalletPage() {
 
             {transactions.length === 0 ? (
               <div className="text-center py-16 px-6">
-                <div className="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center mx-auto mb-4">
+                <div className="w-14 h-14 rounded-2xl bg-[#0F1420] flex items-center justify-center mx-auto mb-4">
                   <FiCreditCard className="w-7 h-7 text-slate-600" />
                 </div>
                 <p className="text-slate-400 mb-1">No transactions yet</p>
@@ -197,8 +197,8 @@ export default function WalletPage() {
                   const isDebit = tx.type === 'spend';
                   const icons: Record<string, string> = { fund: '💵', spend: '🛒', refund: '↩️', bonus: '🎁', refund_bonus: '🎁' };
                   return (
-                    <div key={idx} className="px-6 py-4 flex items-center gap-4 hover:bg-slate-800/30 transition">
-                      <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-lg shrink-0">
+                    <div key={idx} className="px-6 py-4 flex items-center gap-4 hover:bg-white/[0.015] transition">
+                      <div className="w-10 h-10 rounded-xl bg-[#0F1420] flex items-center justify-center text-lg shrink-0">
                         {icons[tx.type] || '💳'}
                       </div>
                       <div className="flex-1 min-w-0">

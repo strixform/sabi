@@ -10,28 +10,37 @@ interface InteractiveCardProps {
   glowColor?: string;
 }
 
+// Accent colours mapped to subtle glow values safe for inline styles
+const ACCENT: Record<string, string> = {
+  blue:   'rgba(37,99,235,0.12)',
+  purple: 'rgba(124,58,237,0.12)',
+  pink:   'rgba(236,72,153,0.12)',
+  cyan:   'rgba(6,182,212,0.12)',
+  emerald:'rgba(16,185,129,0.12)',
+  orange: 'rgba(249,115,22,0.12)',
+};
+
 export function InteractiveCard({ children, className = '', delay = 0, glowColor = 'purple' }: InteractiveCardProps) {
-  const glowMap = {
-    blue: 'hover:shadow-blue-500/50',
-    purple: 'hover:shadow-purple-500/50',
-    pink: 'hover:shadow-pink-500/50',
-    cyan: 'hover:shadow-cyan-500/50',
-  };
+  const glow = ACCENT[glowColor] || ACCENT.purple;
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.6 }}
-      whileHover={{
-        y: -5,
-        transition: { duration: 0.3 },
-      }}
+      transition={{ delay, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ y: -3, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } }}
       className={`relative group ${className}`}
     >
-      <div className={`absolute inset-0 bg-gradient-to-r from-${glowColor}-600/0 to-${glowColor}-600/0 rounded-lg blur-xl opacity-0 group-hover:opacity-100 transition duration-500`} />
+      {/* Hover glow — paint it with inline style so Tailwind purge can't strip dynamic class names */}
+      <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
+        style={{ background: `radial-gradient(ellipse at 30% 30%, ${glow}, transparent 70%)` }} />
+
       <div
-        className={`relative h-full backdrop-blur-sm border border-slate-700/50 rounded-lg overflow-hidden group-hover:border-${glowColor}-500/50 transition duration-300 ${glowMap[glowColor as keyof typeof glowMap] || 'hover:shadow-purple-500/50'} hover:shadow-2xl`}
+        className="relative h-full rounded-2xl overflow-hidden transition-all duration-500 group-hover:border-white/10"
+        style={{
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)',
+          border: '1px solid rgba(255,255,255,0.06)',
+        }}
       >
         {children}
       </div>
@@ -40,17 +49,13 @@ export function InteractiveCard({ children, className = '', delay = 0, glowColor
 }
 
 export function PulsingDot({ color = 'blue' }: { color?: string }) {
+  const dotColor = color === 'emerald' ? '#34D399' : color === 'blue' ? '#60A5FA' : '#A78BFA';
   return (
     <motion.div
-      className={`w-2 h-2 rounded-full bg-${color}-400`}
-      animate={{
-        scale: [1, 1.5, 1],
-        opacity: [1, 0.5, 1],
-      }}
-      transition={{
-        duration: 2,
-        repeat: Infinity,
-      }}
+      className="w-2 h-2 rounded-full"
+      style={{ background: dotColor }}
+      animate={{ scale: [1, 1.4, 1], opacity: [1, 0.5, 1] }}
+      transition={{ duration: 2, repeat: Infinity }}
     />
   );
 }

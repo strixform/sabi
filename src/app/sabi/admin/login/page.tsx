@@ -51,7 +51,7 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen relative bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 overflow-hidden flex items-center justify-center">
+    <div className="min-h-screen relative bg-[#030507] overflow-hidden flex items-center justify-center">
       <AnimatedBackground />
 
       <div className="relative z-10 w-full max-w-md mx-auto px-4">

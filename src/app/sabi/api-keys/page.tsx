@@ -110,7 +110,7 @@ export default function ApiKeysPage() {
                     <p className="text-slate-300 text-sm mb-4">
                       Use your API key to integrate Sabi into your application. Include it in the Authorization header:
                     </p>
-                    <div className="bg-slate-900 p-3 rounded-lg border border-slate-700/50 mb-4 overflow-auto">
+                    <div className="bg-[#0A0D14] p-3 rounded-lg border border-white/[0.06] mb-4 overflow-auto">
                       <code className="text-xs text-slate-200 font-mono">
                         Authorization: Bearer sabi_[keyId]_[token]
                       </code>
@@ -162,7 +162,7 @@ export default function ApiKeysPage() {
                           value={newKeyName}
                           onChange={(e) => setNewKeyName(e.target.value)}
                           placeholder="e.g., Mobile App, Dashboard Integration"
-                          className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white placeholder-slate-500 focus:border-blue-500/50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                          className="w-full px-4 py-3 bg-white/[0.025] border border-white/[0.06] rounded-lg text-white placeholder-slate-500 focus:border-blue-500/50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
                         />
                         <p className="text-xs text-slate-400 mt-2">Give your key a descriptive name</p>
                       </div>
@@ -187,7 +187,7 @@ export default function ApiKeysPage() {
                           onClick={() => setShowForm(false)}
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
-                          className="px-6 py-3 border border-slate-600/50 text-white font-bold rounded-lg hover:bg-slate-800/30 transition"
+                          className="px-6 py-3 border border-white/[0.08]/50 text-white font-bold rounded-lg hover:bg-white/[0.015] transition"
                         >
                           Cancel
                         </motion.button>

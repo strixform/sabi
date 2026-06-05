@@ -133,13 +133,13 @@ export default function ServicesPage() {
   }, {});
 
   if (!mounted) return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
+    <div className="min-h-screen bg-[#030507] flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
   return (
-    <div className="min-h-screen relative bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div className="min-h-screen relative bg-[#030507]">
       <AnimatedBackground />
       <ModernSabiHeader showNavigation={true} />
 
