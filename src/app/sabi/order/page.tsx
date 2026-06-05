@@ -226,6 +226,47 @@ const NIGERIAN_STATES = [
   'Niger', 'Ogun', 'Ondo', 'Osun', 'Oyo', 'Plateau', 'Rivers', 'Sokoto', 'Taraba', 'Yobe', 'Zamfara',
 ];
 
+// Top cities per state. First entry is always "All [State]" which is the fallback.
+const STATE_CITIES: Record<string, string[]> = {
+  'Lagos':       ['All Lagos', 'Lekki', 'Ikeja', 'Victoria Island', 'Surulere', 'Yaba', 'Ajah', 'Ikorodu', 'Festac', 'Badagry', 'Epe'],
+  'FCT - Abuja': ['All Abuja', 'Maitama', 'Asokoro', 'Wuse', 'Garki', 'Gwarinpa', 'Kubwa', 'Lugbe', 'Karu', 'Jabi'],
+  'Rivers':      ['All Rivers', 'Port Harcourt GRA', 'Trans Amadi', 'Rumuola', 'Diobu', 'Obio-Akpor', 'Eleme', 'Okrika'],
+  'Oyo':         ['All Oyo', 'Ibadan (Bodija)', 'Ibadan (Ring Road)', 'Ibadan (Dugbe)', 'Ibadan (Ojoo)', 'Ogbomoso', 'Oyo Town'],
+  'Kano':        ['All Kano', 'Kano City', 'Nassarawa', 'Fagge', 'Dala', 'Gwale', 'Tarauni', 'Ungogo'],
+  'Anambra':     ['All Anambra', 'Awka', 'Onitsha', 'Nnewi', 'Ekwulobia', 'Ogidi'],
+  'Delta':       ['All Delta', 'Warri', 'Asaba', 'Effurun', 'Sapele', 'Ughelli', 'Agbor'],
+  'Edo':         ['All Edo', 'Benin City GRA', 'Ugbowo', 'New Benin', 'Ikpoba Hill', 'Uselu', 'Egor'],
+  'Enugu':       ['All Enugu', 'Independence Layout', 'Enugu GRA', 'Trans Ekulu', 'Abakpa', 'Achara Layout'],
+  'Kaduna':      ['All Kaduna', 'Kaduna South', 'Kaduna North', 'Barnawa', 'Ungwan Rimi', 'Rigasa'],
+  'Cross River': ['All Cross River', 'Calabar GRA', 'Calabar South', 'Watt Market', 'Ikang'],
+  'Imo':         ['All Imo', 'Owerri', 'Orlu', 'Okigwe', 'Mbaise'],
+  'Akwa Ibom':   ['All Akwa Ibom', 'Uyo', 'Eket', 'Ikot Ekpene', 'Abak'],
+  'Ogun':        ['All Ogun', 'Abeokuta', 'Sagamu', 'Ijebu-Ode', 'Ota', 'Agbara'],
+  'Osun':        ['All Osun', 'Osogbo', 'Ile-Ife', 'Ilesa', 'Ede'],
+  'Ondo':        ['All Ondo', 'Akure', 'Ondo Town', 'Owo', 'Okitipupa'],
+  'Ekiti':       ['All Ekiti', 'Ado-Ekiti', 'Ikere', 'Ijero'],
+  'Kwara':       ['All Kwara', 'Ilorin', 'Offa', 'Omu-Aran'],
+  'Kogi':        ['All Kogi', 'Lokoja', 'Okene', 'Kabba', 'Idah'],
+  'Plateau':     ['All Plateau', 'Jos', 'Bukuru', 'Shendam', 'Pankshin'],
+  'Benue':       ['All Benue', 'Makurdi', 'Gboko', 'Otukpo', 'Katsina-Ala'],
+  'Niger':       ['All Niger', 'Minna', 'Bida', 'Kontagora', 'Suleja'],
+  'Bauchi':      ['All Bauchi', 'Bauchi Town', 'Azare', 'Misau', 'Ningi'],
+  'Gombe':       ['All Gombe', 'Gombe Town', 'Kaltungo', 'Billiri'],
+  'Adamawa':     ['All Adamawa', 'Yola', 'Mubi', 'Numan', 'Jimeta'],
+  'Borno':       ['All Borno', 'Maiduguri', 'Biu', 'Monguno', 'Dikwa'],
+  'Yobe':        ['All Yobe', 'Damaturu', 'Potiskum', 'Gashua', 'Nguru'],
+  'Taraba':      ['All Taraba', 'Jalingo', 'Wukari', 'Bali', 'Zing'],
+  'Nasarawa':    ['All Nasarawa', 'Lafia', 'Keffi', 'Akwanga', 'Nasarawa Town'],
+  'Sokoto':      ['All Sokoto', 'Sokoto City', 'Wamakko', 'Tambuwal'],
+  'Kebbi':       ['All Kebbi', 'Birnin Kebbi', 'Argungu', 'Yelwa'],
+  'Zamfara':     ['All Zamfara', 'Gusau', 'Kaura Namoda', 'Talata Mafara'],
+  'Jigawa':      ['All Jigawa', 'Dutse', 'Hadejia', 'Gumel', 'Kazaure'],
+  'Katsina':     ['All Katsina', 'Katsina City', 'Daura', 'Funtua', 'Mashi'],
+  'Abia':        ['All Abia', 'Umuahia', 'Aba', 'Ohafia', 'Arochukwu'],
+  'Ebonyi':      ['All Ebonyi', 'Abakaliki', 'Afikpo', 'Onueke'],
+  'Bayelsa':     ['All Bayelsa', 'Yenagoa', 'Ogbia', 'Brass', 'Sagbama'],
+};
+
 const COMMENT_ACTIONS = ['Comments', 'Replies', 'Chat Comments'];
 const COMMENT_MAX = 300;
 
@@ -240,7 +281,15 @@ export default function OrderPage() {
   const [quantity, setQuantity] = useState(100);
   // Audience targeting + comment customization
   const [audienceGender, setAudienceGender] = useState<'both' | 'male' | 'female'>('both');
-  const [audienceLocation, setAudienceLocation] = useState('All Nigeria');
+  const [audienceState, setAudienceState] = useState('All Nigeria');
+  const [audienceCity, setAudienceCity] = useState('');
+
+  // Derived: the value stored/sent is "State - City" or just "State"
+  const audienceLocation = audienceState === 'All Nigeria'
+    ? 'All Nigeria'
+    : audienceCity && audienceCity !== `All ${audienceState}` && audienceCity !== ''
+      ? `${audienceState} - ${audienceCity}`
+      : audienceState;
   const [commentGender, setCommentGender] = useState<'both' | 'male' | 'female'>('both');
   const [commentInstructions, setCommentInstructions] = useState('');
   const [services, setServices] = useState<Service[]>([]);
@@ -753,20 +802,45 @@ export default function OrderPage() {
                       </div>
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-300 mb-2">
+                    <div className="space-y-2">
+                      <label className="block text-sm font-semibold text-slate-300">
                         Audience Location
                       </label>
+                      {/* State picker */}
                       <select
-                        value={audienceLocation}
-                        onChange={(e) => setAudienceLocation(e.target.value)}
+                        value={audienceState}
+                        onChange={(e) => {
+                          setAudienceState(e.target.value);
+                          setAudienceCity(''); // reset city when state changes
+                        }}
                         className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white focus:border-blue-500/50 outline-none"
                       >
                         {NIGERIAN_STATES.map((s) => (
                           <option key={s} value={s} className="bg-slate-900">{s}</option>
                         ))}
                       </select>
-                      <p className="text-xs text-slate-400 mt-1">🇳🇬 We currently deliver Nigerian audience only.</p>
+
+                      {/* City picker — only shows when a specific state is selected */}
+                      {audienceState !== 'All Nigeria' && STATE_CITIES[audienceState] && (
+                        <select
+                          value={audienceCity}
+                          onChange={(e) => setAudienceCity(e.target.value)}
+                          className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white focus:border-blue-500/50 outline-none"
+                        >
+                          <option value="" className="bg-slate-900">— Select a city (optional) —</option>
+                          {STATE_CITIES[audienceState].map((c) => (
+                            <option key={c} value={c} className="bg-slate-900">{c}</option>
+                          ))}
+                        </select>
+                      )}
+
+                      {/* Show resolved value */}
+                      <p className="text-xs text-slate-400 mt-1">
+                        🇳🇬 Nigerian audience only.
+                        {audienceLocation !== 'All Nigeria' && (
+                          <span className="text-blue-400 ml-1">Targeting: {audienceLocation}</span>
+                        )}
+                      </p>
                     </div>
                   </motion.div>
 
