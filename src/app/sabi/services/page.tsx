@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
@@ -113,6 +113,8 @@ const SPEED_COLOR: Record<string, string> = {
 export default function ServicesPage() {
   const [search, setSearch] = useState('');
   const [platform, setPlatform] = useState('all');
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const platforms = Array.from(new Set(SERVICES_CATALOG.map(s => s.category)));
   const filtered = SERVICES_CATALOG.filter(s => {
@@ -129,6 +131,12 @@ export default function ServicesPage() {
     if (services.length > 0) acc[p] = services;
     return acc;
   }, {});
+
+  if (!mounted) return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 
   return (
     <div className="min-h-screen relative bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">

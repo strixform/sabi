@@ -2073,12 +2073,14 @@ export const ACTION_PRICE_KOBO: Record<string, number> = {
   'Repins': 4000,
 };
 
-// Apply central pricing to every service (overrides legacy per-service values).
-// Any action missing from the map keeps its original price (safe fallback).
-for (const service of SERVICES_CATALOG) {
-  const price = ACTION_PRICE_KOBO[service.action];
-  if (price !== undefined) service.pricePerUnit = price;
-}
+// Apply central pricing to every service at module load time.
+// Done once here; SERVICES_CATALOG is the authoritative source for all code.
+(() => {
+  for (const service of SERVICES_CATALOG) {
+    const price = ACTION_PRICE_KOBO[service.action];
+    if (price !== undefined) service.pricePerUnit = price;
+  }
+})();
 
 // Fee model: Platform 7.5% + VAT 7.5% (= 15% total) on the base price.
 export const PLATFORM_FEE_RATE = 0.075;
