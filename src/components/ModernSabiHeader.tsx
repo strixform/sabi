@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiLogOut, FiHome, FiShoppingCart, FiKey, FiBook, FiMenu, FiX, FiCreditCard, FiDownload } from 'react-icons/fi';
+import { FiLogOut, FiHome, FiShoppingCart, FiKey, FiBook, FiMenu, FiX, FiCreditCard, FiDownload, FiInbox } from 'react-icons/fi';
 import { LogoImage } from './LogoImage';
 
 interface ModernSabiHeaderProps {
@@ -78,6 +78,7 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
   const navItems = [
     { href: '/sabi/dashboard', label: 'Dashboard', icon: FiHome, badge: null },
     { href: '/sabi/order', label: 'New Order', icon: FiShoppingCart, badge: 'Quick' },
+    { href: '/sabi/orders', label: 'Orders', icon: FiInbox, badge: null },
     { href: '/sabi/api-keys', label: 'API Keys', icon: FiKey, badge: null },
     { href: '/sabi/docs', label: 'Docs', icon: FiBook, badge: 'Dev' },
   ];

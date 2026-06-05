@@ -178,11 +178,15 @@ export async function sendVerificationEmail(
             </p>
 
             <div style="text-align: center; margin: 30px 0;">
-              <div style="background: white; border: 2px solid #3b82f6; padding: 20px; border-radius: 8px; display: inline-block;">
+              <div style="background: white; border: 2px solid #3b82f6; padding: 20px; border-radius: 8px; display: inline-block; margin-bottom: 16px;">
                 <p style="margin: 0; font-size: 32px; font-weight: bold; color: #3b82f6; letter-spacing: 4px;">
                   ${verifyCode}
                 </p>
               </div>
+              <br/>
+              <a href="${APP_URL}/sabi/verify?code=${verifyCode}" style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px;">
+                Or click here to verify →
+              </a>
             </div>
 
             <p style="color: #666; line-height: 1.6; margin: 20px 0;">

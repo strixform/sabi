@@ -471,8 +471,16 @@ export default function AdminPage() {
         </motion.div>
 
         {/* Navigation Buttons */}
-        <motion.div className="mt-8 flex gap-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}>
-          <Link href="/sabi/admin/settings" className="flex-1">
+        <motion.div className="mt-8 flex gap-4 flex-wrap" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}>
+          <Link href="/sabi/admin/promos" className="flex-1 min-w-[140px]">
+            <motion.button
+              className="w-full px-6 py-3 bg-gradient-to-r from-purple-500/30 to-pink-500/30 hover:from-purple-500/50 hover:to-pink-500/50 border border-purple-500/50 text-purple-300 font-semibold rounded-lg transition flex items-center justify-center gap-2"
+              whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+            >
+              🎟️ Promo Codes
+            </motion.button>
+          </Link>
+          <Link href="/sabi/admin/settings" className="flex-1 min-w-[140px]">
             <motion.button
               className="w-full px-6 py-3 bg-gradient-to-r from-blue-500/30 to-cyan-500/30 hover:from-blue-500/50 hover:to-cyan-500/50 border border-cyan-500/50 text-cyan-300 font-semibold rounded-lg transition flex items-center justify-center gap-2"
               whileHover={{ scale: 1.05 }}
