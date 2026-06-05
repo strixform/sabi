@@ -1849,6 +1849,193 @@ Active chat makes streams feel alive. Get 100-300 chat messages and make streams
     speed: 'medium',
     refillable: false,
   },
+
+  // ============ SNAPCHAT ============
+  {
+    id: 'snapchat_followers',
+    name: 'Snapchat Followers',
+    description: `👻 **GROW YOUR SNAPCHAT PRESENCE WITH REAL NIGERIAN FOLLOWERS**
+
+Snapchat rewards accounts with momentum. Get 100–1,000 real followers and boost your Snap Score, story visibility, and overall account authority. Real accounts means real snap streaks and authentic engagement.
+
+**WHAT YOU GET:**
+✓ Real Nigerian Snapchat followers (active accounts)
+✓ Gradual delivery over 24–48 hours
+✓ Followers who can view your stories and snaps
+✓ Permanent — no ghost drops
+✓ Boosts your Snap Score and social proof
+
+**YOUR ANALYTICS WILL SHOW:**
+📊 Story views increasing as follower base grows
+📊 Snap Score rising naturally
+📊 More replies to your snaps
+📊 Better brand perception (high followers = credibility)
+📊 More DMs and engagement from organic users
+
+**ACTIONABLE RESULTS YOU'LL USE:**
+→ Build credibility for your brand or personal account
+→ Attract business inquiries via Snapchat DMs
+→ Grow your Nigerian audience for product launches
+→ Increase story reach to broader circles
+→ Qualify for Snapchat creator monetization
+
+**THE EMOTIONAL WIN:** Every new follower is a real person who chose to connect with you. That's not a number — that's your audience showing up.`,
+    category: PLATFORMS.SNAPCHAT,
+    action: 'Followers',
+    pricePerUnit: 5000,
+    minQuantity: 100,
+    maxQuantity: 20000,
+    speed: 'medium',
+    refillable: true,
+  },
+  {
+    id: 'snapchat_story_views',
+    name: 'Snapchat Story Views',
+    description: `👀 **MAXIMIZE YOUR 24-HOUR WINDOW WITH REAL STORY VIEWS**
+
+Stories disappear in 24 hours — so timing is everything. Get 500–5,000 real views on your Snapchat stories and make every post count. High view counts push your story to the top of your followers' feeds.
+
+**WHAT YOU GET:**
+✓ Real views from active Nigerian Snapchat users
+✓ Views counted within 1–3 hours
+✓ Works on photos, videos, and multi-slide stories
+✓ Boosts your story ranking in followers' feeds
+✓ Permanent view count (no reversals)
+
+**YOUR ANALYTICS WILL SHOW:**
+📊 Stories appearing higher in followers' queues
+📊 More organic replies and DM reactions
+📊 Screenshot rates increasing
+📊 Story reach growing beyond just followers
+📊 Snap Score and account activity metrics rising
+
+**ACTIONABLE RESULTS YOU'LL USE:**
+→ Product/service announcements reaching maximum eyes
+→ Flash sales and promos getting instant visibility
+→ Personal updates building stronger connections
+→ Behind-the-scenes content driving engagement
+→ Event announcements reaching audience in time
+
+**THE EMOTIONAL WIN:** Posting a story and watching the views climb in real time is addictive validation. Your content matters. People are watching.`,
+    category: PLATFORMS.SNAPCHAT,
+    action: 'Story Views',
+    pricePerUnit: 1000,
+    minQuantity: 500,
+    maxQuantity: 100000,
+    speed: 'fast',
+    refillable: false,
+  },
+  {
+    id: 'snapchat_saves',
+    name: 'Snapchat Saves',
+    description: `🔖 **THE SIGNAL THAT SAYS YOUR CONTENT IS WORTH KEEPING**
+
+When someone saves your snap, they're saying "this is too good to lose." Get 100–500 saves and show Snapchat's algorithm that your content has lasting value — meaning more people get shown your snaps organically.
+
+**WHAT YOU GET:**
+✓ Real saves from active Nigerian Snapchat users
+✓ Saves spread over 2–4 hours naturally
+✓ Works on photos, videos, and spotlight content
+✓ Signals high content quality to algorithm
+✓ Permanent saves with no reversals
+
+**YOUR ANALYTICS WILL SHOW:**
+📊 Content being re-shared and re-viewed
+📊 Algorithm favouring your content in recommendations
+📊 Snap spotlight exposure increasing
+📊 Saves creating long-tail content views
+📊 Audience retention improving
+
+**ACTIONABLE RESULTS YOU'LL USE:**
+→ Tutorials and how-to content becoming reference material
+→ Educational content getting saved for later review
+→ Product demos being shared in group chats
+→ Inspirational content saving as wallpapers
+→ Your snaps appearing in "saved" collections
+
+**THE EMOTIONAL WIN:** Saves mean your content has value beyond the moment. It's worth keeping. That's not just engagement — that's impact.`,
+    category: PLATFORMS.SNAPCHAT,
+    action: 'Saves',
+    pricePerUnit: 3000,
+    minQuantity: 100,
+    maxQuantity: 50000,
+    speed: 'medium',
+    refillable: true,
+  },
+  {
+    id: 'snapchat_shares',
+    name: 'Snapchat Shares',
+    description: `↗️ **YOUR CONTENT SPREADING THROUGH NIGERIAN SNAPCHAT NETWORKS**
+
+Sharing on Snapchat means your content reaches networks you've never touched. Get 50–500 shares and watch your snap spread through friend groups, family chats, and communities across Nigeria.
+
+**WHAT YOU GET:**
+✓ Real shares from genuine Nigerian Snapchat users
+✓ Shares to stories, DMs, and group chats
+✓ Each share reaching entirely new audiences
+✓ Viral cascade effect across Nigerian networks
+✓ Permanent record of shares
+
+**YOUR ANALYTICS WILL SHOW:**
+📊 Reach exploding beyond your follower count
+📊 New follower requests from share discovery
+📊 Content reaching groups you don't follow
+📊 DM volume increasing from share exposure
+📊 Brand awareness spreading organically
+
+**ACTIONABLE RESULTS YOU'LL USE:**
+→ Announcements spreading like wildfire
+→ Promotions reaching thousands via group chats
+→ Content going viral in Nigerian communities
+→ Word-of-mouth marketing at scale
+→ Brand recognition growing organically
+
+**THE EMOTIONAL WIN:** A share is the highest compliment. Someone thought your content was so good, so important, so funny — that they had to share it. That's influence at its most authentic.`,
+    category: PLATFORMS.SNAPCHAT,
+    action: 'Shares',
+    pricePerUnit: 4000,
+    minQuantity: 50,
+    maxQuantity: 10000,
+    speed: 'medium',
+    refillable: true,
+  },
+  {
+    id: 'snapchat_views',
+    name: 'Snapchat Spotlight Views',
+    description: `🎬 **GO VIRAL ON SNAPCHAT SPOTLIGHT WITH REAL VIEW MOMENTUM**
+
+Snapchat Spotlight is Snapchat's answer to TikTok — and it pays creators. Get 1,000–10,000 real views on your Spotlight content and trigger Snapchat's algorithm to push your video to thousands more. Early view velocity decides which Spotlights go viral.
+
+**WHAT YOU GET:**
+✓ Real views from active Nigerian Snapchat users
+✓ Fast delivery matching organic view patterns
+✓ Counts toward Spotlight creator earnings eligibility
+✓ Triggers algorithm to show to more users
+✓ Permanent view count
+
+**YOUR ANALYTICS WILL SHOW:**
+📊 Spotlight video getting shown to exponentially more users
+📊 Creator fund earnings potential increasing
+📊 Profile visits spiking from Spotlight discovery
+📊 Followers growing from Spotlight exposure
+📊 Subsequent Spotlights performing better
+
+**ACTIONABLE RESULTS YOU'LL USE:**
+→ Entertainment content reaching millions
+→ Creator fund income becoming real possibility
+→ Brand building through viral Spotlight content
+→ Comedy and trending content going massive
+→ Tutorials reaching audience who needs them
+
+**THE EMOTIONAL WIN:** Snapchat Spotlight literally pays you when your content performs. Real views mean real potential for real income. That's not just engagement — that's your content working for you.`,
+    category: PLATFORMS.SNAPCHAT,
+    action: 'Views',
+    pricePerUnit: 1000,
+    minQuantity: 1000,
+    maxQuantity: 500000,
+    speed: 'fast',
+    refillable: false,
+  },
 ];
 
 // ── Central pricing (in kobo) by action type — single source of truth ──
