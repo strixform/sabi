@@ -15,8 +15,15 @@ export async function POST(req: NextRequest) {
     const { transactionId, status } = await req.json();
 
     if (!transactionId) {
+      console.error('[WALLET CALLBACK] No transaction ID provided');
       return NextResponse.json({ error: 'Transaction ID required' }, { status: 400 });
     }
+
+    console.log('[WALLET CALLBACK] Verifying transaction:', {
+      transactionId,
+      status,
+      userId: session.id,
+    });
 
     // Verify payment with Flutterwave
     const verification = await verifyFlwTransaction(transactionId);

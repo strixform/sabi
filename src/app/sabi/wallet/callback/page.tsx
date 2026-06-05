@@ -17,16 +17,25 @@ function CallbackContent() {
       try {
         // Log all query parameters for debugging
         const allParams = Array.from(searchParams.entries());
-        console.log('[CALLBACK] All query params:', allParams);
+        console.log('[CALLBACK] All query params:', allParams.map(([k, v]) => `${k}=${v}`).join(', '));
 
-        // Try both transaction_id and tx_ref (Flutterwave might use either)
+        // Try transaction_id first (numeric ID), then tx_ref (string reference)
         let transactionId = searchParams.get('transaction_id');
+        let paramSource = 'transaction_id';
+
         if (!transactionId) {
           transactionId = searchParams.get('tx_ref');
+          paramSource = 'tx_ref';
         }
+
         const status = searchParams.get('status');
 
-        console.log('[CALLBACK] transactionId:', transactionId, 'status:', status);
+        console.log('[CALLBACK] Parameters:', {
+          transactionId,
+          paramSource,
+          status,
+          fullUrl: window.location.href,
+        });
 
         if (!transactionId) {
           setStatus('error');

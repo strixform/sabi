@@ -92,10 +92,17 @@ export async function initializeFlwPayment(
 }
 
 export async function verifyFlwTransaction(
-  txRef: string
+  transactionIdOrRef: string
 ): Promise<{ success: boolean; status?: string; amount?: number; error?: string }> {
   try {
-    const response = await fetch(`${FLW_BASE_URL}/transactions/verify_by_reference?tx_ref=${txRef}`, {
+    // Check if it's a numeric ID or a string reference
+    const isNumericId = /^\d+$/.test(transactionIdOrRef);
+
+    const url = isNumericId
+      ? `${FLW_BASE_URL}/transactions/${transactionIdOrRef}/verify`
+      : `${FLW_BASE_URL}/transactions/verify_by_reference?tx_ref=${transactionIdOrRef}`;
+
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${FLW_SECRET_KEY}`,
@@ -103,14 +110,22 @@ export async function verifyFlwTransaction(
     });
 
     if (!response.ok) {
+      console.error('[VERIFICATION] HTTP error:', response.status, response.statusText);
       return { success: false, error: 'Transaction not found' };
     }
 
     const data = await response.json();
 
     if (data.status !== 'success') {
+      console.error('[VERIFICATION] Status not success:', data.status);
       return { success: false, error: 'Verification failed' };
     }
+
+    console.log('[VERIFICATION] Successful:', {
+      transactionId: data.data.id,
+      status: data.data.status,
+      amount: data.data.amount,
+    });
 
     return {
       success: true,
@@ -118,7 +133,7 @@ export async function verifyFlwTransaction(
       amount: data.data.amount,
     };
   } catch (error) {
-    console.error('Verification error:', error);
+    console.error('[VERIFICATION] Error:', error);
     return { success: false, error: 'Verification failed' };
   }
 }
