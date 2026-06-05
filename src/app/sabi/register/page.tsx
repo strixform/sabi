@@ -77,7 +77,9 @@ export default function RegisterPage() {
           <div className="absolute bottom-1/4 right-0 w-80 h-80 bg-white/10 rounded-full blur-3xl translate-x-1/2" />
         </div>
         <div className="relative z-10">
-          <LogoImage size="sm" className="w-12 h-12 mb-12" />
+          <Link href="/" className="block mb-10 group">
+            <LogoImage size="lg" className="w-28 h-28 group-hover:scale-105 transition-transform duration-300" />
+          </Link>
           <h1 className="text-3xl font-black text-white leading-tight mb-4">
             Start growing<br />your audience<br /><span className="text-yellow-300">today.</span>
           </h1>
@@ -102,7 +104,9 @@ export default function RegisterPage() {
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
           className="w-full max-w-md">
           <div className="lg:hidden flex justify-center mb-8">
-            <LogoImage size="md" className="w-16 h-16" />
+            <Link href="/">
+              <LogoImage size="md" className="w-20 h-20 hover:scale-105 transition-transform" />
+            </Link>
           </div>
 
           <h2 className="text-3xl font-black text-white mb-1">Create account</h2>

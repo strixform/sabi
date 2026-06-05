@@ -55,7 +55,10 @@ export default function LoginPage() {
           <div className="absolute bottom-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
         </div>
         <div className="relative z-10">
-          <LogoImage size="sm" className="w-12 h-12 mb-12" />
+          {/* Big clickable logo — fills the panel with brand presence */}
+          <Link href="/" className="block mb-10 group">
+            <LogoImage size="lg" className="w-28 h-28 group-hover:scale-105 transition-transform duration-300" />
+          </Link>
           <h1 className="text-4xl font-black text-white leading-tight mb-4">
             Grow your social<br />presence with<br />
             <span className="text-yellow-300">real Nigerians.</span>
@@ -84,7 +87,9 @@ export default function LoginPage() {
         >
           {/* Mobile logo */}
           <div className="lg:hidden flex justify-center mb-8">
-            <LogoImage size="md" className="w-16 h-16" />
+            <Link href="/">
+              <LogoImage size="md" className="w-20 h-20 hover:scale-105 transition-transform" />
+            </Link>
           </div>
 
           <h2 className="text-3xl font-black text-white mb-2">Welcome back</h2>
