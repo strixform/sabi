@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   FiArrowRight, FiArrowLeft, FiCheck, FiShoppingCart, FiLoader,
-  FiAlertCircle, FiDollarSign, FiTrendingUp
+  FiAlertCircle, FiDollarSign, FiTrendingUp, FiStar
 } from 'react-icons/fi';
 import {
   SiInstagram, SiX, SiYoutube, SiTiktok, SiSnapchat, SiSpotify,
@@ -18,7 +18,7 @@ import { AnimatedBackground } from '@/components/AnimatedBackground';
 import { AnimateInText } from '@/components/AnimateInText';
 import { ModernSabiHeader } from '@/components/ModernSabiHeader';
 import type { Service } from '@/lib/servicesCatalog';
-import { PLATFORMS, computePricing } from '@/lib/servicesCatalog';
+import { PLATFORMS, computePricing, getServiceById } from '@/lib/servicesCatalog';
 
 const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   instagram: SiInstagram,
@@ -218,6 +218,17 @@ const PLATFORM_COLORS: Record<string, string> = {
   twitch: 'from-purple-600 to-purple-800',
 };
 
+// Nigerian states (audience targeting — Nigerian audience only for now)
+const NIGERIAN_STATES = [
+  'All Nigeria', 'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue',
+  'Borno', 'Cross River', 'Delta', 'Ebonyi', 'Edo', 'Ekiti', 'Enugu', 'FCT - Abuja', 'Gombe',
+  'Imo', 'Jigawa', 'Kaduna', 'Kano', 'Katsina', 'Kebbi', 'Kogi', 'Kwara', 'Lagos', 'Nasarawa',
+  'Niger', 'Ogun', 'Ondo', 'Osun', 'Oyo', 'Plateau', 'Rivers', 'Sokoto', 'Taraba', 'Yobe', 'Zamfara',
+];
+
+const COMMENT_ACTIONS = ['Comments', 'Replies', 'Chat Comments'];
+const COMMENT_MAX = 300;
+
 type Step = 'platform' | 'service' | 'details' | 'review';
 
 export default function OrderPage() {
@@ -227,11 +238,17 @@ export default function OrderPage() {
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [targetUrl, setTargetUrl] = useState('');
   const [quantity, setQuantity] = useState(100);
+  // Audience targeting + comment customization
+  const [audienceGender, setAudienceGender] = useState<'both' | 'male' | 'female'>('both');
+  const [audienceLocation, setAudienceLocation] = useState('All Nigeria');
+  const [commentGender, setCommentGender] = useState<'both' | 'male' | 'female'>('both');
+  const [commentInstructions, setCommentInstructions] = useState('');
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [wallet, setWallet] = useState({ balance: 0 });
   const [session, setSession] = useState<any>(null);
+  const [favorites, setFavorites] = useState<string[]>([]);
 
   // Fetch session
   useEffect(() => {
@@ -247,6 +264,12 @@ export default function OrderPage() {
           if (walletData.success) {
             setWallet({ balance: walletData.balance });
           }
+          // Load favorite services
+          try {
+            const favRes = await fetch('/api/sabi/favorites');
+            const favData = await favRes.json();
+            if (favData.success) setFavorites(favData.serviceIds || []);
+          } catch {}
         } else {
           router.push('/sabi/login');
         }
@@ -263,6 +286,37 @@ export default function OrderPage() {
       fetchServices();
     }
   }, [selectedPlatform]);
+
+  // Re-order prefill: /sabi/order?reorder=1&serviceId=&quantity=&url=
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.get('reorder') !== '1') return;
+    const svc = getServiceById(sp.get('serviceId') || '');
+    if (!svc) return;
+    setSelectedPlatform(svc.category);
+    setSelectedService(svc);
+    const q = parseInt(sp.get('quantity') || '') || svc.minQuantity;
+    setQuantity(Math.max(svc.minQuantity, Math.min(svc.maxQuantity, q)));
+    const url = sp.get('url');
+    if (url) setTargetUrl(url);
+    setCurrentStep('details');
+  }, []);
+
+  const toggleFavorite = async (serviceId: string) => {
+    const isFav = favorites.includes(serviceId);
+    // Optimistic update
+    setFavorites((prev) => (isFav ? prev.filter((id) => id !== serviceId) : [...prev, serviceId]));
+    try {
+      await fetch('/api/sabi/favorites', {
+        method: isFav ? 'DELETE' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ serviceId }),
+      });
+    } catch {
+      // Revert on failure
+      setFavorites((prev) => (isFav ? [...prev, serviceId] : prev.filter((id) => id !== serviceId)));
+    }
+  };
 
   const fetchServices = async () => {
     try {
@@ -357,6 +411,11 @@ export default function OrderPage() {
           targetUrl,
           quantity,
           paymentMethod: 'wallet',
+          audienceGender,
+          audienceLocation,
+          ...(COMMENT_ACTIONS.includes(selectedService.action)
+            ? { commentGender, commentInstructions: commentInstructions.trim() || null }
+            : {}),
         }),
       });
 
@@ -510,7 +569,7 @@ export default function OrderPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {services.map((service) => (
+                  {[...services].sort((a, b) => Number(favorites.includes(b.id)) - Number(favorites.includes(a.id))).map((service) => (
                     <motion.button
                       key={service.id}
                       onClick={() => setSelectedService(service)}
@@ -527,7 +586,17 @@ export default function OrderPage() {
                           <h3 className="text-xl font-bold text-white mb-2">{service.name}</h3>
                           <p className="text-slate-400 text-sm line-clamp-2">{service.description}</p>
                         </div>
-                        <div className="text-right ml-4">
+                        <div className="text-right ml-4 flex flex-col items-end gap-1">
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => { e.stopPropagation(); toggleFavorite(service.id); }}
+                            onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); toggleFavorite(service.id); } }}
+                            className="cursor-pointer p-1 -mt-1 -mr-1"
+                            aria-label={favorites.includes(service.id) ? 'Remove favorite' : 'Save favorite'}
+                          >
+                            <FiStar className={`w-5 h-5 transition ${favorites.includes(service.id) ? 'fill-yellow-400 text-yellow-400' : 'text-slate-500 hover:text-slate-300'}`} />
+                          </span>
                           <p className="text-lg font-bold text-emerald-400">
                             ₦{(service.pricePerUnit / 100).toFixed(2)}/{service.action}
                           </p>
@@ -654,6 +723,99 @@ export default function OrderPage() {
                       Min: {selectedService.minQuantity.toLocaleString()} • Max: {selectedService.maxQuantity.toLocaleString()}
                     </p>
                   </motion.div>
+
+                  {/* Audience targeting */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.25 }}
+                    className="space-y-4"
+                  >
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-300 mb-2">
+                        Audience Gender
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {(['both', 'male', 'female'] as const).map((g) => (
+                          <button
+                            key={g}
+                            type="button"
+                            onClick={() => setAudienceGender(g)}
+                            className={`px-3 py-2 rounded-lg text-sm font-medium capitalize transition ${
+                              audienceGender === g
+                                ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
+                                : 'bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:border-slate-600'
+                            }`}
+                          >
+                            {g}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-300 mb-2">
+                        Audience Location
+                      </label>
+                      <select
+                        value={audienceLocation}
+                        onChange={(e) => setAudienceLocation(e.target.value)}
+                        className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white focus:border-blue-500/50 outline-none"
+                      >
+                        {NIGERIAN_STATES.map((s) => (
+                          <option key={s} value={s} className="bg-slate-900">{s}</option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-slate-400 mt-1">🇳🇬 We currently deliver Nigerian audience only.</p>
+                    </div>
+                  </motion.div>
+
+                  {/* Comment customization (comment-type services only) */}
+                  {COMMENT_ACTIONS.includes(selectedService.action) && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="space-y-4 p-4 bg-slate-800/30 border border-slate-700/30 rounded-lg"
+                    >
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-300 mb-2">
+                          Commenter Gender
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {(['both', 'male', 'female'] as const).map((g) => (
+                            <button
+                              key={g}
+                              type="button"
+                              onClick={() => setCommentGender(g)}
+                              className={`px-3 py-2 rounded-lg text-sm font-medium capitalize transition ${
+                                commentGender === g
+                                  ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+                                  : 'bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:border-slate-600'
+                              }`}
+                            >
+                              {g}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-300 mb-2">
+                          What should the comments say?
+                        </label>
+                        <textarea
+                          value={commentInstructions}
+                          onChange={(e) => setCommentInstructions(e.target.value.slice(0, COMMENT_MAX))}
+                          rows={3}
+                          placeholder="e.g. Positive comments about our new product launch, mention the discount, keep it casual and friendly."
+                          className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white placeholder-slate-500 text-sm focus:border-purple-500/50 outline-none resize-none"
+                        />
+                        <p className="text-xs text-slate-400 mt-1 text-right">
+                          {commentInstructions.length}/{COMMENT_MAX}
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
 
                   {/* Service Description Preview */}
                   <motion.div

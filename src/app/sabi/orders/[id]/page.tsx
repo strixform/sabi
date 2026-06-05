@@ -123,8 +123,21 @@ export default function OrderTrackingPage() {
               </h1>
               <p className="text-slate-400">Created {new Date(order.createdAt).toLocaleDateString()}</p>
             </div>
-            <div className={`px-6 py-2 rounded-full border font-bold ${statusColors[order.status] || statusColors.pending}`}>
-              {order.status.toUpperCase()}
+            <div className="flex items-center gap-3">
+              <div className={`px-6 py-2 rounded-full border font-bold ${statusColors[order.status] || statusColors.pending}`}>
+                {order.status.toUpperCase()}
+              </div>
+              <Link
+                href={`/sabi/order?reorder=1&serviceId=${encodeURIComponent(order.serviceType)}&quantity=${order.quantity}&url=${encodeURIComponent(order.targetUrl)}`}
+              >
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-5 py-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold rounded-full text-sm"
+                >
+                  ↻ Re-order
+                </motion.button>
+              </Link>
             </div>
           </div>
         </motion.div>
@@ -216,6 +229,22 @@ export default function OrderTrackingPage() {
                     <span className="text-slate-400">Target URL:</span>
                     <span className="font-mono text-xs text-right truncate text-slate-300">{order.targetUrl}</span>
                   </div>
+                  {order.estimatedCompletion && order.status !== 'completed' && (
+                    <div className="flex justify-between items-center pb-4 border-b border-slate-700/50">
+                      <span className="text-slate-400">Est. Completion:</span>
+                      <span className="font-bold text-cyan-300">{new Date(order.estimatedCompletion).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center pb-4 border-b border-slate-700/50">
+                    <span className="text-slate-400">Audience:</span>
+                    <span className="font-bold text-cyan-400">🇳🇬 {order.audienceLocation || 'All Nigeria'}{order.audienceGender && order.audienceGender !== 'both' ? ` · ${order.audienceGender}` : ''}</span>
+                  </div>
+                  {order.commentInstructions && (
+                    <div className="pb-4 border-b border-slate-700/50">
+                      <span className="text-slate-400 block mb-1">Comment brief{order.commentGender && order.commentGender !== 'both' ? ` (${order.commentGender})` : ''}:</span>
+                      <span className="text-slate-300 text-xs">{order.commentInstructions}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center pt-4">
                     <span className="text-slate-400">Completed:</span>
                     <span className="font-bold text-cyan-400 text-lg">{order.completionPercentage || 0}%</span>
@@ -234,20 +263,33 @@ export default function OrderTrackingPage() {
             <InteractiveCard glowColor="orange">
               <div className="p-6 sm:p-8">
                 <h3 className="text-lg font-bold mb-6">Pricing Breakdown</h3>
-                <div className="space-y-4 text-sm">
-                  <div className="flex justify-between items-center pb-4 border-b border-slate-700/50">
-                    <span className="text-slate-400">Base Price:</span>
-                    <span className="font-bold">₦{order.totalPrice?.toLocaleString() || '0'}</span>
-                  </div>
-                  <div className="flex justify-between items-center pb-4 border-b border-slate-700/50">
-                    <span className="text-slate-400">Platform Fee (15%):</span>
-                    <span className="font-bold text-orange-400">₦{order.platformFee?.toLocaleString() || '0'}</span>
-                  </div>
-                  <div className="flex justify-between items-center pt-4 text-base bg-slate-800/50 p-4 rounded-lg">
-                    <span className="font-bold text-slate-300">Total Amount:</span>
-                    <span className="font-black text-orange-400">₦{((order.totalPrice || 0) + (order.platformFee || 0)).toLocaleString()}</span>
-                  </div>
-                </div>
+                {(() => {
+                  const baseKobo = order.totalPrice || 0;
+                  const feeKobo = order.platformFee || 0;
+                  const platformKobo = Math.round(baseKobo * 0.075);
+                  const vatKobo = Math.max(feeKobo - platformKobo, 0);
+                  const ngn = (k: number) => `₦${(k / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+                  return (
+                    <div className="space-y-4 text-sm">
+                      <div className="flex justify-between items-center pb-4 border-b border-slate-700/50">
+                        <span className="text-slate-400">Base Price:</span>
+                        <span className="font-bold">{ngn(baseKobo)}</span>
+                      </div>
+                      <div className="flex justify-between items-center pb-4 border-b border-slate-700/50">
+                        <span className="text-slate-400">Platform Fee (7.5%):</span>
+                        <span className="font-bold text-orange-400">{ngn(platformKobo)}</span>
+                      </div>
+                      <div className="flex justify-between items-center pb-4 border-b border-slate-700/50">
+                        <span className="text-slate-400">VAT (7.5%):</span>
+                        <span className="font-bold text-orange-400">{ngn(vatKobo)}</span>
+                      </div>
+                      <div className="flex justify-between items-center pt-4 text-base bg-slate-800/50 p-4 rounded-lg">
+                        <span className="font-bold text-slate-300">Total Amount:</span>
+                        <span className="font-black text-orange-400">{ngn(baseKobo + feeKobo)}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </InteractiveCard>
           </motion.div>

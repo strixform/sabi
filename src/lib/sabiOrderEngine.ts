@@ -10,6 +10,11 @@ export interface CreateOrderInput {
   paymentMethod: 'flutterwave' | 'wallet';
   customRef?: string;
   clientId?: string;
+  // Audience targeting + comment customization (optional)
+  audienceGender?: 'male' | 'female' | 'both';
+  audienceLocation?: string;
+  commentGender?: 'male' | 'female' | 'both';
+  commentInstructions?: string | null;
 }
 
 export interface OrderResponse {
@@ -77,6 +82,10 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
         orderedVia: 'web',
         clientId: input.clientId,
         customRef: input.customRef,
+        audienceGender: input.audienceGender || null,
+        audienceLocation: input.audienceLocation || null,
+        commentGender: input.commentGender || null,
+        commentInstructions: input.commentInstructions || null,
         status: 'processing',
       },
     });
@@ -89,7 +98,13 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
       basePrice,
       input.targetUrl,
       user.name,
-      user.businessName || user.email
+      user.businessName || user.email,
+      {
+        audienceGender: input.audienceGender,
+        audienceLocation: input.audienceLocation,
+        commentGender: input.commentGender,
+        commentInstructions: input.commentInstructions,
+      }
     );
 
     if (campaignResult.success && campaignResult.campaignId) {
@@ -138,7 +153,13 @@ async function createGamesz360Campaign(
   budgetInKobo: number,
   targetUrl: string,
   userName: string,
-  brandName: string
+  brandName: string,
+  targeting?: {
+    audienceGender?: string;
+    audienceLocation?: string;
+    commentGender?: string;
+    commentInstructions?: string | null;
+  }
 ): Promise<{ success: boolean; campaignId?: string; advertiserId?: string; error?: string }> {
   try {
     const user = await prisma.sabiUser.findUnique({
@@ -159,6 +180,15 @@ async function createGamesz360Campaign(
       return { success: false, error: 'Integration not configured' };
     }
 
+    // Build a human-readable targeting note for taskers
+    const t = targeting || {};
+    const targetingParts: string[] = [];
+    if (t.audienceGender && t.audienceGender !== 'both') targetingParts.push(`Audience: ${t.audienceGender} only`);
+    if (t.audienceLocation && t.audienceLocation !== 'All Nigeria') targetingParts.push(`Location: ${t.audienceLocation}`);
+    if (t.commentGender && t.commentGender !== 'both') targetingParts.push(`Commenters: ${t.commentGender} only`);
+    if (t.commentInstructions) targetingParts.push(`Comment brief: ${t.commentInstructions}`);
+    const targetingNote = targetingParts.length ? targetingParts.join(' | ') : undefined;
+
     const payload = {
       sabiOrderId: orderId,
       serviceType: serviceId,
@@ -167,6 +197,7 @@ async function createGamesz360Campaign(
       totalPrice: budgetInKobo,
       sabiUserId: userId,
       sabiUserEmail: user.email,
+      targetingNote,
       webhookUrl: `${process.env.SABI_BASE_URL || 'https://sability.io'}/api/webhooks/gamerz360`,
     };
 

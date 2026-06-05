@@ -35,7 +35,10 @@ export async function POST(req: NextRequest) {
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { serviceId, quantity, targetUrl, paymentMethod } = body;
+    const {
+      serviceId, quantity, targetUrl, paymentMethod,
+      audienceGender, audienceLocation, commentGender, commentInstructions,
+    } = body;
 
     if (!serviceId || !quantity || !targetUrl) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -47,6 +50,10 @@ export async function POST(req: NextRequest) {
       targetUrl,
       quantity: parseInt(quantity),
       paymentMethod: paymentMethod || 'flutterwave',
+      audienceGender,
+      audienceLocation,
+      commentGender,
+      commentInstructions,
     });
 
     return NextResponse.json(result);
