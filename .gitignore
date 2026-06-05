@@ -48,3 +48,4 @@ next-env.d.ts
 .migrate_secret.tmp
 .migrate_v2_secret.tmp
 .cron_secret.tmp
+.migrate_push_secret.tmp

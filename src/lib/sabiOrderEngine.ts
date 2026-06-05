@@ -371,18 +371,26 @@ export async function updateSabiOrderStatus(
       include: { user: { select: { email: true, name: true, notifyEmail: true } } },
     });
 
-    // Fire-and-forget email notifications
+    // Fire-and-forget email + push notifications
+    const svcName = order.serviceType.replace(/_/g, ' ');
     if (order.user.notifyEmail) {
       const { sendOrderStartedEmail, sendOrderCompletedEmail, sendOrderFailedEmail } = await import('./email');
-      const svcName = order.serviceType.replace(/_/g, ' ');
-      if (status === 'executing') {
-        sendOrderStartedEmail(order.user.email, order.user.name, orderId, svcName, order.quantity);
-      } else if (status === 'completed') {
-        sendOrderCompletedEmail(order.user.email, order.user.name, orderId, svcName, order.quantity);
-      } else if (status === 'failed') {
-        sendOrderFailedEmail(order.user.email, order.user.name, orderId, svcName);
-      }
+      if (status === 'executing') sendOrderStartedEmail(order.user.email, order.user.name, orderId, svcName, order.quantity);
+      else if (status === 'completed') sendOrderCompletedEmail(order.user.email, order.user.name, orderId, svcName, order.quantity);
+      else if (status === 'failed') sendOrderFailedEmail(order.user.email, order.user.name, orderId, svcName);
     }
+
+    // Push notification
+    try {
+      const { sendPushToUser } = await import('./pushNotifications');
+      if (status === 'executing') {
+        sendPushToUser(order.userId, { title: '⚡ Order started', body: `Your ${svcName} order is now running.`, url: `https://sability.io/sabi/orders/${orderId}` });
+      } else if (status === 'completed') {
+        sendPushToUser(order.userId, { title: '✅ Order complete!', body: `Your ${svcName} order has been delivered.`, url: `https://sability.io/sabi/orders/${orderId}` });
+      } else if (status === 'failed') {
+        sendPushToUser(order.userId, { title: '⚠️ Order update', body: `Your ${svcName} order hit an issue. Wallet has been refunded.`, url: `https://sability.io/sabi/orders/${orderId}` });
+      }
+    } catch {}
 
     return { success: true };
   } catch (error) {

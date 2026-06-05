@@ -108,35 +108,37 @@ self.addEventListener('sync', (event) => {
   }
 });
 
-// Push notifications
+// Push notifications — handles structured payload from pushNotifications.ts
 self.addEventListener('push', (event) => {
-  if (event.data) {
-    const options = {
-      body: event.data.text(),
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
-      tag: 'sabi-notification',
-      requireInteraction: false,
-    };
+  if (!event.data) return;
+  let data = {};
+  try { data = event.data.json(); } catch { data = { title: 'SABI', body: event.data.text() }; }
 
-    event.waitUntil(self.registration.showNotification('SABI', options));
-  }
+  const { title = 'SABI', body = '', icon, badge, url } = data;
+  const options = {
+    body,
+    icon: icon || '/sabi-favicon.png',
+    badge: badge || '/sabi-favicon-maskable.png',
+    tag: 'sabi-notification',
+    requireInteraction: false,
+    data: { url: url || '/sabi/dashboard' },
+    vibrate: [100, 50, 100],
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
-// Notification click handling
+// Notification click — open the specific order or dashboard
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+  const targetUrl = event.notification.data?.url || '/sabi/dashboard';
   event.waitUntil(
-    clients.matchAll({ type: 'window' }).then((clientList) => {
-      // Check if SABI is already open
-      for (let client of clientList) {
-        if (client.url === '/' && 'focus' in client) {
-          return client.focus();
-        }
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ('focus' in client) { client.focus(); client.navigate(targetUrl); return; }
       }
-      // Open SABI if not already open
       if (clients.openWindow) {
-        return clients.openWindow('/sabi/dashboard');
+        return clients.openWindow(targetUrl);
       }
     })
   );
