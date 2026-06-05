@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { SiInstagram, SiTiktok, SiYoutube, SiFacebook, SiTwitch, SiSnapchat, SiSpotify, SiWhatsapp, SiPinterest, SiThreads, SiTelegram } from 'react-icons/si';
@@ -727,5 +728,12 @@ function HomeContent() {
 }
 
 export default function Home() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return (
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
   return <HomeContent />;
 }
