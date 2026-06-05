@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Poppins, Space_Mono, Outfit } from 'next/font/google';
+import { Poppins, Space_Mono, Outfit, Playfair_Display } from 'next/font/google';
 import Script from 'next/script';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
@@ -9,7 +9,8 @@ import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 
 const poppins = Poppins({ weight: ['400', '600', '700', '900'], subsets: ['latin'] });
 const spaceMono = Space_Mono({ weight: ['400', '700'], subsets: ['latin'] });
-const outfit = Outfit({ weight: ['400', '600', '700', '800'], subsets: ['latin'] });
+const outfit = Outfit({ weight: ['300', '400', '500', '600', '700', '800', '900'], subsets: ['latin'] });
+const playfair = Playfair_Display({ weight: ['400', '500', '600', '700', '800', '900'], subsets: ['latin'], variable: '--font-playfair' });
 
 export const metadata: Metadata = {
   title: '🎯 Sabi - 100% REAL Nigerian Social Media Engagement',
@@ -64,7 +65,7 @@ export default function RootLayout({
           </>
         )}
       </head>
-      <body className={`${outfit.className} bg-slate-950 text-white antialiased`}>
+      <body className={`${outfit.className} ${playfair.variable} bg-slate-950 text-white antialiased`}>
         <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
           {/* Premium animated background */}
           <div className="fixed inset-0 overflow-hidden pointer-events-none">

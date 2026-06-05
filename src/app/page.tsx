@@ -1,129 +1,146 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { motion, useInView, AnimatePresence, useMotionValue, useSpring } from 'framer-motion';
+import {
+  motion, useInView, AnimatePresence,
+  useMotionValue, useSpring, useScroll, useTransform,
+} from 'framer-motion';
 import {
   SiInstagram, SiX, SiYoutube, SiTiktok, SiSnapchat, SiSpotify,
   SiWhatsapp, SiPinterest, SiThreads, SiTelegram, SiTwitch,
 } from 'react-icons/si';
-import { FiArrowRight, FiCheck, FiZap, FiUsers, FiMapPin, FiMessageCircle, FiShield, FiTrendingUp, FiStar } from 'react-icons/fi';
+import { FiArrowRight, FiArrowUpRight } from 'react-icons/fi';
 import { LogoImage } from '@/components/LogoImage';
 
-// ─── Mouse-tracking cursor glow ───────────────────────────────────────────────
+// ─── Smooth cursor glow ───────────────────────────────────────────────────────
 function CursorGlow() {
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const springX = useSpring(x, { damping: 30, stiffness: 200 });
-  const springY = useSpring(y, { damping: 30, stiffness: 200 });
-
+  const x = useMotionValue(-400);
+  const y = useMotionValue(-400);
+  const sx = useSpring(x, { damping: 50, stiffness: 150, mass: 0.5 });
+  const sy = useSpring(y, { damping: 50, stiffness: 150, mass: 0.5 });
   useEffect(() => {
-    const move = (e: MouseEvent) => { x.set(e.clientX); y.set(e.clientY); };
-    window.addEventListener('mousemove', move);
-    return () => window.removeEventListener('mousemove', move);
+    const fn = (e: MouseEvent) => { x.set(e.clientX); y.set(e.clientY); };
+    window.addEventListener('mousemove', fn);
+    return () => window.removeEventListener('mousemove', fn);
   }, [x, y]);
-
   return (
-    <motion.div
-      className="pointer-events-none fixed z-0 rounded-full"
-      style={{
-        width: 800, height: 800,
-        x: springX, y: springY,
-        translateX: '-50%', translateY: '-50%',
-        background: 'radial-gradient(circle, rgba(37,99,235,0.07) 0%, rgba(124,58,237,0.04) 40%, transparent 70%)',
-      }}
-    />
+    <motion.div className="pointer-events-none fixed z-0 rounded-full"
+      style={{ width: 700, height: 700, x: sx, y: sy, translateX: '-50%', translateY: '-50%',
+        background: 'radial-gradient(circle, rgba(30,64,175,0.06) 0%, rgba(88,28,220,0.03) 45%, transparent 70%)' }} />
+  );
+}
+
+// ─── Text mask reveal — the signature animation ───────────────────────────────
+function Reveal({ children, delay = 0, className = '' }: { children: React.ReactNode; delay?: number; className?: string }) {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: '-60px' });
+  return (
+    <div ref={ref} className={`overflow-hidden ${className}`}>
+      <motion.div
+        initial={{ y: '108%', opacity: 0.4 }}
+        animate={inView ? { y: 0, opacity: 1 } : {}}
+        transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1], delay }}
+      >
+        {children}
+      </motion.div>
+    </div>
+  );
+}
+
+// ─── Fade in ─────────────────────────────────────────────────────────────────
+function FadeIn({ children, delay = 0, className = '', y = 24 }: any) {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: '-40px' });
+  return (
+    <motion.div ref={ref}
+      initial={{ opacity: 0, y }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay }}
+      className={className}>
+      {children}
+    </motion.div>
   );
 }
 
 // ─── Animated counter ─────────────────────────────────────────────────────────
 function Counter({ target, suffix = '', prefix = '' }: { target: number; suffix?: string; prefix?: string }) {
-  const [count, setCount] = useState(0);
+  const [n, setN] = useState(0);
   const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: '-100px' });
-
+  const inView = useInView(ref, { once: true, margin: '-80px' });
   useEffect(() => {
     if (!inView) return;
-    const duration = 2200;
-    const startTime = performance.now();
+    const start = performance.now();
+    const dur = 2600;
     const tick = (now: number) => {
-      const progress = Math.min((now - startTime) / duration, 1);
-      const ease = 1 - Math.pow(1 - progress, 4);
-      setCount(Math.round(ease * target));
-      if (progress < 1) requestAnimationFrame(tick);
+      const t = Math.min((now - start) / dur, 1);
+      const ease = 1 - Math.pow(1 - t, 4);
+      setN(Math.round(ease * target));
+      if (t < 1) requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
   }, [inView, target]);
-
-  return <span ref={ref}>{prefix}{count.toLocaleString()}{suffix}</span>;
+  return <span ref={ref}>{prefix}{n.toLocaleString()}{suffix}</span>;
 }
 
-// ─── Terminal ticker ──────────────────────────────────────────────────────────
-const ACTIVITIES = [
-  { user: 'tobi_creates', city: 'Lagos', action: '+1,247 Instagram followers', time: '2s ago' },
-  { user: 'ch1nedu_', city: 'Abuja', action: '+50K TikTok views', time: '7s ago' },
-  { user: 'fatimah.ng', city: 'Kano', action: '+800 YouTube subscribers', time: '11s ago' },
-  { user: 'emeka_vibe', city: 'PH', action: '+25K Reel views in 1hr', time: '18s ago' },
-  { user: 'blessing__', city: 'Ibadan', action: '+500 Twitter followers', time: '24s ago' },
-  { user: 'dami.creates', city: 'Enugu', action: '+300 post comments', time: '31s ago' },
-  { user: 'usman.ng', city: 'Kaduna', action: '+2,000 Spotify plays', time: '38s ago' },
-  { user: 'amara_delta', city: 'Warri', action: '+1,000 TikTok likes', time: '44s ago' },
+// ─── Live ticker ─────────────────────────────────────────────────────────────
+const LIVE = [
+  ['@tobi.creates', 'Lagos · Lekki', '+1,247 Instagram followers'],
+  ['@chinedu__', 'Abuja · Maitama', '+50K TikTok views'],
+  ['@fatimah.ng', 'Kano · City', '+800 YouTube subscribers'],
+  ['@emeka_vibe', 'Port Harcourt', '+25K Reel views'],
+  ['@blessing__', 'Ibadan · Bodija', '+500 Twitter followers'],
+  ['@damilola.c', 'Enugu · Layout', '+300 curated comments'],
+  ['@usman.ng', 'Kaduna', '+2,000 Spotify plays'],
 ];
 
-function TerminalTicker() {
-  const [idx, setIdx] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setIdx(i => (i + 1) % ACTIVITIES.length), 2800);
-    return () => clearInterval(t);
-  }, []);
-  const a = ACTIVITIES[idx];
+function Ticker() {
+  const [i, setI] = useState(0);
+  useEffect(() => { const t = setInterval(() => setI(v => (v + 1) % LIVE.length), 3200); return () => clearInterval(t); }, []);
+  const [handle, city, result] = LIVE[i];
   return (
-    <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-black border border-white/10 rounded-lg font-mono text-sm max-w-xl mx-auto overflow-hidden">
-      <span className="text-emerald-400 shrink-0">▶</span>
+    <div className="inline-flex items-center gap-4 bg-white/[0.03] border border-white/[0.07] rounded-full px-6 py-2.5 font-mono text-xs">
+      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 animate-pulse" />
       <AnimatePresence mode="wait">
-        <motion.span key={idx} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-          className="flex items-center gap-2 text-white/70 truncate">
-          <span className="text-blue-400">{a.user}</span>
-          <span className="text-white/30">·</span>
-          <span className="text-white/50">{a.city}</span>
-          <span className="text-white/30">·</span>
-          <span className="text-emerald-300">{a.action}</span>
-          <span className="text-white/20 text-xs shrink-0 hidden sm:inline">{a.time}</span>
+        <motion.span key={i} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
+          transition={{ duration: 0.35 }} className="flex items-center gap-3 text-white/40">
+          <span className="text-white/70 font-medium">{handle}</span>
+          <span>·</span>
+          <span>{city}</span>
+          <span>·</span>
+          <span className="text-emerald-400">{result}</span>
         </motion.span>
       </AnimatePresence>
-      <span className="w-1 h-4 bg-white/40 animate-pulse shrink-0" />
     </div>
   );
 }
 
-// ─── Marquee strip ────────────────────────────────────────────────────────────
-const PLATFORM_ICONS = [
+// ─── Horizontal marquee ───────────────────────────────────────────────────────
+const PLATFORMS = [
   { Icon: SiInstagram, name: 'Instagram', color: '#E1306C' },
-  { Icon: SiTiktok, name: 'TikTok', color: '#FFFFFF' },
+  { Icon: SiTiktok, name: 'TikTok', color: '#ffffff' },
   { Icon: SiYoutube, name: 'YouTube', color: '#FF0000' },
-  { Icon: SiX, name: 'X', color: '#FFFFFF' },
+  { Icon: SiX, name: 'X', color: '#ffffff' },
   { Icon: SiSnapchat, name: 'Snapchat', color: '#FFFC00' },
   { Icon: SiWhatsapp, name: 'WhatsApp', color: '#25D366' },
   { Icon: SiTelegram, name: 'Telegram', color: '#2CA5E0' },
-  { Icon: SiThreads, name: 'Threads', color: '#FFFFFF' },
+  { Icon: SiThreads, name: 'Threads', color: '#ffffff' },
   { Icon: SiSpotify, name: 'Spotify', color: '#1DB954' },
   { Icon: SiPinterest, name: 'Pinterest', color: '#E60023' },
   { Icon: SiTwitch, name: 'Twitch', color: '#9146FF' },
 ];
 
 function Marquee() {
-  const doubled = [...PLATFORM_ICONS, ...PLATFORM_ICONS];
+  const d = [...PLATFORMS, ...PLATFORMS];
   return (
-    <div className="relative overflow-hidden py-4" style={{ maskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)' }}>
-      <motion.div
-        className="flex gap-12 w-max"
+    <div className="overflow-hidden" style={{ maskImage: 'linear-gradient(to right, transparent, black 12%, black 88%, transparent)' }}>
+      <motion.div className="flex gap-16 w-max py-1"
         animate={{ x: ['0%', '-50%'] }}
-        transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
-      >
-        {doubled.map(({ Icon, name, color }, i) => (
-          <div key={i} className="flex items-center gap-3 shrink-0 opacity-50 hover:opacity-100 transition-opacity">
-            <Icon style={{ color }} className="w-6 h-6" />
-            <span className="text-white/60 text-sm font-medium">{name}</span>
+        transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}>
+        {d.map(({ Icon, name, color }, i) => (
+          <div key={i} className="flex items-center gap-3 shrink-0 opacity-30 hover:opacity-80 transition-opacity duration-500">
+            <Icon style={{ color }} className="w-5 h-5" />
+            <span className="text-white/60 text-sm font-medium tracking-wide">{name}</span>
           </div>
         ))}
       </motion.div>
@@ -131,382 +148,455 @@ function Marquee() {
   );
 }
 
-// ─── Gradient border card ─────────────────────────────────────────────────────
-function GradientCard({ children, className = '', gradient = 'from-blue-500/30 via-purple-500/20 to-transparent' }: any) {
+// ─── Capability card ──────────────────────────────────────────────────────────
+function CapCard({ number, title, body, accent, wide = false, tall = false }: any) {
   return (
-    <div className={`relative rounded-2xl p-px ${className}`}
-      style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))' }}>
-      <div className="relative rounded-2xl bg-[#060812] h-full">
-        {children}
+    <motion.div
+      whileHover={{ y: -3, scale: 1.005 }}
+      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      className={`relative rounded-2xl overflow-hidden cursor-default
+        ${wide ? 'md:col-span-2' : ''} ${tall ? 'md:row-span-2' : ''}`}
+      style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)', border: '1px solid rgba(255,255,255,0.06)' }}>
+      {/* Inner glow on hover */}
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
+        style={{ background: `radial-gradient(ellipse at 20% 20%, ${accent}08, transparent 60%)` }} />
+      <div className="relative p-8 h-full flex flex-col justify-between">
+        <div>
+          <div className="text-xs font-mono tracking-widest mb-6" style={{ color: accent }}>
+            {number.toString().padStart(2, '0')}
+          </div>
+          <h3 className="text-xl font-bold text-white mb-4 leading-snug">{title}</h3>
+          <p className="text-white/40 leading-relaxed text-sm">{body}</p>
+        </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
-
-// ─── Data ─────────────────────────────────────────────────────────────────────
-const DIFF = [
-  { icon: FiUsers, label: '300K+', title: 'Real Nigerians, not bots', desc: 'Every action is taken by a verified human with a real social media history. Platforms can\'t detect it — because it\'s literally people.', color: '#2563EB', span: 'col-span-1 row-span-1' },
-  { icon: FiMapPin, label: '36 States', title: 'State & city targeting', desc: 'Lagos-Lekki. Abuja-Maitama. Port Harcourt GRA. Target by state, city, gender. No other platform on earth offers this for Nigerian audiences.', color: '#10B981', span: 'col-span-1 row-span-2' },
-  { icon: FiMessageCircle, label: 'Custom', title: 'Comments that make sense', desc: 'Real Nigerians write real comments — Pidgin, Yoruba, English, slang. You brief them. They deliver. Zero generic spam.', color: '#8B5CF6', span: 'col-span-1 row-span-1' },
-  { icon: FiZap, label: 'Minutes', title: 'Orders start instantly', desc: '50+ services. 11 platforms. Place an order and it hits 300,000 active Nigerians immediately.', color: '#F59E0B', span: 'col-span-1 row-span-1' },
-  { icon: FiShield, label: 'Zero risk', title: 'Platform-safe guaranteed', desc: 'Real people, real actions. No drops. No bans. No shadowbans. Your account stays clean.', color: '#06B6D4', span: 'col-span-1 row-span-1' },
-  { icon: FiStar, label: 'Earn', title: 'Every Nigerian is a creator', desc: 'SABI users earn by completing tasks. They grow their own presence while powering yours. The whole ecosystem thrives.', color: '#EC4899', span: 'col-span-1 row-span-1' },
-];
-
-const STATS = [
-  { value: 300000, label: 'Active Nigerians', suffix: '+', size: 'text-6xl sm:text-8xl' },
-  { value: 50, label: 'Services', suffix: '+', size: 'text-6xl sm:text-8xl' },
-  { value: 11, label: 'Platforms', suffix: '', size: 'text-6xl sm:text-8xl' },
-  { value: 99, label: 'Satisfaction', suffix: '%', size: 'text-6xl sm:text-8xl' },
-];
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function Home() {
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const heroRef = useRef(null);
+  const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
+  const heroY = useTransform(scrollYProgress, [0, 1], [0, 120]);
+  const heroO = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
 
+  useEffect(() => setMounted(true), []);
   if (!mounted) return (
-    <div className="min-h-screen bg-[#060812] flex items-center justify-center">
-      <div className="w-6 h-6 border border-blue-500 border-t-transparent rounded-full animate-spin" />
+    <div className="min-h-screen bg-[#030507] flex items-center justify-center">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+        className="w-5 h-5 border border-white/20 border-t-white/60 rounded-full animate-spin" />
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#060812] text-white overflow-x-hidden selection:bg-blue-500/30">
+    <div className="min-h-screen bg-[#030507] text-white overflow-x-hidden selection:bg-blue-800/40 selection:text-white grain">
       <CursorGlow />
 
-      {/* CSS grid texture overlay */}
-      <div className="fixed inset-0 pointer-events-none"
-        style={{
-          backgroundImage: 'linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)',
-          backgroundSize: '80px 80px',
-        }}
-      />
+      {/* Subtle dot grid */}
+      <div className="fixed inset-0 pointer-events-none opacity-[0.35]"
+        style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
 
-      {/* ── NAV ────────────────────────────────────────────────────────────── */}
-      <nav className="relative z-50 border-b border-white/[0.06]">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      {/* ── NAV ─────────────────────────────────────────────────────────── */}
+      <motion.nav
+        initial={{ opacity: 0, y: -16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, delay: 0.1 }}
+        className="fixed top-0 left-0 right-0 z-50 border-b border-white/[0.05]"
+        style={{ backdropFilter: 'blur(24px) saturate(180%)', background: 'rgba(3,5,7,0.7)' }}>
+        <div className="max-w-7xl mx-auto px-6 h-[60px] flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 group">
-            <LogoImage className="w-9 h-9 group-hover:scale-105 transition-transform" />
-            <span className="text-lg font-black tracking-tight">SABI</span>
+            <motion.div whileHover={{ scale: 1.08 }} transition={{ duration: 0.3 }}>
+              <LogoImage className="w-8 h-8" />
+            </motion.div>
+            <span className="font-bold text-base tracking-tight text-white/90">SABI</span>
           </Link>
-          <div className="hidden md:flex items-center gap-8 text-sm text-white/40 font-medium">
-            <Link href="/sabi/services" className="hover:text-white transition-colors">Services</Link>
-            <Link href="#how-it-works" className="hover:text-white transition-colors">How It Works</Link>
-            <Link href="/sabi/docs" className="hover:text-white transition-colors">API</Link>
+
+          <div className="hidden md:flex items-center gap-10 text-sm text-white/35 font-medium">
+            {[['Services', '/sabi/services'], ['How it works', '#how'], ['API', '/sabi/docs'], ['Pricing', '/sabi/services']].map(([l, h]) => (
+              <Link key={l} href={h} className="hover:text-white/80 transition-colors duration-300 tracking-wide">{l}</Link>
+            ))}
           </div>
-          <div className="flex items-center gap-3">
-            <Link href="/sabi/login" className="text-sm text-white/40 hover:text-white transition-colors px-4 py-2 hidden sm:block">Sign In</Link>
+
+          <div className="flex items-center gap-2">
+            <Link href="/sabi/login"
+              className="text-sm text-white/35 hover:text-white/70 transition-colors duration-300 px-4 py-2 hidden sm:block tracking-wide">
+              Sign in
+            </Link>
             <Link href="/sabi/register"
-              className="relative text-sm font-bold px-5 py-2.5 rounded-xl overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 group-hover:opacity-90 transition-opacity" />
-              <span className="relative">Get Started →</span>
+              className="group relative flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-xl overflow-hidden tracking-wide">
+              <div className="absolute inset-0 bg-white/90 group-hover:bg-white transition-colors duration-300" />
+              <span className="relative text-black">Get started</span>
+              <FiArrowRight className="relative w-3.5 h-3.5 text-black group-hover:translate-x-0.5 transition-transform duration-300" />
             </Link>
           </div>
         </div>
-      </nav>
+      </motion.nav>
 
-      {/* ── HERO ───────────────────────────────────────────────────────────── */}
-      <section className="relative min-h-[95vh] flex flex-col items-center justify-center text-center px-6 pt-16 pb-20 overflow-hidden">
-        {/* Deep glow behind headline */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[600px] pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse at center, rgba(37,99,235,0.12) 0%, rgba(124,58,237,0.06) 40%, transparent 70%)' }} />
+      {/* ── HERO ────────────────────────────────────────────────────────── */}
+      <section ref={heroRef} className="relative min-h-screen flex flex-col items-center justify-center text-center px-6 pt-24 pb-16 overflow-hidden">
+        {/* Atmospheric glow — deep and restrained */}
+        <motion.div style={{ y: heroY, opacity: heroO }}
+          className="absolute inset-0 pointer-events-none flex items-center justify-center">
+          <div className="w-[900px] h-[700px] rounded-full"
+            style={{ background: 'radial-gradient(ellipse, rgba(29,78,216,0.09) 0%, rgba(88,28,220,0.05) 40%, transparent 70%)', filter: 'blur(40px)' }} />
+        </motion.div>
 
         {/* Badge */}
-        <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-          className="inline-flex items-center gap-2 px-4 py-1.5 border border-white/[0.08] rounded-full text-xs font-mono text-white/40 mb-12 bg-white/[0.02] backdrop-blur-sm">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          LIVE · 300,000+ ACTIVE NIGERIANS
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5, duration: 1 }}
+          className="mb-12">
+          <span className="inline-flex items-center gap-2.5 text-xs font-mono tracking-[0.2em] text-white/30 uppercase">
+            <span className="w-4 h-px bg-white/20" />
+            Nigeria's social infrastructure
+            <span className="w-4 h-px bg-white/20" />
+          </span>
         </motion.div>
 
-        {/* Headline — massive, mixed weight */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15, duration: 1 }}>
-          <h1 className="font-black leading-[0.9] tracking-tighter text-[clamp(52px,9vw,130px)] mb-8">
-            <div className="text-white">Nigeria's</div>
-            <div className="relative inline-block">
-              <span className="relative z-10 bg-gradient-to-r from-blue-400 via-purple-400 to-violet-300 bg-clip-text text-transparent">
-                300,000
+        {/* Main headline — editorial serif, calm authority */}
+        <div className="mb-8 max-w-5xl">
+          <Reveal delay={0.2}>
+            <h1 className="font-editorial text-[clamp(56px,8.5vw,128px)] font-bold leading-[0.92] tracking-[-0.02em] text-white display-text">
+              The platform<br />
+              <em className="not-italic text-white/35">powered by</em>
+            </h1>
+          </Reveal>
+          <Reveal delay={0.35}>
+            <h1 className="font-editorial text-[clamp(56px,8.5vw,128px)] font-bold leading-[0.92] tracking-[-0.02em] display-text">
+              <span style={{ background: 'linear-gradient(135deg, #60A5FA 0%, #A78BFA 50%, #F472B6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                300,000 Nigerians.
               </span>
-              {/* Glow behind number */}
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 blur-3xl opacity-20 scale-110" />
-            </div>
-            <div className="text-white/90"> will make</div>
-            <div className="text-white"> you go </div>
-            <div className="relative inline-block">
-              <span className="bg-gradient-to-r from-yellow-300 via-orange-300 to-pink-400 bg-clip-text text-transparent">
-                viral.
-              </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-400 blur-3xl opacity-15 scale-110" />
-            </div>
-          </h1>
-        </motion.div>
+            </h1>
+          </Reveal>
+        </div>
 
-        <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-          className="text-white/40 text-lg sm:text-xl max-w-xl mb-12 font-light leading-relaxed">
-          Not a panel. Not bots. A network of real people across every Nigerian state — ready to make your content viral the moment you press confirm.
-        </motion.p>
+        {/* Subline */}
+        <FadeIn delay={0.55} className="mb-14 max-w-xl">
+          <p className="text-white/40 text-lg leading-relaxed font-light tracking-wide">
+            Real people. Every platform. Every Nigerian state.
+            Place an order — they go to work within minutes.
+          </p>
+        </FadeIn>
 
         {/* CTAs */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
-          className="flex flex-col sm:flex-row items-center gap-4 mb-14">
+        <FadeIn delay={0.65} className="flex flex-col sm:flex-row items-center gap-4 mb-20">
           <Link href="/sabi/register"
-            className="group relative px-8 py-4 rounded-2xl overflow-hidden font-bold text-lg">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600" />
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity"
-              style={{ boxShadow: '0 0 40px rgba(37,99,235,0.5)' }} />
-            <span className="relative flex items-center gap-2">
-              Start Growing Free
-              <FiArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </span>
+            className="group flex items-center gap-3 px-8 py-4 rounded-2xl text-base font-semibold tracking-wide relative overflow-hidden">
+            <div className="absolute inset-0 bg-white/95 group-hover:bg-white transition-colors duration-500" />
+            <span className="relative text-black">Start growing</span>
+            <FiArrowRight className="relative w-4 h-4 text-black group-hover:translate-x-0.5 transition-transform duration-300" />
           </Link>
           <Link href="/sabi/services"
-            className="px-8 py-4 rounded-2xl font-bold text-lg text-white/60 hover:text-white border border-white/[0.08] hover:border-white/20 bg-white/[0.02] hover:bg-white/[0.04] transition-all">
-            Explore Services
+            className="flex items-center gap-3 px-8 py-4 rounded-2xl text-base font-medium text-white/40 hover:text-white/70 border border-white/[0.07] hover:border-white/15 transition-all duration-500 tracking-wide">
+            See all services
+            <FiArrowUpRight className="w-4 h-4" />
           </Link>
-        </motion.div>
+        </FadeIn>
 
-        {/* Terminal ticker */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}>
-          <TerminalTicker />
-        </motion.div>
+        {/* Live ticker */}
+        <FadeIn delay={0.75}>
+          <Ticker />
+        </FadeIn>
 
-        {/* Platform marquee */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }}
-          className="mt-20 w-full max-w-4xl">
-          <p className="text-white/20 text-xs font-mono uppercase tracking-widest mb-6">11 platforms · 50+ services</p>
+        {/* Platform strip */}
+        <FadeIn delay={0.85} className="mt-20 w-full max-w-5xl">
+          <p className="text-white/15 font-mono text-[10px] uppercase tracking-[0.25em] mb-8 text-center">
+            11 platforms · 50+ services
+          </p>
           <Marquee />
-        </motion.div>
+        </FadeIn>
       </section>
 
-      {/* ── STATS ──────────────────────────────────────────────────────────── */}
-      <section className="relative z-10 border-y border-white/[0.06] py-20 overflow-hidden">
-        <div className="absolute inset-0"
-          style={{ background: 'linear-gradient(to right, rgba(37,99,235,0.03), rgba(124,58,237,0.03), rgba(37,99,235,0.03))' }} />
-        <div className="max-w-6xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 divide-x divide-white/[0.06]">
-          {STATS.map((s, i) => (
-            <motion.div key={s.label}
-              initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-              className="text-center px-8 py-8">
-              <div className={`${s.size} font-black tracking-tighter leading-none mb-2 bg-gradient-to-b from-white to-white/50 bg-clip-text text-transparent`}>
-                <Counter target={s.value} suffix={s.suffix} />
-              </div>
-              <p className="text-white/30 text-sm font-mono uppercase tracking-widest">{s.label}</p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── BENTO: WHY SABI ────────────────────────────────────────────────── */}
-      <section className="relative z-10 py-28 px-6">
-        <div className="max-w-6xl mx-auto">
-          <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            className="mb-16">
-            <p className="text-blue-400 text-xs font-mono uppercase tracking-widest mb-4">// why_sabi_is_different</p>
-            <h2 className="text-4xl sm:text-6xl font-black leading-tight">
-              This has <span className="italic text-white/40">never</span><br />
-              been done before.
-            </h2>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-4">
-            {/* Big card - spans 2 rows */}
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-              transition={{ delay: 0 }}
-              className="md:row-span-2 group relative rounded-2xl p-px cursor-default overflow-hidden"
-              style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.2), rgba(16,185,129,0.05), rgba(255,255,255,0.04))' }}>
-              <div className="h-full rounded-2xl bg-[#060812] p-8 flex flex-col justify-between min-h-[320px]">
-                <div>
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-6"
-                    style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)' }}>
-                    <FiMapPin className="w-5 h-5 text-emerald-400" />
-                  </div>
-                  <div className="text-5xl font-black text-emerald-400 mb-3">36 States</div>
-                  <h3 className="text-white text-xl font-bold mb-4">State & city targeting</h3>
-                  <p className="text-white/40 leading-relaxed">Lagos-Lekki. Abuja-Maitama. Port Harcourt GRA. Kano City. Target any Nigerian audience by state, city, and gender. No other SMM platform on earth offers this.</p>
-                </div>
-                <div className="flex flex-wrap gap-2 mt-6">
-                  {['Lagos', 'Abuja', 'PH', 'Ibadan', 'Kano', '+31 more'].map(l => (
-                    <span key={l} className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-xs text-emerald-300 font-mono">{l}</span>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Regular cards */}
-            {DIFF.slice(0, 1).map((d, i) => {
-              const Icon = d.icon;
-              return (
-                <motion.div key={d.title} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
-                  className="group relative rounded-2xl p-px cursor-default"
-                  style={{ background: `linear-gradient(135deg, ${d.color}30, rgba(255,255,255,0.04))` }}>
-                  <div className="rounded-2xl bg-[#060812] p-7 h-full">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-5" style={{ background: `${d.color}15`, border: `1px solid ${d.color}30` }}>
-                      <Icon className="w-5 h-5" style={{ color: d.color }} />
-                    </div>
-                    <div className="text-3xl font-black mb-2" style={{ color: d.color }}>{d.label}</div>
-                    <h3 className="text-white font-bold mb-3">{d.title}</h3>
-                    <p className="text-white/40 text-sm leading-relaxed">{d.desc}</p>
-                  </div>
-                </motion.div>
-              );
-            })}
-
-            {/* Wide card */}
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.15 }}
-              className="group relative rounded-2xl p-px cursor-default"
-              style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.3), rgba(255,255,255,0.04))' }}>
-              <div className="rounded-2xl bg-[#060812] p-7 h-full">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-5"
-                  style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.3)' }}>
-                  <FiMessageCircle className="w-5 h-5 text-violet-400" />
-                </div>
-                <div className="text-3xl font-black text-violet-400 mb-2">Custom</div>
-                <h3 className="text-white font-bold mb-3">Comments that make sense</h3>
-                <p className="text-white/40 text-sm leading-relaxed">Real Nigerians write real comments — Pidgin, Yoruba, English. You brief them. They deliver. Zero generic spam.</p>
-              </div>
-            </motion.div>
-
-            {DIFF.slice(3).map((d, i) => {
-              const Icon = d.icon;
-              return (
-                <motion.div key={d.title} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: (i + 2) * 0.1 }}
-                  className="group relative rounded-2xl p-px cursor-default"
-                  style={{ background: `linear-gradient(135deg, ${d.color}25, rgba(255,255,255,0.04))` }}>
-                  <div className="rounded-2xl bg-[#060812] p-7 h-full">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-5" style={{ background: `${d.color}15`, border: `1px solid ${d.color}30` }}>
-                      <Icon className="w-5 h-5" style={{ color: d.color }} />
-                    </div>
-                    <div className="text-3xl font-black mb-2" style={{ color: d.color }}>{d.label}</div>
-                    <h3 className="text-white font-bold mb-3">{d.title}</h3>
-                    <p className="text-white/40 text-sm leading-relaxed">{d.desc}</p>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* ── HOW IT WORKS ───────────────────────────────────────────────────── */}
-      <section id="how-it-works" className="relative z-10 py-28 px-6 border-t border-white/[0.06]">
-        <div className="max-w-5xl mx-auto">
-          <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-20">
-            <p className="text-purple-400 text-xs font-mono uppercase tracking-widest mb-4">// how_it_works</p>
-            <h2 className="text-4xl sm:text-6xl font-black">Three steps.<br />
-              <span className="text-white/30">Thousands of results.</span>
-            </h2>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-px bg-white/[0.06] rounded-2xl overflow-hidden">
+      {/* ── STATS ───────────────────────────────────────────────────────── */}
+      <section className="relative z-10 border-y border-white/[0.05] overflow-hidden">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-2 md:grid-cols-4">
             {[
-              { n: '01', title: 'Pick your service', body: 'Choose from 50+ services across 11 platforms. Followers, likes, views, comments — whatever you need.' },
-              { n: '02', title: 'Set your targeting', body: 'Nigerian state, city, audience gender. Brief your comments. Apply a promo code. Confirm your order.' },
-              { n: '03', title: 'Watch it happen', body: '300,000 Nigerians receive your order. Actions start within minutes. Track every update in real time.' },
-            ].map((s, i) => (
-              <motion.div key={s.n} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.15 }}
-                className="bg-[#060812] p-10 hover:bg-white/[0.02] transition-colors">
-                <div className="font-mono text-white/10 text-7xl font-black leading-none mb-8 select-none">{s.n}</div>
-                <h3 className="text-white text-xl font-bold mb-4">{s.title}</h3>
-                <p className="text-white/40 leading-relaxed">{s.body}</p>
-              </motion.div>
+              { n: 300000, s: '+', l: 'Active Nigerians' },
+              { n: 50, s: '+', l: 'Services available' },
+              { n: 11, s: '', l: 'Platforms covered' },
+              { n: 99, s: '%', l: 'Orders delivered' },
+            ].map((st, i) => (
+              <FadeIn key={st.l} delay={i * 0.1}
+                className={`py-16 px-8 text-center ${i < 3 ? 'border-r border-white/[0.05]' : ''}`}>
+                <div className="font-editorial text-[clamp(48px,6vw,88px)] font-bold leading-none tracking-tight mb-3"
+                  style={{ background: 'linear-gradient(160deg, #ffffff 30%, rgba(255,255,255,0.35) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                  <Counter target={st.n} suffix={st.s} />
+                </div>
+                <p className="text-white/30 text-sm font-mono tracking-widest uppercase">{st.l}</p>
+              </FadeIn>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── TARGETING STATEMENT ────────────────────────────────────────────── */}
-      <section className="relative z-10 py-28 px-6 border-t border-white/[0.06] overflow-hidden">
+      {/* ── MANIFESTO ───────────────────────────────────────────────────── */}
+      <section className="relative z-10 py-36 px-6 border-b border-white/[0.05]">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-[1fr_2fr] gap-20 items-start">
+            <FadeIn delay={0.1}>
+              <p className="text-xs font-mono text-white/25 uppercase tracking-[0.2em] pt-2">
+                What makes SABI<br />different
+              </p>
+            </FadeIn>
+            <div>
+              <Reveal delay={0.15}>
+                <h2 className="font-editorial text-[clamp(32px,4.5vw,64px)] font-bold leading-[1.1] tracking-tight text-white mb-10">
+                  Every other platform<br />
+                  <span className="text-white/30">sends bots.</span><br />
+                  We send people.
+                </h2>
+              </Reveal>
+              <FadeIn delay={0.3}>
+                <p className="text-white/40 text-lg leading-relaxed font-light max-w-2xl mb-10">
+                  SABI is not a panel. It is an infrastructure — a network of 300,000 active Nigerians across every state, every platform, every demographic. When you place an order, real humans receive it and act on it. Immediately. The engagement holds because it is genuine. Your account stays safe because no algorithm was gamed.
+                </p>
+                <p className="text-white/40 text-lg leading-relaxed font-light max-w-2xl">
+                  We've been building this quietly for years. Refining, expanding, deepening the network. What you see today is the result of that patience — and it shows in every order.
+                </p>
+              </FadeIn>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── CAPABILITIES ────────────────────────────────────────────────── */}
+      <section className="relative z-10 py-28 px-6 border-b border-white/[0.05]">
+        <div className="max-w-6xl mx-auto">
+          <FadeIn className="mb-16">
+            <p className="text-xs font-mono text-white/25 uppercase tracking-[0.2em] mb-6">Capabilities</p>
+            <Reveal>
+              <h2 className="font-editorial text-[clamp(32px,4.5vw,58px)] font-bold leading-tight tracking-tight">
+                Built for results.<br />
+                <span className="text-white/30">Designed for permanence.</span>
+              </h2>
+            </Reveal>
+          </FadeIn>
+
+          <div className="grid md:grid-cols-3 gap-4">
+            {/* Wide card */}
+            <FadeIn delay={0} className="md:col-span-2">
+              <CapCard number={1} wide
+                accent="#60A5FA"
+                title="Nigerian state & city targeting"
+                body="Lagos-Lekki. Abuja-Maitama. Port Harcourt GRA. Ibadan-Bodija. Specify the exact Nigerian audience you want — state, city, gender. Precision that no other platform can offer, because our people are actually from these places." />
+            </FadeIn>
+
+            <FadeIn delay={0.08}>
+              <CapCard number={2}
+                accent="#34D399"
+                title="Comments that read like humans wrote them"
+                body="Because they did. Brief your taskers on tone, language, topic — Pidgin, Yoruba, formal English. Every comment is original, contextual, permanent." />
+            </FadeIn>
+
+            <FadeIn delay={0.12}>
+              <CapCard number={3}
+                accent="#A78BFA"
+                title="Zero platform risk"
+                body="Real accounts with real history taking real actions. Platforms detect bot patterns — not this. Your account stays clean indefinitely." />
+            </FadeIn>
+
+            <FadeIn delay={0.16}>
+              <CapCard number={4}
+                accent="#FB923C"
+                title="Orders start in minutes"
+                body="50+ services across 11 platforms. Place your order — 300,000 people receive it immediately. No queues, no delays, no manual assignment." />
+            </FadeIn>
+
+            <FadeIn delay={0.2}>
+              <CapCard number={5}
+                accent="#F472B6"
+                title="Every user is a creator"
+                body="Every Nigerian on SABI earns by completing tasks. They grow their own presence while powering yours. A self-sustaining ecosystem." />
+            </FadeIn>
+          </div>
+        </div>
+      </section>
+
+      {/* ── HOW IT WORKS ────────────────────────────────────────────────── */}
+      <section id="how" className="relative z-10 py-28 px-6 border-b border-white/[0.05]">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-[1fr_2fr] gap-20 items-start mb-20">
+            <FadeIn>
+              <p className="text-xs font-mono text-white/25 uppercase tracking-[0.2em] pt-2">How it works</p>
+            </FadeIn>
+            <Reveal delay={0.1}>
+              <h2 className="font-editorial text-[clamp(32px,4.5vw,58px)] font-bold leading-tight tracking-tight">
+                Three steps.<br />
+                <span className="text-white/30">Permanent results.</span>
+              </h2>
+            </Reveal>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-px bg-white/[0.04] rounded-2xl overflow-hidden">
+            {[
+              { n: '01', t: 'Choose your service', b: 'Select from 50+ services across 11 platforms. Followers, likes, views, comments, shares, saves — whatever your content needs.' },
+              { n: '02', t: 'Configure your targeting', b: 'Nigerian state, city, audience gender. Brief your comment style if needed. Add a promo code. Review and confirm your order.' },
+              { n: '03', t: 'Watch it happen', b: '300,000 Nigerians receive your order. Actions begin within minutes. Track every update in real time on your dashboard.' },
+            ].map((s, i) => (
+              <FadeIn key={s.n} delay={i * 0.12}
+                className="bg-[#030507] hover:bg-white/[0.015] transition-colors duration-700 p-10 group cursor-default">
+                <div className="text-[80px] font-editorial font-bold text-white/[0.04] leading-none select-none mb-8 group-hover:text-white/[0.07] transition-colors duration-700">
+                  {s.n}
+                </div>
+                <h3 className="text-white font-semibold text-lg mb-4 tracking-tight">{s.t}</h3>
+                <p className="text-white/35 leading-relaxed text-sm">{s.b}</p>
+              </FadeIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── TARGETING ───────────────────────────────────────────────────── */}
+      <section className="relative z-10 py-28 px-6 border-b border-white/[0.05] overflow-hidden">
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse at 50% 100%, rgba(16,185,129,0.06) 0%, transparent 70%)' }} />
+        <div className="max-w-6xl mx-auto relative z-10">
+          <div className="grid md:grid-cols-[1fr_2fr] gap-20 items-center">
+            <FadeIn>
+              <p className="text-xs font-mono text-white/25 uppercase tracking-[0.2em]">Only on SABI</p>
+            </FadeIn>
+            <div>
+              <Reveal delay={0.1}>
+                <h2 className="font-editorial text-[clamp(32px,4.5vw,58px)] font-bold leading-tight tracking-tight mb-8">
+                  Target Nigeria<br />
+                  <span style={{ background: 'linear-gradient(135deg, #34D399, #06B6D4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                    by state. By city.<br />By gender.
+                  </span>
+                </h2>
+              </Reveal>
+              <FadeIn delay={0.25}>
+                <p className="text-white/35 text-lg leading-relaxed mb-10 max-w-xl font-light">
+                  No other platform in the world lets you specify Lagos-Lekki females for your Instagram campaign. We do — because our 300,000 Nigerians are real people with real addresses, real devices, and real social media accounts from every corner of the country.
+                </p>
+                <div className="flex flex-wrap gap-2 mb-10">
+                  {['Lagos · Lekki', 'Lagos · Ikeja', 'Abuja · Maitama', 'Abuja · Wuse', 'PH · GRA', 'Ibadan · Bodija', 'Kano City', 'Delta · Warri', 'Enugu · Layout', 'Female', 'Male', '+ 30 states'].map(l => (
+                    <span key={l} className="px-3.5 py-1.5 border border-white/[0.07] rounded-full text-xs text-white/35 font-mono tracking-wide hover:border-emerald-500/30 hover:text-emerald-400/70 transition-all duration-300 cursor-default">
+                      {l}
+                    </span>
+                  ))}
+                </div>
+                <Link href="/sabi/register"
+                  className="group inline-flex items-center gap-3 px-8 py-4 rounded-2xl font-semibold text-base tracking-wide text-black relative overflow-hidden">
+                  <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #34D399, #06B6D4)' }} />
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                    style={{ boxShadow: '0 0 60px rgba(52,211,153,0.35)' }} />
+                  <span className="relative font-bold">Start targeting Nigeria</span>
+                  <FiArrowRight className="relative w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-300" />
+                </Link>
+              </FadeIn>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── PLATFORMS ───────────────────────────────────────────────────── */}
+      <section className="relative z-10 py-28 px-6 border-b border-white/[0.05]">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-[1fr_2fr] gap-20 items-start mb-16">
+            <FadeIn>
+              <p className="text-xs font-mono text-white/25 uppercase tracking-[0.2em] pt-2">Coverage</p>
+            </FadeIn>
+            <Reveal delay={0.1}>
+              <h2 className="font-editorial text-[clamp(32px,4.5vw,58px)] font-bold leading-tight tracking-tight">
+                Every platform.<br />
+                <span className="text-white/30">Every metric.</span>
+              </h2>
+            </Reveal>
+          </div>
+
+          <FadeIn className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3" delay={0.15}>
+            {PLATFORMS.map(({ Icon, name, color }, i) => (
+              <motion.div key={name}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.05, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                whileHover={{ y: -2 }}
+                className="flex items-center gap-4 px-5 py-4 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/10 transition-all duration-500 cursor-default group">
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                  style={{ background: `${color}12`, border: `1px solid ${color}20` }}>
+                  <Icon style={{ color }} className="w-4 h-4" />
+                </div>
+                <span className="text-white/60 text-sm font-medium group-hover:text-white/80 transition-colors duration-300">{name}</span>
+              </motion.div>
+            ))}
+          </FadeIn>
+        </div>
+      </section>
+
+      {/* ── FINAL CTA ───────────────────────────────────────────────────── */}
+      <section className="relative z-10 py-40 px-6 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse at 50% 100%, rgba(16,185,129,0.08) 0%, transparent 60%)' }} />
+          style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(29,78,216,0.07) 0%, transparent 55%)' }} />
         <div className="max-w-5xl mx-auto text-center relative z-10">
-          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-            <p className="text-emerald-400 text-xs font-mono uppercase tracking-widest mb-8">// only on sabi</p>
-            <h2 className="text-5xl sm:text-7xl font-black leading-tight mb-8">
-              Target Nigeria<br />
-              <span className="bg-gradient-to-r from-emerald-400 to-cyan-300 bg-clip-text text-transparent">
-                like never before.
-              </span>
-            </h2>
-            <p className="text-white/40 text-xl max-w-2xl mx-auto mb-14 leading-relaxed">
-              The only platform that lets you target Lagos-Lekki females, Abuja-Maitama young professionals, or Port Harcourt entrepreneurs — because our 300,000 Nigerians are actual people with real addresses.
+          <FadeIn className="mb-6">
+            <p className="text-xs font-mono text-white/20 uppercase tracking-[0.25em]">
+              · · ·
             </p>
-            <div className="flex flex-wrap gap-3 justify-center mb-14">
-              {['Lagos · Lekki', 'Abuja · Maitama', 'PH · GRA', 'Ibadan · Bodija', 'Kano City', 'Delta · Warri', 'Female only', 'Male only', 'Mixed', '+ 27 more states'].map(loc => (
-                <span key={loc}
-                  className="px-4 py-2 bg-emerald-500/5 border border-emerald-500/15 rounded-full text-sm text-emerald-300/70 font-mono hover:border-emerald-500/40 hover:text-emerald-300 transition-colors cursor-default">
-                  {loc}
-                </span>
-              ))}
-            </div>
+          </FadeIn>
+          <div className="mb-6">
+            <Reveal>
+              <h2 className="font-editorial text-[clamp(48px,8vw,112px)] font-bold leading-[0.9] tracking-tight">
+                300,000 people.
+              </h2>
+            </Reveal>
+            <Reveal delay={0.1}>
+              <h2 className="font-editorial text-[clamp(48px,8vw,112px)] font-bold leading-[0.9] tracking-tight text-white/30">
+                Waiting for
+              </h2>
+            </Reveal>
+            <Reveal delay={0.2}>
+              <h2 className="font-editorial text-[clamp(48px,8vw,112px)] font-bold leading-[0.9] tracking-tight">
+                <span style={{ background: 'linear-gradient(135deg, #60A5FA, #A78BFA, #F472B6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>your order.</span>
+              </h2>
+            </Reveal>
+          </div>
+
+          <FadeIn delay={0.4} className="mb-14">
+            <p className="text-white/30 text-xl max-w-lg mx-auto font-light leading-relaxed tracking-wide">
+              Create an account. Fund your wallet.<br />
+              Place your first order. This is where growth begins.
+            </p>
+          </FadeIn>
+
+          <FadeIn delay={0.5} className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/sabi/register"
-              className="inline-flex items-center gap-3 px-10 py-5 rounded-2xl font-bold text-xl relative overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-cyan-600" />
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                style={{ boxShadow: '0 0 60px rgba(16,185,129,0.4)', background: 'linear-gradient(135deg, rgba(16,185,129,0.3), rgba(6,182,212,0.3))' }} />
-              <span className="relative text-black font-black">Start Targeting Nigeria</span>
-              <FiArrowRight className="relative w-5 h-5 text-black group-hover:translate-x-1 transition-transform" />
+              className="group relative inline-flex items-center gap-3 px-10 py-5 rounded-2xl font-semibold text-lg tracking-wide overflow-hidden">
+              <div className="absolute inset-0 bg-white/95 group-hover:bg-white transition-colors duration-500" />
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+                style={{ boxShadow: '0 0 80px rgba(255,255,255,0.15)' }} />
+              <span className="relative text-black">Create free account</span>
+              <FiArrowRight className="relative w-5 h-5 text-black group-hover:translate-x-0.5 transition-transform duration-300" />
             </Link>
-          </motion.div>
+            <Link href="/sabi/docs"
+              className="inline-flex items-center gap-3 px-10 py-5 rounded-2xl font-medium text-lg text-white/30 border border-white/[0.07] hover:border-white/15 hover:text-white/50 transition-all duration-500 tracking-wide">
+              API documentation
+            </Link>
+          </FadeIn>
+
+          <FadeIn delay={0.6} className="mt-14">
+            <p className="text-white/15 text-xs font-mono tracking-widest uppercase">
+              Free to join · Instant orders · Cancel anytime
+            </p>
+          </FadeIn>
         </div>
       </section>
 
-      {/* ── FINAL CTA ──────────────────────────────────────────────────────── */}
-      <section className="relative z-10 py-36 px-6 border-t border-white/[0.06] text-center overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(37,99,235,0.1) 0%, transparent 60%)' }} />
-        <div className="max-w-4xl mx-auto relative z-10">
-          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-            <p className="text-white/20 font-mono text-xs uppercase tracking-widest mb-8">// ready_to_grow?</p>
-            <h2 className="text-5xl sm:text-8xl font-black leading-[0.9] tracking-tighter mb-8">
-              <span className="text-white">300,000</span><br />
-              <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                Nigerians
-              </span><br />
-              <span className="text-white/50">waiting for you.</span>
-            </h2>
-            <p className="text-white/30 text-xl mb-14 max-w-xl mx-auto">
-              Create your account. Fund your wallet.<br />Place your first order. Growth starts now.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/sabi/register"
-                className="group relative px-10 py-5 rounded-2xl font-black text-xl overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600" />
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{ boxShadow: '0 0 80px rgba(37,99,235,0.5)' }} />
-                <span className="relative flex items-center gap-2">
-                  Create Free Account
-                  <FiArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-                </span>
-              </Link>
-              <Link href="/sabi/docs"
-                className="px-10 py-5 rounded-2xl font-bold text-xl text-white/40 border border-white/[0.08] hover:border-white/20 hover:text-white/70 transition-all bg-white/[0.02]">
-                API Access
-              </Link>
-            </div>
-            <p className="text-white/15 text-sm mt-10 font-mono">
-              Free to join · No setup fees · Orders start instantly · Cancel anytime
-            </p>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ── FOOTER ─────────────────────────────────────────────────────────── */}
-      <footer className="relative z-10 border-t border-white/[0.06] py-10 px-6">
+      {/* ── FOOTER ──────────────────────────────────────────────────────── */}
+      <footer className="relative z-10 border-t border-white/[0.05] py-10 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <LogoImage className="w-7 h-7" />
-            <span className="font-black">SABI</span>
-            <span className="text-white/20 text-sm">· Real Nigerian Engagement</span>
+            <LogoImage className="w-6 h-6 opacity-60" />
+            <span className="font-bold text-white/40 text-sm">SABI</span>
+            <span className="w-px h-3 bg-white/10" />
+            <span className="text-white/20 text-xs font-mono tracking-wide">Real Nigerian engagement</span>
           </div>
-          <div className="flex items-center gap-8 text-sm text-white/25 font-mono">
-            <Link href="/sabi/services" className="hover:text-white/60 transition-colors">Services</Link>
-            <Link href="/sabi/docs" className="hover:text-white/60 transition-colors">API</Link>
-            <Link href="/sabi/login" className="hover:text-white/60 transition-colors">Sign In</Link>
-            <Link href="/sabi/register" className="hover:text-white/60 transition-colors">Register</Link>
+          <div className="flex items-center gap-8 text-xs text-white/20 font-mono tracking-widest uppercase">
+            {[['Services', '/sabi/services'], ['API', '/sabi/docs'], ['Sign in', '/sabi/login'], ['Register', '/sabi/register']].map(([l, h]) => (
+              <Link key={l} href={h} className="hover:text-white/45 transition-colors duration-300">{l}</Link>
+            ))}
           </div>
-          <p className="text-white/15 text-sm font-mono">© 2026 Sabi</p>
+          <p className="text-white/15 text-xs font-mono">© 2026 Sabi</p>
         </div>
       </footer>
     </div>
