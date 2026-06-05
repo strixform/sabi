@@ -68,6 +68,12 @@ model SabiWallet {
   totalFunded   Int       @default(0)
   totalSpent    Int       @default(0)
   totalRefunded Int       @default(0)
+
+  // Auto top-up
+  autoTopupEnabled    Boolean @default(false)
+  autoTopupThreshold  Int     @default(0)   // kobo — trigger when balance drops below
+  autoTopupAmount     Int     @default(0)   // kobo — how much to top up
+
   updatedAt     DateTime  @updatedAt
 
   // Relationships
@@ -113,6 +119,13 @@ model SabiOrder {
   orderedVia            String    @default("web") // web, api, sms, etc.
   clientId              String?   // For API orders, track which reseller placed it
   customRef             String?   // Customer's reference code
+
+  // Promo code applied
+  promoCodeId           String?
+  discountAmount        Int       @default(0)  // kobo saved
+
+  // Scheduling
+  scheduledAt           DateTime?  // null = immediate
 
   // Refund
   refundedAmount        Int       @default(0)
@@ -412,6 +425,69 @@ model SupportTicket {
 
   @@index([resellerId])
   @@index([status])
+}
+
+model SabiPromoCode {
+  id            String    @id @default(cuid())
+  code          String    @unique
+  description   String?
+  discountType  String    // 'percent' | 'fixed'
+  discountValue Int       // percent (0-100) or kobo
+  minOrderKobo  Int       @default(0)
+  maxUses       Int?      // null = unlimited
+  usedCount     Int       @default(0)
+  expiresAt     DateTime?
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+
+  usages        SabiPromoUsage[]
+
+  @@index([code])
+  @@index([active])
+}
+
+model SabiPromoUsage {
+  id          String   @id @default(cuid())
+  promoId     String
+  userId      String
+  orderId     String
+  savedKobo   Int
+  createdAt   DateTime @default(now())
+
+  promo       SabiPromoCode @relation(fields: [promoId], references: [id])
+
+  @@unique([promoId, userId]) // one use per user per code
+  @@index([userId])
+}
+
+model SabiReferral {
+  id            String   @id @default(cuid())
+  referrerId    String   // user who shared the code
+  refereeId     String   @unique // user who used the code
+  rewardKobo    Int      @default(50000) // ₦500 each
+  referrerPaid  Boolean  @default(false)
+  refereePaid   Boolean  @default(false)
+  triggeredAt   DateTime? // when first qualifying order placed
+  createdAt     DateTime @default(now())
+
+  @@index([referrerId])
+}
+
+model SabiOrderTemplate {
+  id           String   @id @default(cuid())
+  userId       String
+  name         String
+  serviceId    String
+  quantity     Int
+  targetUrl    String?
+  audienceGender     String?
+  audienceLocation   String?
+  commentGender      String?
+  commentInstructions String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model SABIAdminConfig {
