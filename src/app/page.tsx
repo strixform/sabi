@@ -1,739 +1,432 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { SiInstagram, SiTiktok, SiYoutube, SiFacebook, SiTwitch, SiSnapchat, SiSpotify, SiWhatsapp, SiPinterest, SiThreads, SiTelegram } from 'react-icons/si';
-import { SiX } from 'react-icons/si';
-import { FiGlobe, FiTarget, FiUsers, FiCheckCircle, FiMessageCircle, FiTrendingUp, FiZap, FiCreditCard, FiBarChart2, FiArrowUpRight, FiLock, FiDollarSign, FiInbox, FiAward, FiShield, FiHeadphones } from 'react-icons/fi';
-import { AnimatedBackground } from '@/components/AnimatedBackground';
-import { GradientText } from '@/components/AnimatedText';
-import { FloatingElement } from '@/components/FloatingElement';
-import { StaggerContainer, StaggerItem } from '@/components/StaggerContainer';
-import { InteractiveCard } from '@/components/InteractiveCard';
-import { AnimateInText } from '@/components/AnimateInText';
-import { CuteIconAnimation, FloatingIcon } from '@/components/CuteIconAnimation';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
-import { useTranslation } from '@/lib/i18n-client';
-import { ModernSabiHeader } from '@/components/ModernSabiHeader';
-import { WanderingParticles } from '@/components/WanderingParticles';
+import { motion, useInView, AnimatePresence } from 'framer-motion';
+import {
+  SiInstagram, SiX, SiYoutube, SiTiktok, SiSnapchat, SiSpotify,
+  SiWhatsapp, SiPinterest, SiThreads, SiTelegram, SiTwitch,
+} from 'react-icons/si';
+import {
+  FiArrowRight, FiCheck, FiZap, FiUsers, FiMapPin, FiMessageCircle,
+  FiShield, FiTrendingUp, FiStar, FiPlay,
+} from 'react-icons/fi';
+import { LogoImage } from '@/components/LogoImage';
 
-function HomeContent() {
-  const { language, switchLanguage, t } = useTranslation();
+// ─── Animated Counter ───────────────────────────────────────────────────────
+function Counter({ target, suffix = '', prefix = '' }: { target: number; suffix?: string; prefix?: string }) {
+  const [count, setCount] = useState(0);
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true });
+
+  useEffect(() => {
+    if (!inView) return;
+    let start = 0;
+    const duration = 2000;
+    const step = Math.ceil(target / (duration / 16));
+    const timer = setInterval(() => {
+      start += step;
+      if (start >= target) { setCount(target); clearInterval(timer); }
+      else setCount(start);
+    }, 16);
+    return () => clearInterval(timer);
+  }, [inView, target]);
 
   return (
-    <div className="min-h-screen relative">
-      <AnimatedBackground />
-      <WanderingParticles />
+    <span ref={ref}>
+      {prefix}{count.toLocaleString()}{suffix}
+    </span>
+  );
+}
 
-      <ModernSabiHeader showNavigation={false} />
+// ─── Live activity ticker ────────────────────────────────────────────────────
+const ACTIVITIES = [
+  'Oluwatobi in Lagos just gained 1,200 Instagram followers',
+  'Chinedu from Abuja boosted his TikTok to 50K views',
+  'Fatimah in Kano got 800 YouTube subscribers',
+  'Emeka in Port Harcourt went viral with 25K Reel views',
+  'Blessing from Ibadan gained 500 Twitter followers in 2 hours',
+  'Damilola in Enugu got 300 comments on her post',
+  'Usman from Kaduna boosted his Spotify to 2,000 plays',
+  'Amara in Delta just got 1,000 TikTok likes',
+];
 
-      {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 lg:py-12 relative">
-        <div className="text-center space-y-0 sm:space-y-1 lg:space-y-2">
-          {/* Floating Badge */}
-          <FloatingElement delay={0} duration={3} distance={10}>
-            <motion.div
-              className="inline-block px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded-full text-sm font-semibold text-blue-400 hover:bg-blue-500/20 transition"
-              whileHover={{ scale: 1.05 }}
-            >
-              <AnimateInText type="typewriter" delay={0.2}>
-                ✅ 100% REAL • 100% ACTIVE • 100% NIGERIAN
-              </AnimateInText>
-            </motion.div>
-          </FloatingElement>
-
-          {/* Main Title with Premium Text Animation */}
-          <h1 className="text-5xl md:text-7xl font-black leading-tight m-0 -my-1 sm:my-0">
-            <div className="overflow-hidden h-fit">
-              <motion.div
-                initial={{ opacity: 0, y: 80 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.3, ease: 'easeOut' }}
-              >
-                <GradientText className="block mb-0">
-                  <AnimateInText type="blur" delay={0.4}>
-                    Real Social Media Engagement
-                  </AnimateInText>
-                </GradientText>
-              </motion.div>
-            </div>
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.6 }}
-              className="text-white -mt-16 sm:-mt-8 lg:-mt-2"
-            >
-              <AnimateInText type="slide" delay={0.7}>
-                Powered by Real Nigerian Users
-              </AnimateInText>
-            </motion.div>
-          </h1>
-
-          {/* Subtitle with Animation */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.9 }}
-            className="text-xl md:text-2xl text-slate-300 max-w-3xl mx-auto"
-          >
-            <AnimateInText type="fade" delay={1}>
-              Stop wasting money on fake followers. Get
-            </AnimateInText>
-            <span className="block mt-2">
-              <AnimateInText type="typewriter" delay={1.2}>
-                <span className="font-bold text-blue-400">REAL, ACTIVE Nigerian users</span>
-              </AnimateInText>
-              <span className="ml-2">
-                <AnimateInText type="fade" delay={2}>
-                  who actually engage with your content.
-                </AnimateInText>
-              </span>
-            </span>
-          </motion.div>
-
-          {/* Trust Badges - Animated */}
-          <StaggerContainer staggerDelay={0.1} delay={1.5}>
-            <div className="grid grid-cols-3 md:grid-cols-6 gap-4 max-w-4xl mx-auto pt-5">
-              {[
-                { Icon: FiUsers, label: '50K+', val: 'Users', color: 'blue' },
-                { Icon: FiCheckCircle, label: '100%', val: 'Verified', color: 'blue' },
-                { Icon: FiMessageCircle, label: '55-95%', val: 'Engagement', color: 'purple' },
-                { Icon: FiTrendingUp, label: '300-500%', val: 'ROI', color: 'pink' },
-                { Icon: FiGlobe, label: '100%', val: 'Nigeria', color: 'cyan' },
-                { Icon: FiZap, label: '24hrs', val: 'Delivery', color: 'blue' },
-              ].map((badge, i) => (
-                <StaggerItem key={i}>
-                  <InteractiveCard delay={0} glowColor={badge.color}>
-                    <div className="p-4 text-center">
-                      <CuteIconAnimation type="bounce" delay={i * 0.15} duration={1.8}>
-                        <badge.Icon className="w-10 h-10 mx-auto mb-2 text-blue-400" />
-                      </CuteIconAnimation>
-                      <div className="text-xs text-slate-400 font-semibold">{badge.label}</div>
-                      <AnimateInText type="fade" delay={1.5 + i * 0.1}>
-                        <div className="text-sm font-bold text-blue-400">{badge.val}</div>
-                      </AnimateInText>
-                    </div>
-                  </InteractiveCard>
-                </StaggerItem>
-              ))}
-            </div>
-          </StaggerContainer>
-
-          {/* CTA Buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 2 }}
-            className="flex flex-col md:flex-row gap-4 justify-center pt-5"
-          >
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="relative group"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg blur-lg opacity-75 group-hover:opacity-100 transition duration-300" />
-              <Link
-                href="/sabi/register"
-                className="relative block px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold rounded-lg hover:shadow-2xl transition"
-              >
-                <AnimateInText type="fade" delay={2.1}>
-                  Start Getting Real Engagement
-                </AnimateInText>
-              </Link>
-            </motion.div>
-
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Link
-                href="#services"
-                className="block px-8 py-4 border-2 border-slate-600 text-white font-bold rounded-lg hover:border-blue-400 hover:bg-slate-800/50 transition text-center"
-              >
-                <AnimateInText type="fade" delay={2.2}>
-                  View All Services
-                </AnimateInText>
-              </Link>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Services Preview */}
-      <section id="services" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-14 lg:py-16 border-t border-slate-800/50">
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ duration: 0.8 }}
-          className="text-center mb-5 sm:mb-6 lg:mb-8"
-        >
-          <h2 className="text-4xl font-black mb-4">
-            <GradientText>
-              <AnimateInText type="slide" delay={0.1}>
-                All Major Platforms
-              </AnimateInText>
-            </GradientText>
-          </h2>
-          <AnimateInText type="fade" delay={0.3}>
-            <p className="text-slate-300">Real engagement across 40+ digital services</p>
-          </AnimateInText>
-        </motion.div>
-
-        <StaggerContainer staggerDelay={0.1}>
-          <div className="grid md:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
-            {[
-              { Icon: SiInstagram, name: 'Instagram', services: '6 Services', color: 'pink', glowColor: 'pink' },
-              { Icon: SiX, name: 'Twitter/X', services: '5 Services', color: 'white', glowColor: 'cyan' },
-              { Icon: SiTiktok, name: 'TikTok', services: '5 Services', color: 'white', glowColor: 'purple' },
-              { Icon: SiYoutube, name: 'YouTube', services: '5 Services', color: 'red', glowColor: 'red' },
-              { Icon: SiTwitch, name: 'Twitch', services: '4 Services', color: 'purple', glowColor: 'purple' },
-              { Icon: SiSnapchat, name: 'Snapchat', services: '3 Services', color: 'yellow', glowColor: 'yellow' },
-              { Icon: SiSpotify, name: 'Spotify', services: '4 Services', color: 'green', glowColor: 'green' },
-              { Icon: SiWhatsapp, name: 'WhatsApp', services: '2 Services', color: 'green', glowColor: 'green' },
-              { Icon: SiPinterest, name: 'Pinterest', services: '3 Services', color: 'red', glowColor: 'red' },
-              { Icon: SiThreads, name: 'Threads', services: '3 Services', color: 'slate', glowColor: 'cyan' },
-              { Icon: SiTelegram, name: 'Telegram', services: '2 Services', color: 'blue', glowColor: 'blue' },
-            ].map((platform, i) => (
-              <StaggerItem key={i}>
-                <InteractiveCard glowColor={platform.glowColor as any} delay={0}>
-                  <div className="p-6 text-center h-full flex flex-col items-center justify-center">
-                    <FloatingIcon delay={i * 0.15} speed={3.5}>
-                      <platform.Icon className={`text-5xl mb-3 text-${platform.color}-500`} />
-                    </FloatingIcon>
-                    <h3 className="font-bold text-lg mb-1">
-                      <AnimateInText type="fade" delay={0.5 + i * 0.1}>
-                        {platform.name}
-                      </AnimateInText>
-                    </h3>
-                    <p className="text-sm text-slate-400">{platform.services}</p>
-                  </div>
-                </InteractiveCard>
-              </StaggerItem>
-            ))}
-          </div>
-        </StaggerContainer>
-      </section>
-
-      {/* Why Choose Us */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-14 lg:py-16 border-t border-slate-800/50">
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ duration: 0.8 }}
-          className="text-center mb-5 sm:mb-6 lg:mb-8"
-        >
-          <h2 className="text-4xl font-black mb-4">
-            <GradientText>
-              <AnimateInText type="slide" delay={0.1}>
-                Why Sabi?
-              </AnimateInText>
-            </GradientText>
-          </h2>
-        </motion.div>
-
-        <StaggerContainer staggerDelay={0.12}>
-          <div className="grid md:grid-cols-2 gap-4 sm:gap-5 lg:gap-6">
-            {[
-              {
-                title: '100% Real & Active Users',
-                desc: 'Every follower, like, comment, and engagement comes from real, verified Nigerian users.',
-                Icon: FiUsers,
-                glowColor: 'blue',
-              },
-              {
-                title: 'Performance-Driven Community',
-                desc: 'Users are financially incentivized to engage. Real motivation, real results.',
-                Icon: FiTarget,
-                glowColor: 'purple',
-              },
-              {
-                title: '8-25% Engagement Rate',
-                desc: 'Real engagement that converts. Unlike fake followers (1-3%), we deliver interaction.',
-                Icon: FiBarChart2,
-                glowColor: 'pink',
-              },
-              {
-                title: '300-500% ROI Average',
-                desc: 'Real customers. Real sales. Measurable growth from day one.',
-                Icon: FiDollarSign,
-                glowColor: 'cyan',
-              },
-              {
-                title: 'Zero Automation',
-                desc: 'No bots. No scripts. Every engagement is a real person with verified identity.',
-                Icon: FiLock,
-                glowColor: 'blue',
-              },
-              {
-                title: '24-Hour Delivery',
-                desc: 'Orders execute fast. Real users begin engaging within hours.',
-                Icon: FiZap,
-                glowColor: 'purple',
-              },
-            ].map((item, i) => (
-              <StaggerItem key={i}>
-                <InteractiveCard glowColor={item.glowColor as any} delay={0}>
-                  <div className="p-6">
-                    <div className="flex gap-4">
-                      <CuteIconAnimation type="wiggle" delay={i * 0.2} duration={2}>
-                        <item.Icon className="w-10 h-10 flex-shrink-0 text-blue-400" />
-                      </CuteIconAnimation>
-                      <div>
-                        <h3 className="font-bold text-lg mb-2">
-                          <AnimateInText type="fade" delay={0.5 + i * 0.1}>
-                            {item.title}
-                          </AnimateInText>
-                        </h3>
-                        <p className="text-slate-400 text-sm">
-                          <AnimateInText type="fade" delay={0.6 + i * 0.1}>
-                            {item.desc}
-                          </AnimateInText>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </InteractiveCard>
-              </StaggerItem>
-            ))}
-          </div>
-        </StaggerContainer>
-      </section>
-
-      {/* How It Works Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-14 lg:py-16 border-t border-slate-800/50">
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ duration: 0.8 }}
-          className="text-center mb-5 sm:mb-6 lg:mb-8"
-        >
-          <h2 className="text-4xl font-black mb-4">
-            <GradientText>
-              <AnimateInText type="slide" delay={0.1}>
-                How Sabi Works
-              </AnimateInText>
-            </GradientText>
-          </h2>
-          <p className="text-slate-300 max-w-2xl mx-auto">
-            <AnimateInText type="fade" delay={0.3}>
-              Get real engagement in 4 simple steps. No technical knowledge required.
-            </AnimateInText>
-          </p>
-        </motion.div>
-
-        <StaggerContainer staggerDelay={0.15}>
-          <div className="grid md:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
-            {[
-              { step: '1', title: 'Create Account', desc: 'Sign up in 30 seconds with email or Google', Icon: FiUsers },
-              { step: '2', title: 'Fund Wallet', desc: 'Add funds via Flutterwave (secure, instant)', Icon: FiCreditCard },
-              { step: '3', title: 'Place Order', desc: 'Select service, enter URL, confirm price', Icon: FiArrowUpRight },
-              { step: '4', title: 'Get Results', desc: 'Real engagement starts within 24 hours', Icon: FiCheckCircle },
-            ].map((item, i) => (
-              <StaggerItem key={i}>
-                <InteractiveCard glowColor="blue" delay={0}>
-                  <div className="p-6 text-center h-full flex flex-col justify-center">
-                    <div className="mb-4">
-                      <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center mx-auto border border-blue-500/50">
-                        <span className="text-lg font-bold text-blue-400">{item.step}</span>
-                      </div>
-                    </div>
-                    <item.Icon className="w-8 h-8 mx-auto mb-3 text-blue-400" />
-                    <h3 className="font-bold text-lg mb-2">
-                      <AnimateInText type="fade" delay={0.3 + i * 0.1}>
-                        {item.title}
-                      </AnimateInText>
-                    </h3>
-                    <p className="text-sm text-slate-400">
-                      <AnimateInText type="fade" delay={0.4 + i * 0.1}>
-                        {item.desc}
-                      </AnimateInText>
-                    </p>
-                  </div>
-                </InteractiveCard>
-              </StaggerItem>
-            ))}
-          </div>
-        </StaggerContainer>
-      </section>
-
-      {/* Detailed Benefits Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-14 lg:py-16 border-t border-slate-800/50">
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ duration: 0.8 }}
-          className="text-center mb-5 sm:mb-6 lg:mb-8"
-        >
-          <h2 className="text-4xl font-black mb-4">
-            <GradientText>
-              <AnimateInText type="slide" delay={0.1}>
-                Why Choose Sabi Over Fake Followers?
-              </AnimateInText>
-            </GradientText>
-          </h2>
-          <p className="text-slate-300 max-w-3xl mx-auto">
-            <AnimateInText type="fade" delay={0.3}>
-              Real engagement from real people beats fake followers every time. Here's the proof.
-            </AnimateInText>
-          </p>
-        </motion.div>
-
-        <div className="space-y-8">
-          <StaggerContainer staggerDelay={0.12}>
-            <div className="grid md:grid-cols-2 gap-4 sm:gap-5 lg:gap-6">
-              {[
-                {
-                  title: 'Real People = Real Results',
-                  points: [
-                    'Followers from our network actually use Instagram, TikTok, Twitter daily',
-                    'They engage because they\'re paid to be there - genuine motivation',
-                    'Your content gets in front of real eyes, real accounts, real followers',
-                  ],
-                  Icon: FiUsers,
-                },
-                {
-                  title: 'Algorithm-Friendly Growth',
-                  points: [
-                    'Real engagement signals boost your posts to more users organically',
-                    '8-25% engagement rate triggers platform algorithms',
-                    'Instagram, TikTok, YouTube reward high engagement with viral reach',
-                  ],
-                  Icon: FiTrendingUp,
-                },
-                {
-                  title: 'No Risk of Account Ban',
-                  points: [
-                    'No bots, scripts, or automation - 100% manual human engagement',
-                    'Complies with all platform terms of service',
-                    'Your account stays safe, verified, and in good standing',
-                  ],
-                  Icon: FiShield,
-                },
-                {
-                  title: 'Measurable ROI',
-                  points: [
-                    'Track every engagement in real-time on your analytics',
-                    'See follower growth, reach increase, sales directly tied to Sabi',
-                    'Average customer reports 300-500% ROI within 30 days',
-                  ],
-                  Icon: FiBarChart2,
-                },
-              ].map((section, i) => (
-                <StaggerItem key={i}>
-                  <InteractiveCard glowColor={i % 2 === 0 ? 'blue' : 'purple'} delay={0}>
-                    <div className="p-8 h-full">
-                      <div className="flex gap-4 mb-6">
-                        <section.Icon className="w-8 h-8 flex-shrink-0 text-blue-400" />
-                        <h3 className="font-bold text-lg">
-                          <AnimateInText type="fade" delay={0.3 + i * 0.1}>
-                            {section.title}
-                          </AnimateInText>
-                        </h3>
-                      </div>
-                      <ul className="space-y-3">
-                        {section.points.map((point, j) => (
-                          <li key={j} className="flex gap-3">
-                            <FiCheckCircle className="w-5 h-5 flex-shrink-0 text-green-400 mt-0.5" />
-                            <span className="text-slate-300 text-sm">
-                              <AnimateInText type="fade" delay={0.4 + (i * 0.1) + (j * 0.05)}>
-                                {point}
-                              </AnimateInText>
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </InteractiveCard>
-                </StaggerItem>
-              ))}
-            </div>
-          </StaggerContainer>
-        </div>
-      </section>
-
-      {/* Real Success Stories */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-14 lg:py-16 border-t border-slate-800/50">
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ duration: 0.8 }}
-          className="text-center mb-5 sm:mb-6 lg:mb-8"
-        >
-          <h2 className="text-4xl font-black mb-4">
-            <GradientText>
-              <AnimateInText type="slide" delay={0.1}>
-                Real Success Stories
-              </AnimateInText>
-            </GradientText>
-          </h2>
-          <p className="text-slate-300 max-w-2xl mx-auto">
-            <AnimateInText type="fade" delay={0.3}>
-              See how Sabi users are growing their accounts and making real money
-            </AnimateInText>
-          </p>
-        </motion.div>
-
-        <StaggerContainer staggerDelay={0.15}>
-          <div className="grid md:grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
-            {[
-              {
-                name: 'Chioma O.',
-                handle: '@lifestyle_blogger',
-                result: 'Grew from 5K to 125K followers in 60 days',
-                detail: 'Used Sabi to boost engagement on her lifestyle content. Now gets brand partnership offers weekly.',
-                Icon: FiAward,
-              },
-              {
-                name: 'Tunde A.',
-                handle: '@tech_content_ng',
-                result: 'Increased engagement from 2% to 18% in 30 days',
-                detail: 'As a tech creator, needed real engagement. Sabi\'s Nigerian audience was perfect fit. Got 3 sponsorships.',
-                Icon: FiTrendingUp,
-              },
-              {
-                name: 'Nia M.',
-                handle: '@brand_ambassador',
-                result: 'Converted followers to ₦500K revenue in 90 days',
-                detail: 'Used Sabi to build credibility, then launched digital products. Real followers = real customers.',
-                Icon: FiDollarSign,
-              },
-            ].map((story, i) => (
-              <StaggerItem key={i}>
-                <InteractiveCard glowColor="purple" delay={0}>
-                  <div className="p-6 h-full flex flex-col">
-                    <div className="flex items-center gap-3 mb-4">
-                      <story.Icon className="w-6 h-6 text-purple-400" />
-                      <div>
-                        <p className="font-bold text-sm">{story.name}</p>
-                        <p className="text-xs text-slate-400">{story.handle}</p>
-                      </div>
-                    </div>
-                    <p className="font-semibold text-blue-400 text-sm mb-3">
-                      <AnimateInText type="fade" delay={0.3 + i * 0.1}>
-                        {story.result}
-                      </AnimateInText>
-                    </p>
-                    <p className="text-slate-300 text-sm flex-1">
-                      <AnimateInText type="fade" delay={0.4 + i * 0.1}>
-                        {story.detail}
-                      </AnimateInText>
-                    </p>
-                  </div>
-                </InteractiveCard>
-              </StaggerItem>
-            ))}
-          </div>
-        </StaggerContainer>
-      </section>
-
-      {/* Trust & Security Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-14 lg:py-16 border-t border-slate-800/50">
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ duration: 0.8 }}
-          className="text-center mb-5 sm:mb-6 lg:mb-8"
-        >
-          <h2 className="text-4xl font-black mb-4">
-            <GradientText>
-              <AnimateInText type="slide" delay={0.1}>
-                Enterprise-Grade Security
-              </AnimateInText>
-            </GradientText>
-          </h2>
-          <p className="text-slate-300 max-w-2xl mx-auto">
-            <AnimateInText type="fade" delay={0.3}>
-              Your account and data are protected by industry-leading security standards
-            </AnimateInText>
-          </p>
-        </motion.div>
-
-        <StaggerContainer staggerDelay={0.12}>
-          <div className="grid md:grid-cols-2 gap-4 sm:gap-5 lg:gap-6">
-            {[
-              { title: 'Data Encryption', desc: 'All data encrypted in transit and at rest using industry standards', Icon: FiLock },
-              { title: '100% Compliance', desc: 'Fully compliant with GDPR, CCPA, and Nigerian data protection laws', Icon: FiShield },
-              { title: 'Secure Payments', desc: 'All payments processed through Flutterwave (PCI DSS Level 1 certified)', Icon: FiCreditCard },
-              { title: '24/7 Support', desc: 'Real humans available to help with any questions or issues', Icon: FiHeadphones },
-            ].map((item, i) => (
-              <StaggerItem key={i}>
-                <InteractiveCard glowColor="cyan" delay={0}>
-                  <div className="p-6 flex gap-4">
-                    <item.Icon className="w-8 h-8 flex-shrink-0 text-cyan-400" />
-                    <div>
-                      <h3 className="font-bold mb-2">
-                        <AnimateInText type="fade" delay={0.3 + i * 0.1}>
-                          {item.title}
-                        </AnimateInText>
-                      </h3>
-                      <p className="text-sm text-slate-400">
-                        <AnimateInText type="fade" delay={0.4 + i * 0.1}>
-                          {item.desc}
-                        </AnimateInText>
-                      </p>
-                    </div>
-                  </div>
-                </InteractiveCard>
-              </StaggerItem>
-            ))}
-          </div>
-        </StaggerContainer>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.5 }}
-          className="mt-12 p-8 rounded-xl border border-green-500/30 bg-green-500/5"
-        >
-          <div className="flex gap-4">
-            <FiCheckCircle className="w-6 h-6 flex-shrink-0 text-green-400 mt-1" />
-            <div>
-              <h3 className="font-bold mb-2">Risk-Free Guarantee</h3>
-              <p className="text-slate-300 text-sm">
-                Not satisfied with your engagement within 30 days? Get a full refund. We\'re confident in our service because we know it works.
-              </p>
-            </div>
-          </div>
-        </motion.div>
-      </section>
-
-      {/* FAQ Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-14 lg:py-16 border-t border-slate-800/50">
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ duration: 0.8 }}
-          className="text-center mb-5 sm:mb-6 lg:mb-8"
-        >
-          <h2 className="text-4xl font-black mb-4">
-            <GradientText>
-              <AnimateInText type="slide" delay={0.1}>
-                Frequently Asked Questions
-              </AnimateInText>
-            </GradientText>
-          </h2>
-        </motion.div>
-
-        <StaggerContainer staggerDelay={0.1}>
-          <div className="grid md:grid-cols-2 gap-4 sm:gap-5 lg:gap-6 max-w-4xl mx-auto">
-            {[
-              {
-                q: 'Will my account get banned?',
-                a: 'No. We use only real people and real engagement. Your account stays safe and compliant with platform policies.',
-              },
-              {
-                q: 'How fast will I see results?',
-                a: 'Real users start engaging within 1-24 hours of order placement. You\'ll see follower growth within days.',
-              },
-              {
-                q: 'Are the followers real?',
-                a: 'Yes, 100% real. All users are verified Nigerians with active accounts. You can see their profiles.',
-              },
-              {
-                q: 'What platforms do you support?',
-                a: 'We support Instagram, TikTok, Twitter/X, YouTube, Facebook, and website traffic. 30+ services total.',
-              },
-              {
-                q: 'Can I get a refund?',
-                a: 'Yes. If unsatisfied within 30 days, we offer full refund with no questions asked.',
-              },
-              {
-                q: 'Is there a contract or minimum?',
-                a: 'No contracts, no minimums. Pay only for what you order. Cancel anytime.',
-              },
-            ].map((item, i) => (
-              <StaggerItem key={i}>
-                <InteractiveCard glowColor="blue" delay={0}>
-                  <div className="p-6">
-                    <h3 className="font-bold mb-3 text-blue-400">
-                      <AnimateInText type="fade" delay={0.3 + i * 0.05}>
-                        {item.q}
-                      </AnimateInText>
-                    </h3>
-                    <p className="text-slate-300 text-sm">
-                      <AnimateInText type="fade" delay={0.4 + i * 0.05}>
-                        {item.a}
-                      </AnimateInText>
-                    </p>
-                  </div>
-                </InteractiveCard>
-              </StaggerItem>
-            ))}
-          </div>
-        </StaggerContainer>
-      </section>
-
-      {/* Footer CTA */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-14 lg:py-16 border-t border-slate-800/50 text-center">
-        <motion.h2
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="text-3xl font-black mb-6"
-        >
-          <AnimateInText type="slide" delay={0.1}>
-            Ready to Get Real Engagement?
-          </AnimateInText>
-        </motion.h2>
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="relative group inline-block"
-        >
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg blur-xl opacity-75 group-hover:opacity-100 transition duration-300" />
-          <Link
-            href="/sabi/register"
-            className="relative block px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold rounded-lg transition"
-          >
-            <AnimateInText type="fade" delay={0.3}>
-              Create Free Account
-            </AnimateInText>
-          </Link>
-        </motion.div>
-
-        <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.3 }}
-          className="text-slate-400 text-sm mt-4"
-        >
-          <AnimateInText type="fade" delay={0.4}>
-            No credit card required. Fund your wallet when ready.
-          </AnimateInText>
-        </motion.p>
-      </section>
-
-      {/* Footer */}
-      <footer className="border-t border-slate-800/50 py-12 text-center text-slate-500 text-sm space-y-4">
-        <LanguageSwitcher
-          currentLanguage={language}
-          onLanguageChange={switchLanguage}
-          variant="footer"
-        />
-        <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ duration: 0.8 }}
-        >
-          {t('footer.copyright', '© 2026 Sabi. All rights reserved. | Real Engagement. Real Growth.')}
-        </motion.p>
-      </footer>
+function LiveTicker() {
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setIdx(i => (i + 1) % ACTIVITIES.length), 3000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-full text-sm max-w-xl mx-auto">
+      <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 animate-pulse" />
+      <AnimatePresence mode="wait">
+        <motion.span key={idx} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+          className="text-emerald-300 truncate">
+          {ACTIVITIES[idx]}
+        </motion.span>
+      </AnimatePresence>
     </div>
   );
 }
 
+// ─── Data ─────────────────────────────────────────────────────────────────────
+const PLATFORMS = [
+  { Icon: SiInstagram, name: 'Instagram', color: 'from-pink-500 to-purple-600', services: ['Followers', 'Likes', 'Comments', 'Saves', 'Reel Views', 'Story Views'] },
+  { Icon: SiTiktok, name: 'TikTok', color: 'from-slate-700 to-black', services: ['Followers', 'Likes', 'Comments', 'Views', 'Shares'] },
+  { Icon: SiYoutube, name: 'YouTube', color: 'from-red-600 to-red-800', services: ['Subscribers', 'Views', 'Likes', 'Comments'] },
+  { Icon: SiX, name: 'X (Twitter)', color: 'from-slate-600 to-slate-900', services: ['Followers', 'Likes', 'Retweets', 'Views'] },
+  { Icon: SiSnapchat, name: 'Snapchat', color: 'from-yellow-400 to-yellow-500', services: ['Followers', 'Views', 'Saves'] },
+  { Icon: SiWhatsapp, name: 'WhatsApp', color: 'from-green-500 to-green-700', services: ['Followers', 'Shares'] },
+  { Icon: SiTelegram, name: 'Telegram', color: 'from-blue-400 to-blue-600', services: ['Followers', 'Views', 'Reactions'] },
+  { Icon: SiThreads, name: 'Threads', color: 'from-slate-500 to-slate-800', services: ['Followers', 'Likes', 'Comments'] },
+  { Icon: SiSpotify, name: 'Spotify', color: 'from-green-500 to-green-800', services: ['Followers', 'Plays'] },
+  { Icon: SiPinterest, name: 'Pinterest', color: 'from-red-500 to-red-700', services: ['Followers', 'Repins', 'Likes'] },
+  { Icon: SiTwitch, name: 'Twitch', color: 'from-purple-600 to-purple-900', services: ['Followers', 'Views', 'Subscriptions'] },
+];
+
+const DIFFERENTIATORS = [
+  { icon: FiUsers, title: '300,000+ Real Nigerians', desc: 'Not bots. Not scripts. Real humans with real accounts, real followers, real histories. Every action is authentic — platforms can\'t detect it because it\'s literally real people.', color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' },
+  { icon: FiMapPin, title: 'Nigerian State-Level Targeting', desc: 'Choose Lagos, Abuja, PH, Kano — down to the city. Target by state, gender, or niche. No other platform on earth offers this for Nigerian audiences.', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
+  { icon: FiMessageCircle, title: 'Comments That Make Sense', desc: 'Real Nigerians write real comments — in Pidgin, Yoruba, English, whatever fits your brand. You brief them. They deliver. No "Nice post!" spam ever.', color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20' },
+  { icon: FiZap, title: 'Orders Start in Minutes', desc: 'Place an order and it hits active Nigerians immediately. No waiting lists, no manual assignments. 50+ services across 11 platforms, always available.', color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/20' },
+  { icon: FiShield, title: 'Zero Platform Risk', desc: 'Because it\'s real people taking real actions, there are no sudden drops, no bans, no shadowbans. Your account stays safe and the engagement holds.', color: 'text-cyan-400', bg: 'bg-cyan-500/10 border-cyan-500/20' },
+  { icon: FiStar, title: 'Every Nigerian is a Creator', desc: 'SABI isn\'t just for brands. Every Nigerian on the platform is an earner. They complete tasks, grow their own presence, and power others. Everyone wins.', color: 'text-pink-400', bg: 'bg-pink-500/10 border-pink-500/20' },
+];
+
+const HOW_IT_WORKS = [
+  { step: '01', title: 'Choose your platform & service', desc: 'Pick from Instagram, TikTok, YouTube and 8 more. Followers, likes, views, comments — 50+ services available.' },
+  { step: '02', title: 'Set your targeting', desc: 'Pick your Nigerian state, city, audience gender. Brief your comment style. Add a promo code. Confirm your order.' },
+  { step: '03', title: 'Watch it happen in real time', desc: '300,000+ Nigerians receive your order. They act. You get notifications as it rolls in. Track every update on your dashboard.' },
+];
+
+const STATS = [
+  { value: 300000, label: 'Active Nigerians', suffix: '+' },
+  { value: 50, label: 'Services Available', suffix: '+' },
+  { value: 11, label: 'Platforms Covered', suffix: '' },
+  { value: 99, label: 'Satisfaction Rate', suffix: '%', prefix: '' },
+];
+
+// ─── Component ────────────────────────────────────────────────────────────────
 export default function Home() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   if (!mounted) return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+    <div className="min-h-screen bg-black flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
     </div>
   );
-  return <HomeContent />;
+
+  return (
+    <div className="min-h-screen bg-black text-white overflow-x-hidden">
+      {/* ── Fixed ambient glows ──────────────────────────────────────────── */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-blue-600/8 rounded-full blur-[120px]" />
+        <div className="absolute top-1/2 right-0 w-[500px] h-[500px] bg-purple-600/8 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-pink-600/6 rounded-full blur-[120px]" />
+      </div>
+
+      {/* ── Nav ──────────────────────────────────────────────────────────── */}
+      <nav className="relative z-50 border-b border-white/5 backdrop-blur-xl bg-black/40">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-3 group">
+            <LogoImage className="w-10 h-10" />
+            <span className="text-xl font-black tracking-tight">SABI</span>
+          </Link>
+          <div className="hidden md:flex items-center gap-8 text-sm text-white/60">
+            <Link href="/sabi/services" className="hover:text-white transition">Services</Link>
+            <Link href="#how-it-works" className="hover:text-white transition">How It Works</Link>
+            <Link href="/sabi/docs" className="hover:text-white transition">API</Link>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link href="/sabi/login" className="text-sm text-white/70 hover:text-white transition px-4 py-2">Sign In</Link>
+            <Link href="/sabi/register"
+              className="text-sm font-bold px-5 py-2.5 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl hover:brightness-110 transition shadow-lg shadow-blue-500/25">
+              Get Started →
+            </Link>
+          </div>
+        </div>
+      </nav>
+
+      {/* ── HERO ─────────────────────────────────────────────────────────── */}
+      <section className="relative min-h-[92vh] flex flex-col items-center justify-center text-center px-6 pt-20 pb-10">
+        {/* Live badge */}
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+          className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/5 border border-white/10 rounded-full text-xs font-semibold text-white/70 mb-8 backdrop-blur-sm">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          Nigeria's first real-people social media engine
+        </motion.div>
+
+        {/* Main headline */}
+        <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.8 }}
+          className="text-5xl sm:text-7xl lg:text-8xl font-black leading-[0.95] tracking-tight max-w-5xl mb-6">
+          <span className="text-white">300,000 real</span>
+          <br />
+          <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+            Nigerians
+          </span>
+          <br />
+          <span className="text-white">will make you go</span>
+          <br />
+          <span className="bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">
+            viral.
+          </span>
+        </motion.h1>
+
+        <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+          className="text-lg sm:text-xl text-white/50 max-w-2xl mb-10 leading-relaxed">
+          SABI isn't an SMM panel. It's a movement — powered by real people across every Nigerian state,
+          every platform, every niche. Place an order and hundreds of active Nigerians go to work for you.
+          Immediately.
+        </motion.p>
+
+        {/* CTAs */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+          className="flex flex-col sm:flex-row items-center gap-4 mb-14">
+          <Link href="/sabi/register"
+            className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-black text-lg rounded-2xl hover:brightness-110 transition shadow-2xl shadow-blue-500/30 group">
+            Start Growing Now
+            <FiArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          </Link>
+          <Link href="/sabi/services"
+            className="flex items-center gap-2 px-8 py-4 bg-white/5 border border-white/10 text-white/80 font-bold text-lg rounded-2xl hover:bg-white/10 hover:text-white transition backdrop-blur-sm">
+            <FiPlay className="w-4 h-4" />
+            See All Services
+          </Link>
+        </motion.div>
+
+        {/* Live ticker */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }} className="w-full max-w-2xl">
+          <LiveTicker />
+        </motion.div>
+
+        {/* Platform scroll strip */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }}
+          className="mt-16 w-full overflow-hidden">
+          <p className="text-xs text-white/30 uppercase tracking-widest mb-6">Available on all major platforms</p>
+          <div className="flex items-center gap-8 justify-center flex-wrap opacity-50">
+            {PLATFORMS.map(({ Icon, name }) => (
+              <Icon key={name} className="w-6 h-6 text-white/60" title={name} />
+            ))}
+          </div>
+        </motion.div>
+      </section>
+
+      {/* ── STATS BAR ─────────────────────────────────────────────────────── */}
+      <section className="relative z-10 border-y border-white/5 bg-white/[0.02] backdrop-blur-sm py-12">
+        <div className="max-w-5xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+          {STATS.map((s, i) => (
+            <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
+              <p className="text-4xl sm:text-5xl font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                <Counter target={s.value} suffix={s.suffix} prefix={s.prefix} />
+              </p>
+              <p className="text-white/40 text-sm mt-1 font-medium">{s.label}</p>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── WHY SABI IS DIFFERENT ─────────────────────────────────────────── */}
+      <section className="relative z-10 py-28 px-6">
+        <div className="max-w-7xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="text-center mb-20">
+            <p className="text-blue-400 text-sm font-bold uppercase tracking-widest mb-4">Why SABI is different</p>
+            <h2 className="text-4xl sm:text-6xl font-black mb-6">
+              This has never<br />
+              <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                been done before.
+              </span>
+            </h2>
+            <p className="text-white/50 text-lg max-w-2xl mx-auto">
+              Every other SMM panel uses bots. We use people.
+              300,000 active Nigerians who earn by engaging with your content.
+              The engagement is real. The impact is real. The results last.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {DIFFERENTIATORS.map((d, i) => {
+              const Icon = d.icon;
+              return (
+                <motion.div key={d.title}
+                  initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }} transition={{ delay: i * 0.08 }}
+                  className={`rounded-2xl border p-7 ${d.bg} hover:scale-[1.02] transition-transform cursor-default`}>
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-5 ${d.bg}`}>
+                    <Icon className={`w-6 h-6 ${d.color}`} />
+                  </div>
+                  <h3 className="text-white font-bold text-lg mb-3">{d.title}</h3>
+                  <p className="text-white/50 text-sm leading-relaxed">{d.desc}</p>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ── HOW IT WORKS ──────────────────────────────────────────────────── */}
+      <section id="how-it-works" className="relative z-10 py-28 px-6 border-t border-white/5">
+        <div className="max-w-5xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="text-center mb-20">
+            <p className="text-purple-400 text-sm font-bold uppercase tracking-widest mb-4">Ridiculously simple</p>
+            <h2 className="text-4xl sm:text-6xl font-black">
+              Three steps.<br />
+              <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                Thousands of results.
+              </span>
+            </h2>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {HOW_IT_WORKS.map((h, i) => (
+              <motion.div key={h.step}
+                initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }} transition={{ delay: i * 0.15 }}
+                className="relative">
+                <div className="text-8xl font-black text-white/5 leading-none mb-4 select-none">{h.step}</div>
+                <h3 className="text-xl font-black text-white mb-3 -mt-6">{h.title}</h3>
+                <p className="text-white/40 leading-relaxed">{h.desc}</p>
+                {i < HOW_IT_WORKS.length - 1 && (
+                  <div className="hidden md:block absolute top-12 right-0 translate-x-1/2 text-white/20">
+                    <FiArrowRight className="w-6 h-6" />
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── PLATFORMS GRID ────────────────────────────────────────────────── */}
+      <section className="relative z-10 py-28 px-6 border-t border-white/5">
+        <div className="max-w-7xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="text-center mb-16">
+            <p className="text-pink-400 text-sm font-bold uppercase tracking-widest mb-4">50+ Services</p>
+            <h2 className="text-4xl sm:text-5xl font-black">
+              Every platform.<br />
+              <span className="bg-gradient-to-r from-pink-400 to-orange-400 bg-clip-text text-transparent">
+                Every metric.
+              </span>
+            </h2>
+          </motion.div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {PLATFORMS.map(({ Icon, name, color, services }, i) => (
+              <motion.div key={name}
+                initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }} transition={{ delay: i * 0.05 }}
+                className="group rounded-2xl bg-white/[0.03] border border-white/[0.06] p-6 hover:border-white/20 hover:bg-white/[0.06] transition-all cursor-default">
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center mb-4`}>
+                  <Icon className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-white font-bold mb-3">{name}</h3>
+                <div className="space-y-1">
+                  {services.slice(0, 4).map(s => (
+                    <div key={s} className="flex items-center gap-2 text-white/40 text-xs">
+                      <FiCheck className="w-3 h-3 text-emerald-500 shrink-0" />
+                      {s}
+                    </div>
+                  ))}
+                  {services.length > 4 && <p className="text-white/25 text-xs mt-1">+{services.length - 4} more</p>}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="text-center mt-10">
+            <Link href="/sabi/services"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-2xl hover:bg-white/10 transition">
+              View All 50+ Services <FiArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── TARGETING CALLOUT ─────────────────────────────────────────────── */}
+      <section className="relative z-10 py-28 px-6 border-t border-white/5">
+        <div className="max-w-6xl mx-auto">
+          <div className="rounded-3xl bg-gradient-to-br from-blue-600/20 via-purple-600/10 to-pink-600/20 border border-white/10 p-12 sm:p-16 text-center">
+            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+              <p className="text-emerald-400 text-sm font-bold uppercase tracking-widest mb-6">Only on SABI</p>
+              <h2 className="text-4xl sm:text-6xl font-black mb-6">
+                Target Nigeria<br />
+                <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
+                  by state. By city. By gender.
+                </span>
+              </h2>
+              <p className="text-white/50 text-lg max-w-2xl mx-auto mb-10">
+                No other platform in the world lets you target Lagos-Lekki females aged 18-35 for your Instagram post.
+                We do. Because our 300,000 Nigerians are real people with real addresses.
+              </p>
+              <div className="flex flex-wrap gap-3 justify-center mb-10">
+                {['Lagos - Lekki', 'Abuja - Maitama', 'Port Harcourt GRA', 'Ibadan', 'Kano City', 'Enugu', '+ 30 more states'].map(loc => (
+                  <span key={loc} className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm text-white/70">
+                    📍 {loc}
+                  </span>
+                ))}
+              </div>
+              <Link href="/sabi/register"
+                className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-emerald-500 to-cyan-500 text-black font-black text-lg rounded-2xl hover:brightness-110 transition shadow-2xl shadow-emerald-500/30">
+                Start Targeting Nigeria <FiArrowRight className="w-5 h-5" />
+              </Link>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── FINAL CTA ─────────────────────────────────────────────────────── */}
+      <section className="relative z-10 py-32 px-6 border-t border-white/5 text-center">
+        <div className="max-w-4xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+            <h2 className="text-5xl sm:text-7xl font-black mb-6 leading-tight">
+              300,000 Nigerians<br />
+              <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                are waiting for you.
+              </span>
+            </h2>
+            <p className="text-white/40 text-xl mb-12 max-w-2xl mx-auto">
+              Create your account. Fund your wallet. Place your first order.
+              Your growth starts today — with real people, not bots.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/sabi/register"
+                className="flex items-center justify-center gap-2 px-10 py-5 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-black text-xl rounded-2xl hover:brightness-110 transition shadow-2xl shadow-blue-500/30 group">
+                Create Free Account
+                <FiArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+              </Link>
+              <Link href="/sabi/docs"
+                className="flex items-center justify-center gap-2 px-10 py-5 bg-white/5 border border-white/10 text-white font-bold text-xl rounded-2xl hover:bg-white/10 transition">
+                API Access
+              </Link>
+            </div>
+            <p className="text-white/25 text-sm mt-8">
+              Free to join · No setup fees · Orders start instantly · Cancel anytime
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ── Footer ────────────────────────────────────────────────────────── */}
+      <footer className="relative z-10 border-t border-white/5 py-12 px-6">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-3">
+            <LogoImage className="w-8 h-8" />
+            <span className="font-black text-white">SABI</span>
+            <span className="text-white/30 text-sm">— Real Nigerian Engagement</span>
+          </div>
+          <div className="flex items-center gap-6 text-sm text-white/40">
+            <Link href="/sabi/services" className="hover:text-white transition">Services</Link>
+            <Link href="/sabi/docs" className="hover:text-white transition">API Docs</Link>
+            <Link href="/sabi/login" className="hover:text-white transition">Sign In</Link>
+            <Link href="/sabi/register" className="hover:text-white transition">Register</Link>
+          </div>
+          <p className="text-white/20 text-sm">© 2026 Sabi. All rights reserved.</p>
+        </div>
+      </footer>
+    </div>
+  );
 }

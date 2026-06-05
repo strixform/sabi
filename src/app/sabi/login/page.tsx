@@ -47,31 +47,41 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex bg-slate-950">
-      {/* Left panel — branding (desktop only) */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-blue-600 via-purple-700 to-pink-600 flex-col justify-between p-12">
-        {/* Blurred orbs */}
-        <div className="absolute inset-0">
-          <div className="absolute top-0 left-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
+      {/* Left panel — bold brand (desktop only) */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-black flex-col justify-between p-14">
+        {/* Ambient glows */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-1/4 left-0 w-96 h-96 bg-blue-600/20 rounded-full blur-[120px]" />
+          <div className="absolute bottom-1/4 right-0 w-96 h-96 bg-purple-600/20 rounded-full blur-[120px]" />
         </div>
+
         <div className="relative z-10">
-          {/* Big clickable logo — fills the panel with brand presence */}
-          <Link href="/" className="block mb-10 group">
-            <LogoImage size="lg" className="w-28 h-28 group-hover:scale-105 transition-transform duration-300" />
+          {/* Logo — large, clickable, with glow */}
+          <Link href="/" className="inline-block mb-16 group">
+            <div className="relative">
+              <div className="absolute inset-0 bg-blue-500/30 rounded-2xl blur-2xl scale-150 group-hover:bg-blue-500/40 transition" />
+              <LogoImage className="w-24 h-24 relative z-10 group-hover:scale-105 transition-transform duration-300" />
+            </div>
           </Link>
-          <h1 className="text-4xl font-black text-white leading-tight mb-4">
-            Grow your social<br />presence with<br />
-            <span className="text-yellow-300">real Nigerians.</span>
-          </h1>
-          <p className="text-white/70 text-lg max-w-sm">
-            Every order is fulfilled by verified Nigerian social media users. Real engagement, real results.
-          </p>
+
+          <div className="mb-6">
+            <p className="text-white/40 text-sm font-semibold uppercase tracking-widest mb-4">Nigeria's social engine</p>
+            <h1 className="text-5xl font-black text-white leading-[1.05] mb-6">
+              300,000<br />
+              <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">real Nigerians</span><br />
+              ready for you.
+            </h1>
+            <p className="text-white/50 text-base leading-relaxed max-w-sm">
+              Real people. Real engagement. Every state, every platform, every metric — powered by actual Nigerians.
+            </p>
+          </div>
         </div>
-        <div className="relative z-10 grid grid-cols-2 gap-3">
+
+        <div className="relative z-10 space-y-3">
           {TRUST_BADGES.map(b => (
-            <div key={b.text} className="flex items-center gap-2 bg-white/10 rounded-xl px-4 py-3 backdrop-blur-sm">
-              <span className="text-xl">{b.emoji}</span>
-              <span className="text-white/90 text-sm font-medium">{b.text}</span>
+            <div key={b.text} className="flex items-center gap-3 bg-white/5 border border-white/8 rounded-xl px-5 py-3 backdrop-blur-sm">
+              <span className="text-2xl">{b.emoji}</span>
+              <span className="text-white/80 font-semibold">{b.text}</span>
             </div>
           ))}
         </div>

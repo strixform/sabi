@@ -27,32 +27,27 @@ export const LogoImage: React.FC<LogoImageProps> = ({
   className = '',
   variant = 'primary'
 }) => {
+  // If className has explicit sizing, it takes full control
+  // Otherwise fall back to the size prop map
+  const hasSizeClass = /\bw-\d+/.test(className);
   const sizeMap = {
-    sm: { className: 'w-8 h-8' },
-    md: { className: 'w-10 h-10 md:w-12 md:h-12' },
-    lg: { className: 'w-16 h-16' },
+    sm: 'w-8 h-8',
+    md: 'w-10 h-10 md:w-12 md:h-12',
+    lg: 'w-16 h-16',
   };
+  const sizeClass = hasSizeClass ? '' : sizeMap[size] || 'w-12 h-12';
 
-  const sizeConfig = sizeMap[size];
-  // Cache bust version - increment to force fresh logo load across all devices
   const cacheVersion = '?v=2024060502';
   const logoPath = (variant === 'secondary' ? '/sabi-logo-secondary.png' : '/sabi-logo.png') + cacheVersion;
 
-  // Try to load the image, fall back to SVG if not found
   const [imageError, setImageError] = React.useState(false);
 
-  // If image fails to load, use SVG fallback
   if (imageError) {
-    return (
-      <SabiLogo
-        size={size}
-        className={className}
-      />
-    );
+    return <SabiLogo size={size} className={className} />;
   }
 
   return (
-    <div className={`${sizeConfig.className} ${className} flex items-center justify-center`}>
+    <div className={`${sizeClass} ${className} flex items-center justify-center`}>
       <img
         src={logoPath}
         alt="Sabi Logo"

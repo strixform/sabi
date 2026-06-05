@@ -71,29 +71,37 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex bg-slate-950">
       {/* Left branding panel */}
-      <div className="hidden lg:flex lg:w-5/12 relative overflow-hidden bg-gradient-to-br from-purple-700 via-blue-700 to-cyan-600 flex-col justify-between p-12">
-        <div className="absolute inset-0">
-          <div className="absolute top-1/4 left-0 w-80 h-80 bg-white/10 rounded-full blur-3xl -translate-x-1/2" />
-          <div className="absolute bottom-1/4 right-0 w-80 h-80 bg-white/10 rounded-full blur-3xl translate-x-1/2" />
+      <div className="hidden lg:flex lg:w-5/12 relative overflow-hidden bg-black flex-col justify-between p-14">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-1/3 left-0 w-96 h-96 bg-purple-600/20 rounded-full blur-[120px]" />
+          <div className="absolute bottom-1/4 right-0 w-80 h-80 bg-blue-600/15 rounded-full blur-[100px]" />
         </div>
         <div className="relative z-10">
-          <Link href="/" className="block mb-10 group">
-            <LogoImage size="lg" className="w-28 h-28 group-hover:scale-105 transition-transform duration-300" />
+          <Link href="/" className="inline-block mb-16 group">
+            <div className="relative">
+              <div className="absolute inset-0 bg-purple-500/30 rounded-2xl blur-2xl scale-150 group-hover:bg-purple-500/40 transition" />
+              <LogoImage className="w-24 h-24 relative z-10 group-hover:scale-105 transition-transform duration-300" />
+            </div>
           </Link>
-          <h1 className="text-3xl font-black text-white leading-tight mb-4">
-            Start growing<br />your audience<br /><span className="text-yellow-300">today.</span>
+          <p className="text-white/40 text-sm font-semibold uppercase tracking-widest mb-4">Join the movement</p>
+          <h1 className="text-4xl font-black text-white leading-tight mb-6">
+            Be part of<br />
+            <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+              Nigeria's biggest
+            </span><br />
+            social network.
           </h1>
-          <p className="text-white/70 max-w-xs">
-            Join thousands of Nigerian creators and businesses who trust Sabi for real social engagement.
+          <p className="text-white/50 leading-relaxed max-w-xs">
+            300,000 Nigerians already on SABI — earning, engaging, growing. Now it's your turn.
           </p>
         </div>
         <div className="relative z-10 space-y-3">
-          {['100% real Nigerian users', 'Orders start in minutes', 'Secure wallet payments', '₦500 referral bonus'].map(t => (
-            <div key={t} className="flex items-center gap-3">
-              <div className="w-5 h-5 rounded-full bg-emerald-400/30 border border-emerald-400/50 flex items-center justify-center shrink-0">
+          {['100% real Nigerian users', 'Orders start in minutes', 'Secure wallet payments', '₦500 referral bonus when you invite friends'].map(t => (
+            <div key={t} className="flex items-center gap-3 bg-white/5 border border-white/8 rounded-xl px-5 py-3">
+              <div className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center shrink-0">
                 <FiCheck className="w-3 h-3 text-emerald-400" />
               </div>
-              <span className="text-white/80 text-sm">{t}</span>
+              <span className="text-white/70 text-sm font-medium">{t}</span>
             </div>
           ))}
         </div>
