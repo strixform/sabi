@@ -47,14 +47,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const amountInKobo = verification.amount || 0;
+    // Flutterwave returns amount in Naira, convert to Kobo (1 Naira = 100 Kobo)
+    const amountInNaira = verification.amount || 0;
+    const amountInKobo = Math.round(amountInNaira * 100);
 
     if (amountInKobo <= 0) {
+      console.error('[WALLET CALLBACK] Invalid amount:', { amountInNaira, amountInKobo });
       return NextResponse.json(
         { error: 'Invalid amount', success: false },
         { status: 400 }
       );
     }
+
+    console.log('[WALLET CALLBACK] Amount conversion:', {
+      naira: amountInNaira,
+      kobo: amountInKobo,
+    });
 
     // Get or create wallet
     let wallet = await prisma.sabiWallet.findUnique({
@@ -73,8 +81,15 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Add funds to wallet
+    // Add funds to wallet (stored in Kobo)
     const newBalance = wallet.balance + amountInKobo;
+
+    console.log('[WALLET CALLBACK] Updating wallet:', {
+      userId: session.id,
+      oldBalance: wallet.balance,
+      amountToAdd: amountInKobo,
+      newBalance,
+    });
 
     const updatedWallet = await prisma.sabiWallet.update({
       where: { id: wallet.id },
@@ -98,8 +113,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Payment verified and wallet credited',
-      amount: amountInKobo,
-      newBalance: updatedWallet.balance,
+      amountNaira: amountInNaira,
+      amountKobo: amountInKobo,
+      newBalanceKobo: updatedWallet.balance,
+      newBalanceNaira: Math.round(updatedWallet.balance / 100),
     });
   } catch (error) {
     console.error('[WALLET CALLBACK] Error:', error);
