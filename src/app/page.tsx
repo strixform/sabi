@@ -205,11 +205,10 @@ export default function Home() {
         className="fixed top-0 left-0 right-0 z-50 border-b border-white/[0.05]"
         style={{ backdropFilter: 'blur(24px) saturate(180%)', background: 'rgba(3,5,7,0.7)' }}>
         <div className="max-w-7xl mx-auto px-6 h-[60px] flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 group">
-            <motion.div whileHover={{ scale: 1.08 }} transition={{ duration: 0.3 }}>
-              <LogoImage className="w-8 h-8" />
+          <Link href="/" className="flex items-center group">
+            <motion.div whileHover={{ scale: 1.06 }} transition={{ duration: 0.3 }}>
+              <LogoImage className="w-14 h-14" />
             </motion.div>
-            <span className="font-bold text-base tracking-tight text-white/90">SABI</span>
           </Link>
 
           <div className="hidden md:flex items-center gap-10 text-sm text-white/35 font-medium">
@@ -586,8 +585,7 @@ export default function Home() {
       <footer className="relative z-10 border-t border-white/[0.05] py-10 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <LogoImage className="w-6 h-6 opacity-60" />
-            <span className="font-bold text-white/40 text-sm">SABI</span>
+            <LogoImage className="w-10 h-10 opacity-60" />
             <span className="w-px h-3 bg-white/10" />
             <span className="text-white/20 text-xs font-mono tracking-wide">Real Nigerian engagement</span>
           </div>

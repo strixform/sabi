@@ -77,6 +77,23 @@ export async function sendOrderFailedEmail(email: string, name: string, orderId:
   } catch {}
 }
 
+export async function sendAutoTopupEmail(email: string, name: string, amountNaira: number) {
+  try {
+    await resend.emails.send({
+      from: FROM, to: email,
+      subject: `⚡ Your SABI wallet needs a top-up`,
+      html: baseHtml('Wallet Top-Up Reminder', `
+        <p>Hi <b>${name}</b>,</p>
+        <p>Your wallet balance has dropped below your auto top-up threshold. Based on your settings, we recommend funding <b>₦${amountNaira.toLocaleString()}</b> to keep your campaigns running without interruption.</p>
+        <div style="text-align:center;margin-top:24px">
+          <a href="${APP_URL}/sabi/wallet" style="background:linear-gradient(135deg,#10b981,#06b6d4);color:#000;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:bold">Fund Wallet Now</a>
+        </div>
+        <p style="color:#64748b;font-size:12px;margin-top:16px">To disable this reminder, go to Wallet → Settings → Auto Top-Up.</p>
+      `),
+    });
+  } catch {}
+}
+
 export async function sendReferralRewardEmail(email: string, name: string, rewardNaira: number, type: 'referrer' | 'referee') {
   try {
     const msg = type === 'referrer'

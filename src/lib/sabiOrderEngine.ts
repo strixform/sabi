@@ -97,6 +97,18 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
       },
     });
 
+    // Auto top-up check — if wallet fell below threshold, email user a payment link (fire-and-forget)
+    prisma.sabiWallet.findUnique({ where: { userId: input.userId }, select: { balance: true, autoTopupEnabled: true, autoTopupThreshold: true, autoTopupAmount: true } })
+      .then(async (wallet) => {
+        if (!wallet?.autoTopupEnabled || !wallet.autoTopupThreshold || !wallet.autoTopupAmount) return;
+        if (wallet.balance >= wallet.autoTopupThreshold) return;
+        const user = await prisma.sabiUser.findUnique({ where: { id: input.userId }, select: { email: true, name: true } });
+        if (!user) return;
+        const amountNaira = Math.round(wallet.autoTopupAmount / 100);
+        const { sendAutoTopupEmail } = await import('./email').catch(() => ({ sendAutoTopupEmail: null }));
+        if (sendAutoTopupEmail) sendAutoTopupEmail(user.email, user.name, amountNaira);
+      }).catch(() => {});
+
     // Mark promo code used (fire-and-forget)
     if (input.promoCodeId && input.discountAmount) {
       prisma.sabiPromoCode.update({ where: { id: input.promoCodeId }, data: { usedCount: { increment: 1 } } }).catch(() => {});

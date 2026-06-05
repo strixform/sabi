@@ -89,15 +89,15 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
     <header className="sticky top-0 z-50 border-b border-white/[0.05]"
       style={{ backdropFilter: 'blur(24px) saturate(180%)', background: 'rgba(3,5,7,0.80)' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14 sm:h-16 lg:h-20">
+        <div className="flex items-center justify-between h-16 sm:h-[72px] lg:h-20">
           {/* Logo & Branding */}
           <Link href={isLoggedIn ? '/sabi/dashboard' : '/'} className="flex items-center group">
             <motion.div
               className="flex-shrink-0"
-              whileHover={{ scale: 1.08 }}
+              whileHover={{ scale: 1.06 }}
               whileTap={{ scale: 0.95 }}
             >
-              <LogoImage size="sm" className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14" />
+              <LogoImage className="w-12 h-12 sm:w-14 sm:h-14" />
             </motion.div>
           </Link>
 

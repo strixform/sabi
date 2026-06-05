@@ -13,14 +13,25 @@ const outfit = Outfit({ weight: ['300', '400', '500', '600', '700', '800', '900'
 const playfair = Playfair_Display({ weight: ['400', '500', '600', '700', '800', '900'], subsets: ['latin'], variable: '--font-playfair' });
 
 export const metadata: Metadata = {
-  title: '🎯 Sabi - 100% REAL Nigerian Social Media Engagement',
-  description: '✅ 100% Active & Real Nigerian Users | ✅ Verified Gamers | ✅ Real Engagement | Get Real Followers, Likes, Views & Comments from Nigeria\'s Interactive Reward Economy',
-  keywords: 'Nigerian followers, real engagement, Instagram followers, TikTok followers, Twitter followers, YouTube subscribers, Facebook likes, real users, gaming community',
+  title: 'SABI — Nigeria\'s Social Media Engine',
+  description: 'The only social media growth platform powered by 300,000 real Nigerians. Real followers, likes, views and comments across 11 platforms. Target by state, city and gender. Orders start within minutes.',
+  keywords: 'Nigerian followers, real engagement, Instagram followers Nigeria, TikTok followers Nigeria, YouTube subscribers Nigeria, Lagos followers, Abuja audience, real Nigerian users, SMM Nigeria',
   openGraph: {
-    title: 'Sabi - Real Nigerian Social Media Engagement',
-    description: '100% Real and Active Nigerian users. Get genuine followers, likes, comments, and engagement powered by gamers.',
+    title: 'SABI — Powered by 300,000 Real Nigerians',
+    description: 'Real followers. Real comments. Real engagement — from verified Nigerians across every state. 11 platforms. 50+ services. Orders start within minutes.',
     type: 'website',
+    siteName: 'SABI',
+    url: 'https://sability.io',
+    images: [{ url: '/sabi-logo-main.png', width: 512, height: 512, alt: 'SABI Logo' }],
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'SABI — Nigeria\'s Social Media Engine',
+    description: '300,000 real Nigerians powering your social growth. Every platform. Every state.',
+    images: ['/sabi-logo-main.png'],
+  },
+  robots: { index: true, follow: true },
+  metadataBase: new URL('https://sability.io'),
 };
 
 export default function RootLayout({

@@ -47,3 +47,4 @@ next-env.d.ts
 .env.vercel.tmp
 .migrate_secret.tmp
 .migrate_v2_secret.tmp
+.cron_secret.tmp

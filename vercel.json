@@ -1,0 +1,1 @@
+{"version":2,"crons":[{"path":"/api/sabi/cron/process-scheduled","schedule":"*/5 * * * *"}]}
