@@ -45,3 +45,4 @@ next-env.d.ts
 .vercel
 .env*.local
 .env.vercel.tmp
+.migrate_secret.tmp

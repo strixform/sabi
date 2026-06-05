@@ -102,6 +102,13 @@ model SabiOrder {
   completionPercentage  Int       @default(0)
   estimatedCompletion   DateTime?
 
+  // Audience targeting (Nigerian audience only for now)
+  audienceGender        String?   // 'male' | 'female' | 'both'
+  audienceLocation      String?   // Nigerian state, or 'all'
+  // Comment orders: desired commenter gender + custom instructions
+  commentGender         String?   // 'male' | 'female' | 'both'
+  commentInstructions   String?   // free text (char-limited in UI)
+
   // Metadata
   orderedVia            String    @default("web") // web, api, sms, etc.
   clientId              String?   // For API orders, track which reseller placed it
@@ -123,6 +130,16 @@ model SabiOrder {
   @@index([gamesz360CampaignId])
   @@index([serviceType])
   @@index([createdAt])
+}
+
+model SabiFavorite {
+  id        String   @id @default(cuid())
+  userId    String
+  serviceId String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, serviceId])
+  @@index([userId])
 }
 
 model SabiTransaction {
