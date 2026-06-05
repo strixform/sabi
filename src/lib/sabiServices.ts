@@ -1,4 +1,4 @@
-import { SERVICES_CATALOG, type Service } from './servicesCatalog';
+import { SERVICES_CATALOG, computePricing, type Service } from './servicesCatalog';
 
 export interface SabiService extends Service {
   estimatedDelivery?: string;
@@ -36,9 +36,7 @@ export function calculatePrice(serviceId: string, quantity: number): number | nu
     return null;
   }
 
-  const basePrice = service.pricePerUnit * quantity;
-  const platformFee = Math.ceil(basePrice * 0.15);
-  return basePrice + platformFee;
+  return computePricing(service.pricePerUnit, quantity).totalKobo;
 }
 
 export function validateOrder(

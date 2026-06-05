@@ -18,7 +18,7 @@ import { AnimatedBackground } from '@/components/AnimatedBackground';
 import { AnimateInText } from '@/components/AnimateInText';
 import { ModernSabiHeader } from '@/components/ModernSabiHeader';
 import type { Service } from '@/lib/servicesCatalog';
-import { PLATFORMS } from '@/lib/servicesCatalog';
+import { PLATFORMS, computePricing } from '@/lib/servicesCatalog';
 
 const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   instagram: SiInstagram,
@@ -157,16 +157,46 @@ const SERVICE_URL_REQUIREMENTS: Record<string, URLType[]> = {
   'Plays': ['post', 'channel'],
 };
 
+// Example target URLs per platform, by link kind, so each platform shows the
+// right sample (TikTok shows a TikTok link, not Instagram).
+const URL_EXAMPLES: Record<string, { profile: string; post: string; video?: string }> = {
+  instagram: { profile: 'https://instagram.com/yourusername', post: 'https://instagram.com/p/Cxyz123', video: 'https://instagram.com/reel/Cxyz123' },
+  tiktok: { profile: 'https://tiktok.com/@yourusername', post: 'https://tiktok.com/@yourusername/video/7123456789', video: 'https://tiktok.com/@yourusername/video/7123456789' },
+  twitter: { profile: 'https://x.com/yourusername', post: 'https://x.com/yourusername/status/1761234567890' },
+  youtube: { profile: 'https://youtube.com/@yourchannel', post: 'https://youtube.com/watch?v=dQw4w9WgXcQ', video: 'https://youtube.com/watch?v=dQw4w9WgXcQ' },
+  snapchat: { profile: 'https://snapchat.com/add/yourusername', post: 'https://snapchat.com/add/yourusername' },
+  spotify: { profile: 'https://open.spotify.com/artist/yourID', post: 'https://open.spotify.com/track/yourID' },
+  whatsapp: { profile: 'https://wa.me/2348012345678', post: 'https://wa.me/2348012345678' },
+  pinterest: { profile: 'https://pinterest.com/yourusername', post: 'https://pinterest.com/pin/123456789' },
+  threads: { profile: 'https://threads.net/@yourusername', post: 'https://threads.net/@yourusername/post/Cxyz123' },
+  telegram: { profile: 'https://t.me/yourchannel', post: 'https://t.me/yourchannel/123' },
+  twitch: { profile: 'https://twitch.tv/yourchannel', post: 'https://twitch.tv/yourchannel' },
+};
+
+function getUrlExample(platform: string, action?: string): string {
+  const ex = URL_EXAMPLES[platform];
+  if (!ex) return 'https://...';
+  if (!action) return ex.profile;
+  const req = SERVICE_URL_REQUIREMENTS[action] || [];
+  if (req.includes('profile') || req.includes('channel')) return ex.profile;
+  if (req.includes('video') && ex.video) return ex.video;
+  return ex.post;
+}
+
 function detectURLType(url: string, platform: string): URLValidation {
   const platformPatterns = URL_PATTERNS[platform];
   if (!platformPatterns) {
     return { isValid: false, type: 'other', message: `Unknown platform: ${platform}` };
   }
 
+  // Normalize: drop query string (?igsh=…, ?si=…), hash, and trailing slashes
+  // so links copied straight from a profile/app still match cleanly.
+  const cleanUrl = url.trim().split('?')[0].split('#')[0].replace(/\/+$/, '');
+
   // Check each type
   const patterns = platformPatterns.patterns;
   for (const [type, pattern] of Object.entries(patterns)) {
-    if (pattern && pattern.test(url)) {
+    if (pattern && pattern.test(cleanUrl)) {
       return { isValid: true, type: type as URLType };
     }
   }
@@ -249,7 +279,8 @@ export default function OrderPage() {
     }
   };
 
-  const totalCost = selectedService ? (selectedService.pricePerUnit * quantity) / 100 : 0;
+  const pricing = selectedService ? computePricing(selectedService.pricePerUnit, quantity) : null;
+  const totalCost = pricing ? pricing.totalKobo / 100 : 0; // naira, fees included
   const platformLabel = selectedPlatform
     ? Object.entries(PLATFORMS).find(([, value]) => value === selectedPlatform)?.[0] || selectedPlatform
     : '';
@@ -498,7 +529,7 @@ export default function OrderPage() {
                         </div>
                         <div className="text-right ml-4">
                           <p className="text-lg font-bold text-emerald-400">
-                            ₦{(service.pricePerUnit).toFixed(2)}/{service.action}
+                            ₦{(service.pricePerUnit / 100).toFixed(2)}/{service.action}
                           </p>
                           <p className="text-xs text-slate-400">per unit</p>
                         </div>
@@ -551,7 +582,7 @@ export default function OrderPage() {
                       type="url"
                       value={targetUrl}
                       onChange={(e) => setTargetUrl(e.target.value)}
-                      placeholder="https://instagram.com/yourprofile"
+                      placeholder={getUrlExample(selectedPlatform, selectedService.action)}
                       required
                       className={`w-full px-4 py-3 bg-slate-800/50 border rounded-lg focus:outline-none text-white focus:ring-2 transition ${
                         targetUrl && validateTargetUrl()
@@ -576,11 +607,10 @@ export default function OrderPage() {
                     )}
                     {!targetUrl && (
                       <p className="text-xs text-slate-400 mt-1">
-                        {selectedService.action === 'Followers'
-                          ? 'Paste your profile URL'
-                          : selectedService.action === 'Likes'
-                          ? 'Paste the link to your post'
-                          : 'Paste the relevant URL for this service'}
+                        Example for {platformLabel} {selectedService.action}:{' '}
+                        <span className="text-slate-300 font-mono break-all">
+                          {getUrlExample(selectedPlatform, selectedService.action)}
+                        </span>
                       </p>
                     )}
                   </motion.div>
@@ -729,7 +759,7 @@ export default function OrderPage() {
                       <div className="space-y-4 mb-6">
                         <div className="flex justify-between items-center pb-3 border-b border-slate-700/50">
                           <span className="text-slate-400">Price per unit</span>
-                          <span className="font-bold">₦{(selectedService.pricePerUnit).toFixed(2)}</span>
+                          <span className="font-bold">₦{(selectedService.pricePerUnit / 100).toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between items-center pb-3 border-b border-slate-700/50">
                           <span className="text-slate-400">Quantity</span>
@@ -737,7 +767,15 @@ export default function OrderPage() {
                         </div>
                         <div className="flex justify-between items-center pb-3 border-b border-slate-700/50">
                           <span className="text-slate-400">Subtotal</span>
-                          <span className="font-bold">₦{(totalCost).toFixed(2)}</span>
+                          <span className="font-bold">₦{((pricing?.baseKobo ?? 0) / 100).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between items-center pb-3 border-b border-slate-700/50">
+                          <span className="text-slate-400">Platform fee (7.5%)</span>
+                          <span className="font-bold">₦{((pricing?.platformFeeKobo ?? 0) / 100).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between items-center pb-3 border-b border-slate-700/50">
+                          <span className="text-slate-400">VAT (7.5%)</span>
+                          <span className="font-bold">₦{((pricing?.vatKobo ?? 0) / 100).toFixed(2)}</span>
                         </div>
                       </div>
 

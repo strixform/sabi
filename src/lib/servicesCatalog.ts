@@ -1851,6 +1851,67 @@ Active chat makes streams feel alive. Get 100-300 chat messages and make streams
   },
 ];
 
+// ── Central pricing (in kobo) by action type — single source of truth ──
+// Agreed model: Followers ₦50, Likes ₦30, Views ₦10, Subscribers ₦100,
+// Comments ₦50, Shares ₦40, Saves ₦30, Channel Points ₦10. (₦1 = 100 kobo)
+export const ACTION_PRICE_KOBO: Record<string, number> = {
+  // Followers / subscriber types
+  'Followers': 5000,
+  'Channel Followers': 5000,
+  'Subscribers': 10000,
+  'Subscriptions': 10000,
+  // Like types
+  'Likes': 3000,
+  'Comment Likes': 3000,
+  'Reactions': 3000,
+  'Message Reactions': 3000,
+  'Saves': 3000,
+  'Bookmarks': 3000,
+  // View types
+  'Views': 1000,
+  'Story Views': 1000,
+  'Reel Views': 1000,
+  'Post Views': 1000,
+  'Message Views': 1000,
+  'Plays': 1000,
+  'Channel Points': 1000,
+  // Comment types
+  'Comments': 5000,
+  'Replies': 5000,
+  'Chat Comments': 5000,
+  // Share types
+  'Shares': 4000,
+  'Retweets': 4000,
+  'Quote Tweets': 4000,
+  'Repins': 4000,
+};
+
+// Apply central pricing to every service (overrides legacy per-service values).
+// Any action missing from the map keeps its original price (safe fallback).
+for (const service of SERVICES_CATALOG) {
+  const price = ACTION_PRICE_KOBO[service.action];
+  if (price !== undefined) service.pricePerUnit = price;
+}
+
+// Fee model: Platform 7.5% + VAT 7.5% (= 15% total) on the base price.
+export const PLATFORM_FEE_RATE = 0.075;
+export const VAT_RATE = 0.075;
+
+export interface PricingBreakdown {
+  baseKobo: number;
+  platformFeeKobo: number;
+  vatKobo: number;
+  totalKobo: number;
+}
+
+/** Compute the full order pricing breakdown (kobo). Shared by UI + backend. */
+export function computePricing(pricePerUnitKobo: number, quantity: number): PricingBreakdown {
+  const baseKobo = pricePerUnitKobo * quantity;
+  const platformFeeKobo = Math.ceil(baseKobo * PLATFORM_FEE_RATE);
+  const vatKobo = Math.ceil(baseKobo * VAT_RATE);
+  return { baseKobo, platformFeeKobo, vatKobo, totalKobo: baseKobo + platformFeeKobo + vatKobo };
+}
+
 export function getServicesByCategory(category: string): Service[] {
   return SERVICES_CATALOG.filter(service => service.category === category);
 }
