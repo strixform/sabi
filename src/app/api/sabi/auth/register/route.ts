@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { email, password, name, businessName } = body;
+    const { email, password, name, businessName, referralCode } = body;
 
     if (!email || !password || !name) {
       return NextResponse.json(
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = await registerSabiUser(email, password, name, businessName);
+    const result = await registerSabiUser(email, password, name, businessName, referralCode);
 
     if (!result.success) {
       return NextResponse.json(

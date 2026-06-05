@@ -15,6 +15,9 @@ export interface CreateOrderInput {
   audienceLocation?: string;
   commentGender?: 'male' | 'female' | 'both';
   commentInstructions?: string | null;
+  promoCodeId?: string;
+  discountAmount?: number;
+  scheduledAt?: Date;
 }
 
 export interface OrderResponse {
@@ -25,6 +28,7 @@ export interface OrderResponse {
   basePrice?: number;
   estimatedCompletion?: string;
   gamesz360CampaignId?: string;
+  scheduled?: boolean;
   error?: string;
 }
 
@@ -86,9 +90,42 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
         audienceLocation: input.audienceLocation || null,
         commentGender: input.commentGender || null,
         commentInstructions: input.commentInstructions || null,
-        status: 'processing',
+        promoCodeId: input.promoCodeId || null,
+        discountAmount: input.discountAmount || 0,
+        scheduledAt: input.scheduledAt || null,
+        status: input.scheduledAt ? 'pending' : 'processing',
       },
     });
+
+    // Mark promo code used (fire-and-forget)
+    if (input.promoCodeId && input.discountAmount) {
+      prisma.sabiPromoCode.update({ where: { id: input.promoCodeId }, data: { usedCount: { increment: 1 } } }).catch(() => {});
+      prisma.sabiPromoUsage.create({ data: { promoId: input.promoCodeId, userId: input.userId, orderId: order.id, savedKobo: input.discountAmount } }).catch(() => {});
+    }
+
+    // Trigger referral reward on first paid order (fire-and-forget)
+    prisma.sabiReferral.findFirst({ where: { refereeId: input.userId, triggeredAt: null } }).then(async ref => {
+      if (!ref) return;
+      await prisma.sabiReferral.update({ where: { id: ref.id }, data: { triggeredAt: new Date() } });
+      // Credit referrer ₦500 (50000 kobo)
+      const [referrer, referee] = await Promise.all([
+        prisma.sabiUser.findUnique({ where: { id: ref.referrerId }, select: { email: true, name: true } }),
+        prisma.sabiUser.findUnique({ where: { id: ref.refereeId }, select: { email: true, name: true } }),
+      ]);
+      const rewardKobo = 50000;
+      await Promise.all([
+        prisma.sabiWallet.update({ where: { userId: ref.referrerId }, data: { balance: { increment: rewardKobo }, totalFunded: { increment: rewardKobo } } }),
+        prisma.sabiWallet.update({ where: { userId: ref.refereeId }, data: { balance: { increment: rewardKobo }, totalFunded: { increment: rewardKobo } } }),
+        prisma.sabiReferral.update({ where: { id: ref.id }, data: { referrerPaid: true, refereePaid: true } }),
+      ]);
+      const { sendReferralRewardEmail } = await import('./email');
+      if (referrer) sendReferralRewardEmail(referrer.email, referrer.name, 500, 'referrer');
+      if (referee) sendReferralRewardEmail(referee.email, referee.name, 500, 'referee');
+    }).catch(() => {});
+
+    if (input.scheduledAt) {
+      return { success: true, orderId: order.id, totalPrice, basePrice, platformFee, estimatedCompletion: service.estimatedDelivery, scheduled: true };
+    }
 
     const campaignResult = await createGamesz360Campaign(
       input.userId,
@@ -312,18 +349,31 @@ export async function updateSabiOrderStatus(
   completionPercentage?: number
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    await prisma.sabiOrder.update({
+    const order = await prisma.sabiOrder.update({
       where: { id: orderId },
       data: {
         status,
         completionPercentage: completionPercentage || undefined,
         completedAt: status === 'completed' ? new Date() : undefined,
       },
+      include: { user: { select: { email: true, name: true, notifyEmail: true } } },
     });
+
+    // Fire-and-forget email notifications
+    if (order.user.notifyEmail) {
+      const { sendOrderStartedEmail, sendOrderCompletedEmail, sendOrderFailedEmail } = await import('./email');
+      const svcName = order.serviceType.replace(/_/g, ' ');
+      if (status === 'executing') {
+        sendOrderStartedEmail(order.user.email, order.user.name, orderId, svcName, order.quantity);
+      } else if (status === 'completed') {
+        sendOrderCompletedEmail(order.user.email, order.user.name, orderId, svcName, order.quantity);
+      } else if (status === 'failed') {
+        sendOrderFailedEmail(order.user.email, order.user.name, orderId, svcName);
+      }
+    }
 
     return { success: true };
   } catch (error) {
-    // Error logging handled by external service
     return { success: false, error: 'Update failed' };
   }
 }

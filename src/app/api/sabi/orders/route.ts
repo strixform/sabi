@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
     const {
       serviceId, quantity, targetUrl, paymentMethod,
       audienceGender, audienceLocation, commentGender, commentInstructions,
+      promoCodeId, discountAmount, scheduledAt,
     } = body;
 
     if (!serviceId || !quantity || !targetUrl) {
@@ -54,6 +55,9 @@ export async function POST(req: NextRequest) {
       audienceLocation,
       commentGender,
       commentInstructions,
+      promoCodeId: promoCodeId || undefined,
+      discountAmount: discountAmount ? Number(discountAmount) : undefined,
+      scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
     });
 
     return NextResponse.json(result);

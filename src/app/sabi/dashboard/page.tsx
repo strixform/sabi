@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { FiCreditCard, FiTrendingUp, FiArrowUpRight, FiInbox, FiAward, FiZap, FiTarget } from 'react-icons/fi';
+import { FiCreditCard, FiTrendingUp, FiArrowUpRight, FiInbox, FiAward, FiZap, FiTarget, FiShare2, FiCopy, FiBookmark, FiSettings } from 'react-icons/fi';
 import { ModernSabiHeader } from '@/components/ModernSabiHeader';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
 import { GradientText } from '@/components/AnimatedText';
@@ -36,6 +36,9 @@ export default function DashboardPage() {
   const [tier, setTier] = useState(TIER_SYSTEM.NOVICE);
   const [progress, setProgress] = useState(0);
   const [showValues, setShowValues] = useState(true);
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [referral, setReferral] = useState<any>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -104,6 +107,10 @@ export default function DashboardPage() {
     };
 
     loadDashboard();
+
+    // Load analytics + referral in background
+    fetch('/api/sabi/analytics').then(r => r.json()).then(d => { if (d.success) setAnalytics(d); }).catch(() => {});
+    fetch('/api/sabi/referral').then(r => r.json()).then(d => { if (d.success) setReferral(d); }).catch(() => {});
   }, []);
 
   return (
@@ -473,6 +480,77 @@ export default function DashboardPage() {
             </div>
           </div>
         </motion.div>
+
+        {/* Analytics Chart + Referral + Quick Links */}
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Spending Chart */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
+            className="bg-slate-900/60 border border-slate-700/50 rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white font-bold flex items-center gap-2"><FiTrendingUp className="text-blue-400" /> Spending (8 weeks)</h3>
+              {analytics && <span className="text-xs text-slate-400">{analytics.completionRate}% completion rate</span>}
+            </div>
+            {analytics?.weeklySpend ? (() => {
+              const max = Math.max(...analytics.weeklySpend.map((w: any) => w.kobo), 1);
+              return (
+                <div className="flex items-end gap-1.5 h-28">
+                  {analytics.weeklySpend.map((w: any, i: number) => (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                      <div
+                        className="w-full rounded-t bg-gradient-to-t from-blue-600 to-purple-500 min-h-[4px] transition-all"
+                        style={{ height: `${Math.round((w.kobo / max) * 100)}%` }}
+                        title={`₦${(w.kobo / 100).toLocaleString()}`}
+                      />
+                      <span className="text-[9px] text-slate-500 rotate-45 origin-left whitespace-nowrap">{w.label}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })() : (
+              <div className="h-28 flex items-center justify-center text-slate-500 text-sm">No spend data yet</div>
+            )}
+            <div className="mt-4 flex gap-4 text-xs text-slate-400">
+              <Link href="/sabi/templates" className="flex items-center gap-1 hover:text-white transition"><FiBookmark className="w-3.5 h-3.5" /> Templates</Link>
+              <Link href="/sabi/wallet/settings" className="flex items-center gap-1 hover:text-white transition"><FiSettings className="w-3.5 h-3.5" /> Auto Top-Up</Link>
+            </div>
+          </motion.div>
+
+          {/* Referral Widget */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}
+            className="bg-slate-900/60 border border-slate-700/50 rounded-2xl p-6">
+            <h3 className="text-white font-bold flex items-center gap-2 mb-4"><FiShare2 className="text-emerald-400" /> Refer & Earn</h3>
+            <p className="text-slate-400 text-sm mb-4">Share your link. Both you and your referral get <span className="text-emerald-400 font-bold">₦500</span> when they place their first order.</p>
+            {referral ? (
+              <>
+                <div className="flex gap-2 mb-4">
+                  <input
+                    readOnly value={referral.referralLink}
+                    className="flex-1 px-3 py-2 bg-slate-800/60 border border-slate-700/50 rounded-lg text-xs text-slate-300 outline-none"
+                  />
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(referral.referralLink); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+                    className="px-3 py-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-lg text-sm font-bold hover:bg-emerald-500/30 transition"
+                  >
+                    <FiCopy className="w-4 h-4" />
+                  </button>
+                </div>
+                {copied && <p className="text-emerald-400 text-xs mb-2">Copied!</p>}
+                <div className="grid grid-cols-2 gap-3 text-center">
+                  <div className="bg-slate-800/60 rounded-xl p-3">
+                    <p className="text-2xl font-black text-white">{referral.totalReferred}</p>
+                    <p className="text-xs text-slate-400">Referred</p>
+                  </div>
+                  <div className="bg-slate-800/60 rounded-xl p-3">
+                    <p className="text-2xl font-black text-emerald-400">₦{referral.totalEarned.toLocaleString()}</p>
+                    <p className="text-xs text-slate-400">Earned</p>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-6 text-slate-500 text-sm">Loading...</div>
+            )}
+          </motion.div>
+        </div>
 
         {/* Recent Orders Section */}
         <motion.div

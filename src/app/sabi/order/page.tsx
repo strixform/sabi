@@ -383,7 +383,30 @@ export default function OrderPage() {
   };
 
   const pricing = selectedService ? computePricing(selectedService.pricePerUnit, quantity) : null;
-  const totalCost = pricing ? pricing.totalKobo / 100 : 0; // naira, fees included
+  const [promoCode, setPromoCode] = useState('');
+  const [promoResult, setPromoResult] = useState<any>(null);
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoError, setPromoError] = useState('');
+  const [scheduledAt, setScheduledAt] = useState('');
+  const discountKobo = promoResult?.savedKobo || 0;
+  const finalTotalKobo = pricing ? Math.max(0, pricing.totalKobo - discountKobo) : 0;
+  const totalCost = finalTotalKobo / 100; // naira
+
+  const applyPromo = async () => {
+    if (!promoCode.trim() || !selectedService) return;
+    setPromoLoading(true); setPromoError(''); setPromoResult(null);
+    try {
+      const res = await fetch('/api/sabi/promo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: promoCode.trim(), serviceId: selectedService.id, quantity }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setPromoError(data.error || 'Invalid code'); return; }
+      setPromoResult(data);
+    } catch { setPromoError('Could not validate code'); }
+    finally { setPromoLoading(false); }
+  };
   const platformLabel = selectedPlatform
     ? Object.entries(PLATFORMS).find(([, value]) => value === selectedPlatform)?.[0] || selectedPlatform
     : '';
@@ -465,6 +488,8 @@ export default function OrderPage() {
           ...(COMMENT_ACTIONS.includes(selectedService.action)
             ? { commentGender, commentInstructions: commentInstructions.trim() || null }
             : {}),
+          ...(promoResult ? { promoCodeId: promoResult.promoId, discountAmount: promoResult.savedKobo } : {}),
+          ...(scheduledAt ? { scheduledAt } : {}),
         }),
       });
 
@@ -1015,6 +1040,30 @@ export default function OrderPage() {
                         </div>
                       </div>
 
+                      {/* Promo code */}
+                      <div className="mb-4">
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={promoCode}
+                            onChange={e => { setPromoCode(e.target.value.toUpperCase()); setPromoResult(null); setPromoError(''); }}
+                            placeholder="PROMO CODE"
+                            className="flex-1 px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm placeholder-slate-500 focus:border-blue-500/50 outline-none"
+                          />
+                          <button
+                            onClick={applyPromo}
+                            disabled={promoLoading || !promoCode.trim()}
+                            className="px-4 py-2 bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-lg text-sm font-bold hover:bg-blue-500/30 disabled:opacity-40 transition"
+                          >
+                            {promoLoading ? '...' : 'Apply'}
+                          </button>
+                        </div>
+                        {promoError && <p className="text-red-400 text-xs mt-1">{promoError}</p>}
+                        {promoResult && (
+                          <p className="text-emerald-400 text-xs mt-1">✓ {promoResult.description || promoResult.code} — saving ₦{promoResult.savedNaira}</p>
+                        )}
+                      </div>
+
                       <motion.div
                         className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-lg mb-6"
                         initial={{ opacity: 0, y: 10 }}
@@ -1022,8 +1071,24 @@ export default function OrderPage() {
                         transition={{ delay: 0.3 }}
                       >
                         <p className="text-sm text-emerald-400 font-bold mb-2">Total Cost</p>
+                        {promoResult && (
+                          <p className="text-sm text-slate-400 line-through mb-0.5">₦{(pricing!.totalKobo / 100).toFixed(2)}</p>
+                        )}
                         <p className="text-3xl font-black text-emerald-400">₦{totalCost.toFixed(2)}</p>
                       </motion.div>
+
+                      {/* Scheduled order */}
+                      <div className="mb-4">
+                        <label className="block text-xs text-slate-400 mb-1">Schedule for later (optional)</label>
+                        <input
+                          type="datetime-local"
+                          value={scheduledAt}
+                          onChange={e => setScheduledAt(e.target.value)}
+                          min={new Date(Date.now() + 5 * 60000).toISOString().slice(0, 16)}
+                          className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:border-blue-500/50 outline-none [color-scheme:dark]"
+                        />
+                        {scheduledAt && <p className="text-blue-400 text-xs mt-1">⏰ Will start at {new Date(scheduledAt).toLocaleString()}</p>}
+                      </div>
 
                       {wallet.balance < totalCost * 100 ? (
                         <motion.div

@@ -30,7 +30,8 @@ export async function registerSabiUser(
   email: string,
   password: string,
   name: string,
-  businessName?: string
+  businessName?: string,
+  referralCode?: string
 ): Promise<{ success: boolean; error?: string; userId?: string }> {
   try {
     // Check if user exists
@@ -39,9 +40,16 @@ export async function registerSabiUser(
       return { success: false, error: 'Email already registered' };
     }
 
+    // Validate referral code
+    let referrer: { id: string } | null = null;
+    if (referralCode) {
+      referrer = await prisma.sabiUser.findUnique({ where: { referralCode }, select: { id: true } });
+    }
+
     // Hash password
     const passwordHash = await hash(password, 10);
     const verifyCode = generateVerifyCode();
+    const newReferralCode = Math.random().toString(36).slice(2, 8).toUpperCase();
 
     // Create user
     const user = await prisma.sabiUser.create({
@@ -52,13 +60,21 @@ export async function registerSabiUser(
         businessName,
         verifyCode,
         verifyCodeExpiry: new Date(Date.now() + VERIFY_CODE_DURATION),
+        referralCode: newReferralCode,
+        referredByCode: referrer ? referralCode : null,
         wallet: { create: {} },
       },
     });
 
+    // Create referral record (rewards granted on first paid order)
+    if (referrer) {
+      await prisma.sabiReferral.create({
+        data: { referrerId: referrer.id, refereeId: user.id },
+      }).catch(() => {});
+    }
+
     return { success: true, userId: user.id };
   } catch (error) {
-    // Error logging should be handled by external service (Sentry, etc)
     return { success: false, error: 'Registration failed' };
   }
 }

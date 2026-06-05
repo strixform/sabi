@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { FiArrowLeft, FiLoader, FiCheck, FiTrendingUp } from 'react-icons/fi';
+import { FiArrowLeft, FiLoader, FiCheck, FiTrendingUp, FiBookmark } from 'react-icons/fi';
 import { ModernSabiHeader } from '@/components/ModernSabiHeader';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
 import { GradientText } from '@/components/AnimatedText';
@@ -17,6 +17,29 @@ export default function OrderTrackingPage() {
   const orderId = params.id as string;
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [savedTemplate, setSavedTemplate] = useState(false);
+
+  const saveTemplate = async () => {
+    if (!order) return;
+    setSaving(true);
+    await fetch('/api/sabi/templates', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: `${order.serviceType} × ${order.quantity}`,
+        serviceId: order.serviceType,
+        quantity: order.quantity,
+        targetUrl: order.targetUrl,
+        audienceGender: order.audienceGender,
+        audienceLocation: order.audienceLocation,
+        commentGender: order.commentGender,
+        commentInstructions: order.commentInstructions,
+      }),
+    });
+    setSaving(false);
+    setSavedTemplate(true);
+  };
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -123,21 +146,24 @@ export default function OrderTrackingPage() {
               </h1>
               <p className="text-slate-400">Created {new Date(order.createdAt).toLocaleDateString()}</p>
             </div>
-            <div className="flex items-center gap-3">
-              <div className={`px-6 py-2 rounded-full border font-bold ${statusColors[order.status] || statusColors.pending}`}>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className={`px-4 py-1.5 rounded-full border font-bold text-sm ${statusColors[order.status] || statusColors.pending}`}>
                 {order.status.toUpperCase()}
               </div>
-              <Link
-                href={`/sabi/order?reorder=1&serviceId=${encodeURIComponent(order.serviceType)}&quantity=${order.quantity}&url=${encodeURIComponent(order.targetUrl)}`}
-              >
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-5 py-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold rounded-full text-sm"
-                >
+              <Link href={`/sabi/order?reorder=1&serviceId=${encodeURIComponent(order.serviceType)}&quantity=${order.quantity}&url=${encodeURIComponent(order.targetUrl)}`}>
+                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                  className="px-4 py-1.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold rounded-full text-sm">
                   ↻ Re-order
                 </motion.button>
               </Link>
+              <motion.button
+                onClick={saveTemplate} disabled={saving || savedTemplate}
+                whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                className="flex items-center gap-1.5 px-4 py-1.5 bg-slate-700/60 text-slate-300 border border-slate-600 rounded-full text-sm font-bold hover:border-slate-500 disabled:opacity-50 transition"
+              >
+                <FiBookmark className="w-3.5 h-3.5" />
+                {savedTemplate ? 'Saved!' : saving ? '...' : 'Save Template'}
+              </motion.button>
             </div>
           </div>
         </motion.div>
