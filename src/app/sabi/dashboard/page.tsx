@@ -38,32 +38,34 @@ export default function DashboardPage() {
   const [showValues, setShowValues] = useState(true);
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const loadDashboard = async () => {
       try {
-        const res = await fetch('/api/sabi/auth/me');
-        if (!res.ok) {
+        // Run auth + wallet + orders in parallel with a 8s timeout each
+        const withTimeout = (p: Promise<Response>) =>
+          Promise.race([p, new Promise<Response>((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))]);
+
+        const [authRes, walletRes, ordersRes] = await Promise.all([
+          withTimeout(fetch('/api/sabi/auth/me')),
+          withTimeout(fetch('/api/sabi/wallet')),
+          withTimeout(fetch('/api/sabi/orders')).catch(() => null),
+        ]);
+
+        if (!authRes.ok || !walletRes.ok) {
           window.location.href = '/sabi/login';
           return;
         }
-        const data = await res.json();
-        setSession(data.user);
-      } catch {
-        window.location.href = '/sabi/login';
-      }
-    };
 
-    const fetchWallet = async () => {
-      try {
-        const walletRes = await fetch('/api/sabi/wallet');
-        if (!walletRes.ok) {
-          window.location.href = '/sabi/login';
-          return;
-        }
-        const walletData = await walletRes.json();
+        const [authData, walletData, ordersData] = await Promise.all([
+          authRes.json(),
+          walletRes.json(),
+          ordersRes ? ordersRes.json().catch(() => ({ orders: [] })) : Promise.resolve({ orders: [] }),
+        ]);
 
-        const ordersRes = await fetch('/api/sabi/orders');
-        const ordersData = await ordersRes.json();
-        const activeOrders = ordersData.orders?.filter((o: any) => o.status === 'pending' || o.status === 'processing' || o.status === 'executing').length || 0;
+        setSession(authData.user);
+
+        const activeOrders = (ordersData.orders || []).filter(
+          (o: any) => ['pending', 'processing', 'executing'].includes(o.status)
+        ).length;
 
         const spent = walletData.totalSpent || 0;
 
@@ -94,14 +96,14 @@ export default function DashboardPage() {
         setTier(currentTier);
         setProgress(Math.min(progressValue, 100));
       } catch (err) {
-        console.error('Failed to fetch wallet:', err);
+        console.error('Dashboard load error:', err);
+        // Still show the page even on error — don't leave loading forever
       } finally {
         setLoading(false);
       }
     };
 
-    checkAuth();
-    fetchWallet();
+    loadDashboard();
   }, []);
 
   return (
