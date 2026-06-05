@@ -15,12 +15,22 @@ function CallbackContent() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        const transactionId = searchParams.get('transaction_id');
+        // Log all query parameters for debugging
+        const allParams = Array.from(searchParams.entries());
+        console.log('[CALLBACK] All query params:', allParams);
+
+        // Try both transaction_id and tx_ref (Flutterwave might use either)
+        let transactionId = searchParams.get('transaction_id');
+        if (!transactionId) {
+          transactionId = searchParams.get('tx_ref');
+        }
         const status = searchParams.get('status');
+
+        console.log('[CALLBACK] transactionId:', transactionId, 'status:', status);
 
         if (!transactionId) {
           setStatus('error');
-          setMessage('No transaction ID provided');
+          setMessage('No transaction ID provided. Query params: ' + allParams.map(([k, v]) => `${k}=${v}`).join(', '));
           setTimeout(() => router.push('/sabi/wallet'), 3000);
           return;
         }
