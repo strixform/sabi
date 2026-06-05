@@ -1,11 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { AnimatedBackground } from '@/components/AnimatedBackground';
-import { AnimateInText } from '@/components/AnimateInText';
-import { InteractiveCard } from '@/components/InteractiveCard';
+import { FiUser, FiMail, FiLock, FiArrowRight, FiEye, FiEyeOff, FiCheck } from 'react-icons/fi';
 import { LogoImage } from '@/components/LogoImage';
 
 export default function RegisterPage() {
@@ -13,279 +11,193 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [referralCode, setReferralCode] = useState('');
 
-  const handleEmailRegister = async (e: React.FormEvent) => {
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const ref = sp.get('ref');
+    if (ref) setReferralCode(ref);
+  }, []);
+
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters');
-      return;
-    }
-
+    if (password !== confirmPassword) { setError('Passwords do not match'); return; }
+    if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
     setLoading(true);
-
     try {
       const res = await fetch('/api/sabi/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, ...(referralCode ? { referralCode } : {}) }),
       });
-
       const data = await res.json();
-
-      if (data.success) {
-        setSuccess('Account created! Redirecting to login...');
-        setTimeout(() => {
-          window.location.href = '/sabi/login';
-        }, 2000);
-      } else {
-        setError(data.error || 'Registration failed');
-      }
-    } catch (err) {
-      setError('An error occurred during registration');
-    } finally {
-      setLoading(false);
-    }
+      if (data.success) { setSuccess(true); setTimeout(() => { window.location.href = '/sabi/dashboard'; }, 1500); }
+      else setError(data.error || 'Registration failed');
+    } catch { setError('Network error. Please try again.'); }
+    finally { setLoading(false); }
   };
 
+  const handleGoogle = () => {
+    const params = new URLSearchParams({
+      client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
+      redirect_uri: `${window.location.origin}/api/sabi/auth/google/callback`,
+      response_type: 'code', scope: 'openid email profile', state: 'register',
+    });
+    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+  };
+
+  const pwStrength = password.length === 0 ? 0 : password.length < 8 ? 1 : password.length < 12 ? 2 : 3;
+  const strengthColor = ['', 'bg-red-500', 'bg-yellow-500', 'bg-emerald-500'][pwStrength];
+  const strengthLabel = ['', 'Weak', 'Fair', 'Strong'][pwStrength];
+
+  if (success) return (
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+        className="text-center p-12">
+        <div className="w-20 h-20 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center mx-auto mb-6">
+          <FiCheck className="w-10 h-10 text-emerald-400" />
+        </div>
+        <h2 className="text-2xl font-black text-white mb-2">Account Created!</h2>
+        <p className="text-slate-400">Taking you to your dashboard...</p>
+      </motion.div>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center">
-      <AnimatedBackground />
+    <div className="min-h-screen flex bg-slate-950">
+      {/* Left branding panel */}
+      <div className="hidden lg:flex lg:w-5/12 relative overflow-hidden bg-gradient-to-br from-purple-700 via-blue-700 to-cyan-600 flex-col justify-between p-12">
+        <div className="absolute inset-0">
+          <div className="absolute top-1/4 left-0 w-80 h-80 bg-white/10 rounded-full blur-3xl -translate-x-1/2" />
+          <div className="absolute bottom-1/4 right-0 w-80 h-80 bg-white/10 rounded-full blur-3xl translate-x-1/2" />
+        </div>
+        <div className="relative z-10">
+          <LogoImage size="sm" className="w-12 h-12 mb-12" />
+          <h1 className="text-3xl font-black text-white leading-tight mb-4">
+            Start growing<br />your audience<br /><span className="text-yellow-300">today.</span>
+          </h1>
+          <p className="text-white/70 max-w-xs">
+            Join thousands of Nigerian creators and businesses who trust Sabi for real social engagement.
+          </p>
+        </div>
+        <div className="relative z-10 space-y-3">
+          {['100% real Nigerian users', 'Orders start in minutes', 'Secure wallet payments', '₦500 referral bonus'].map(t => (
+            <div key={t} className="flex items-center gap-3">
+              <div className="w-5 h-5 rounded-full bg-emerald-400/30 border border-emerald-400/50 flex items-center justify-center shrink-0">
+                <FiCheck className="w-3 h-3 text-emerald-400" />
+              </div>
+              <span className="text-white/80 text-sm">{t}</span>
+            </div>
+          ))}
+        </div>
+      </div>
 
-      <div className="relative z-10 w-full max-w-md px-4">
-        <motion.div
-          initial={{ opacity: 0, y: -30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-8"
-        >
-          <motion.div
-            className="flex items-center justify-center mb-6"
-            whileHover={{ scale: 1.05 }}
-          >
-            <LogoImage size="lg" className="w-32 h-32" />
-          </motion.div>
-          <p className="text-slate-400 text-sm">
-            <AnimateInText type="fade" delay={0.2}>
-              Join thousands getting real engagement
-            </AnimateInText>
+      {/* Right form panel */}
+      <div className="flex-1 flex items-center justify-center px-6 py-12 overflow-y-auto">
+        <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
+          className="w-full max-w-md">
+          <div className="lg:hidden flex justify-center mb-8">
+            <LogoImage size="md" className="w-16 h-16" />
+          </div>
+
+          <h2 className="text-3xl font-black text-white mb-1">Create account</h2>
+          <p className="text-slate-400 mb-6">
+            {referralCode ? <span className="text-emerald-400 font-semibold">🎁 Referral bonus applied! You'll get ₦500 on your first order.</span> : 'Free to join. Start in seconds.'}
+          </p>
+
+          <button type="button" onClick={handleGoogle}
+            className="w-full flex items-center justify-center gap-3 px-6 py-3.5 bg-white text-slate-800 font-bold rounded-xl hover:bg-slate-50 transition mb-6 shadow-lg">
+            <svg width="20" height="20" viewBox="0 0 24 24">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A11.96 11.96 0 0 0 0 12c0 1.94.46 3.77 1.28 5.4l3.56-2.77.01-.54z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+            Sign up with Google
+          </button>
+
+          <div className="flex items-center gap-3 mb-6">
+            <div className="flex-1 h-px bg-slate-800" />
+            <span className="text-xs text-slate-500 uppercase tracking-widest">or</span>
+            <div className="flex-1 h-px bg-slate-800" />
+          </div>
+
+          <form onSubmit={handleRegister} className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-300 mb-1.5">Full Name</label>
+              <div className="relative">
+                <FiUser className="absolute left-4 top-3.5 text-slate-500 w-4 h-4" />
+                <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Your name" required
+                  className="w-full pl-11 pr-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:border-purple-500/60 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition" />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-300 mb-1.5">Email</label>
+              <div className="relative">
+                <FiMail className="absolute left-4 top-3.5 text-slate-500 w-4 h-4" />
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required
+                  className="w-full pl-11 pr-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:border-purple-500/60 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition" />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-300 mb-1.5">Password</label>
+              <div className="relative">
+                <FiLock className="absolute left-4 top-3.5 text-slate-500 w-4 h-4" />
+                <input type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 8 characters" required
+                  className="w-full pl-11 pr-12 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:border-purple-500/60 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition" />
+                <button type="button" onClick={() => setShowPw(p => !p)} className="absolute right-4 top-3.5 text-slate-500 hover:text-slate-300 transition">
+                  {showPw ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
+                </button>
+              </div>
+              {password && (
+                <div className="mt-2 flex items-center gap-2">
+                  <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full transition-all ${strengthColor}`} style={{ width: `${(pwStrength / 3) * 100}%` }} />
+                  </div>
+                  <span className="text-xs text-slate-400">{strengthLabel}</span>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-300 mb-1.5">Confirm Password</label>
+              <div className="relative">
+                <FiLock className="absolute left-4 top-3.5 text-slate-500 w-4 h-4" />
+                <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Repeat password" required
+                  className={`w-full pl-11 pr-4 py-3 bg-slate-900 border rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition ${confirmPassword && confirmPassword !== password ? 'border-red-500/60 focus:ring-red-500/20' : 'border-slate-700 focus:border-purple-500/60 focus:ring-purple-500/20'}`} />
+              </div>
+            </div>
+
+            {error && (
+              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
+                {error}
+              </motion.p>
+            )}
+
+            <button type="submit" disabled={loading}
+              className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white font-bold rounded-xl transition disabled:opacity-50 shadow-lg shadow-purple-500/25 mt-2">
+              {loading ? 'Creating account...' : <><span>Create Free Account</span><FiArrowRight className="w-4 h-4" /></>}
+            </button>
+          </form>
+
+          <p className="text-center text-slate-400 text-sm mt-6">
+            Already have an account?{' '}
+            <Link href="/sabi/login" className="text-blue-400 hover:text-blue-300 font-bold transition">Sign in</Link>
+          </p>
+          <p className="text-center text-slate-500 text-xs mt-4">
+            By signing up you agree to our{' '}
+            <Link href="#" className="text-slate-400 hover:text-white transition">Terms</Link> and{' '}
+            <Link href="#" className="text-slate-400 hover:text-white transition">Privacy Policy</Link>.
           </p>
         </motion.div>
-
-        <InteractiveCard glowColor="purple">
-          <div className="p-8 space-y-6">
-            {/* Google Sign In Button */}
-            <motion.button
-              type="button"
-              onClick={() => {
-                const params = new URLSearchParams({
-                  client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "685195293928-3aqb2gaq85a92ctc145rgnddk2j7jdr6.apps.googleusercontent.com",
-                  redirect_uri: `${typeof window !== 'undefined' ? window.location.origin : 'https://sability.io'}/api/sabi/auth/google/callback`,
-                  response_type: 'code',
-                  scope: 'openid email profile',
-                  state: 'register',
-                });
-                window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-              }}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="w-full px-6 py-3 bg-white text-gray-800 font-bold rounded-lg hover:bg-gray-100 transition flex items-center justify-center gap-3"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A11.96 11.96 0 0 0 0 12c0 1.94.46 3.77 1.28 5.4l3.56-2.77.01-.54z" fill="#FBBC05"/>
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-              </svg>
-              Sign up with Google
-            </motion.button>
-
-            {/* Divider */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.35 }}
-              className="flex items-center gap-3"
-            >
-              <div className="flex-1 h-px bg-slate-700/50"></div>
-              <span className="text-xs text-slate-500 uppercase tracking-wide">or</span>
-              <div className="flex-1 h-px bg-slate-700/50"></div>
-            </motion.div>
-
-            {/* Email/Password Form */}
-          <motion.form
-            onSubmit={handleEmailRegister}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="space-y-5"
-          >
-            {/* Name Input */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="space-y-2"
-            >
-              <label className="block text-sm font-semibold text-slate-300">
-                <AnimateInText type="fade" delay={0.5}>
-                  Full Name
-                </AnimateInText>
-              </label>
-              <motion.input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="John Doe"
-                required
-                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-lg focus:border-purple-500/50 focus:outline-none text-white focus:ring-2 focus:ring-purple-500/20 transition"
-                whileFocus={{ scale: 1.02 }}
-              />
-            </motion.div>
-
-            {/* Email Input */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.45 }}
-              className="space-y-2"
-            >
-              <label className="block text-sm font-semibold text-slate-300">
-                <AnimateInText type="fade" delay={0.55}>
-                  Email Address
-                </AnimateInText>
-              </label>
-              <motion.input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-lg focus:border-purple-500/50 focus:outline-none text-white focus:ring-2 focus:ring-purple-500/20 transition"
-                whileFocus={{ scale: 1.02 }}
-              />
-            </motion.div>
-
-            {/* Password Input */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="space-y-2"
-            >
-              <label className="block text-sm font-semibold text-slate-300">
-                <AnimateInText type="fade" delay={0.6}>
-                  Password
-                </AnimateInText>
-              </label>
-              <motion.input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-lg focus:border-purple-500/50 focus:outline-none text-white focus:ring-2 focus:ring-purple-500/20 transition"
-                whileFocus={{ scale: 1.02 }}
-              />
-              <p className="text-xs text-slate-500">Min 8 characters</p>
-            </motion.div>
-
-            {/* Confirm Password Input */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.55 }}
-              className="space-y-2"
-            >
-              <label className="block text-sm font-semibold text-slate-300">
-                <AnimateInText type="fade" delay={0.65}>
-                  Confirm Password
-                </AnimateInText>
-              </label>
-              <motion.input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-lg focus:border-purple-500/50 focus:outline-none text-white focus:ring-2 focus:ring-purple-500/20 transition"
-                whileFocus={{ scale: 1.02 }}
-              />
-            </motion.div>
-
-            {/* Error Message */}
-            {error && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm"
-              >
-                <AnimateInText type="fade" delay={0}>
-                  {error}
-                </AnimateInText>
-              </motion.div>
-            )}
-
-            {/* Success Message */}
-            {success && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg text-green-400 text-sm"
-              >
-                <AnimateInText type="fade" delay={0}>
-                  {success}
-                </AnimateInText>
-              </motion.div>
-            )}
-
-            {/* Sign Up Button */}
-            <motion.button
-              type="submit"
-              disabled={loading}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <AnimateInText type="fade" delay={0.7}>
-                {loading ? 'Creating Account...' : 'Create Account'}
-              </AnimateInText>
-            </motion.button>
-
-          </motion.form>
-          </div>
-        </InteractiveCard>
-
-        {/* Sign In Link */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.9 }}
-          className="text-center text-slate-400 text-sm mt-6"
-        >
-          <AnimateInText type="fade" delay={0.95}>
-            Already have an account?{' '}
-          </AnimateInText>
-          <Link href="/sabi/login" className="text-purple-400 hover:text-purple-300 font-semibold transition">
-            <AnimateInText type="fade" delay={1}>
-              Sign in
-            </AnimateInText>
-          </Link>
-        </motion.p>
       </div>
     </div>
   );

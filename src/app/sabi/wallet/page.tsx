@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FiArrowLeft, FiLoader, FiCheck, FiCreditCard, FiTrendingUp, FiClock } from 'react-icons/fi';
+import { FiArrowLeft, FiLoader, FiCreditCard, FiTrendingUp, FiClock, FiEye, FiEyeOff, FiSettings, FiPlus } from 'react-icons/fi';
 import { GradientText } from '@/components/AnimatedText';
 import { InteractiveCard } from '@/components/InteractiveCard';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
@@ -20,6 +20,9 @@ export default function WalletPage() {
   const [session, setSession] = useState<any>(null);
   const [showBalance, setShowBalance] = useState(true);
   const [fundLoading, setFundLoading] = useState(false);
+  const [fundAmount, setFundAmount] = useState('');
+  const [showFundPanel, setShowFundPanel] = useState(false);
+  const QUICK_AMOUNTS = [1000, 2000, 5000, 10000, 20000, 50000];
 
   useEffect(() => {
     const checkSession = async () => {
@@ -83,245 +86,139 @@ export default function WalletPage() {
           </h1>
           <p className="text-slate-400 text-lg">Manage your funds and track transactions</p>
         </motion.div>
-        {/* Balance Card */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <InteractiveCard glowColor="emerald">
-            <div className="p-8">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold flex items-center gap-2">
-                  <FiCreditCard className="w-6 h-6" />
-                  Wallet Balance
-                </h3>
-                <div className="flex items-center gap-4">
-                  <motion.div
-                    className="text-4xl font-black text-emerald-400"
-                    initial={{ scale: 0.8 }}
-                    animate={{ scale: 1 }}
-                  >
+        {/* Balance Hero Card */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+          <div className="rounded-2xl bg-gradient-to-br from-emerald-600/20 via-slate-900 to-blue-600/20 border border-emerald-500/20 p-8">
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <p className="text-slate-400 text-sm font-medium mb-1">Available Balance</p>
+                <div className="flex items-center gap-3">
+                  <p className="text-5xl font-black text-white">
                     {showBalance ? `₦${(wallet.balance / 100).toLocaleString()}` : '••••••'}
-                  </motion.div>
-                  <motion.button
-                    onClick={() => {
-                      setShowBalance(!showBalance);
-                      console.log('Balance visibility toggled to:', !showBalance);
-                    }}
-                    className="px-4 py-2 bg-slate-600 hover:bg-slate-500 rounded-lg transition text-base font-bold border border-slate-500"
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                    title={showBalance ? 'Click to hide balance' : 'Click to show balance'}
-                  >
-                    {showBalance ? '👁️ Hide' : '🔒 Show'}
-                  </motion.button>
+                  </p>
+                  <button onClick={() => setShowBalance(p => !p)}
+                    className="p-2 text-slate-400 hover:text-white transition rounded-lg hover:bg-slate-700/50">
+                    {showBalance ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
+                  </button>
                 </div>
               </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <motion.div
-                  className="p-4 bg-slate-800/50 rounded-lg"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                >
-                  <p className="text-xs text-slate-400 mb-1">Total Funded</p>
-                  <p className="text-lg font-bold">
-                    {showBalance ? `₦${(wallet.totalFunded / 100).toLocaleString()}` : '••••••'}
-                  </p>
-                </motion.div>
-
-                <motion.div
-                  className="p-4 bg-slate-800/50 rounded-lg"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  <p className="text-xs text-slate-400 mb-1">Total Spent</p>
-                  <p className="text-lg font-bold text-orange-400">
-                    {showBalance ? `₦${(wallet.totalSpent / 100).toLocaleString()}` : '••••••'}
-                  </p>
-                </motion.div>
-
-                <motion.div
-                  className="p-4 bg-slate-800/50 rounded-lg"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                >
-                  <p className="text-xs text-slate-400 mb-1">Total Refunded</p>
-                  <p className="text-lg font-bold text-blue-400">
-                    {showBalance ? `₦${(wallet.totalRefunded / 100).toLocaleString()}` : '••••••'}
-                  </p>
-                </motion.div>
-              </div>
-
-              <motion.button
-                onClick={async () => {
-                  const amountStr = prompt('Enter amount to fund (₦):', '1000');
-                  if (!amountStr) return;
-
-                  const amount = parseInt(amountStr);
-                  if (isNaN(amount) || amount < 500 || amount > 10000000) {
-                    alert('Amount must be between ₦500 and ₦10,000,000');
-                    return;
-                  }
-
-                  setFundLoading(true);
-                  try {
-                    const res = await fetch('/api/sabi/wallet/fund', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ amount }),
-                      credentials: 'include',
-                    });
-                    const data = await res.json();
-                    if (data.paymentLink) {
-                      window.location.href = data.paymentLink;
-                    } else {
-                      alert('Failed to initialize payment: ' + (data.error || 'Unknown error'));
-                    }
-                  } catch (err) {
-                    console.error('Fund error:', err);
-                    alert('Failed to initiate payment. Please try again.');
-                  } finally {
-                    setFundLoading(false);
-                  }
-                }}
-                disabled={fundLoading}
-                className="w-full mt-6 px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 disabled:from-slate-600 disabled:to-slate-600 text-white font-bold rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                whileHover={{ scale: fundLoading ? 1 : 1.05 }}
-                whileTap={{ scale: fundLoading ? 1 : 0.95 }}
-              >
-                {fundLoading ? (
-                  <>
-                    <FiLoader className="w-5 h-5 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <FiCreditCard className="w-5 h-5" />
-                    Fund Wallet (Flutterwave)
-                  </>
-                )}
-              </motion.button>
+              <Link href="/sabi/wallet/settings"
+                className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition px-3 py-2 rounded-lg hover:bg-slate-700/50">
+                <FiSettings className="w-3.5 h-3.5" /> Auto Top-Up
+              </Link>
             </div>
-          </InteractiveCard>
+
+            {/* Stats row */}
+            <div className="grid grid-cols-3 gap-3 mb-6">
+              {[
+                { label: 'Total Funded', value: wallet.totalFunded, color: 'text-emerald-400' },
+                { label: 'Total Spent', value: wallet.totalSpent, color: 'text-orange-400' },
+                { label: 'Refunded', value: wallet.totalRefunded, color: 'text-blue-400' },
+              ].map(s => (
+                <div key={s.label} className="bg-slate-800/60 rounded-xl p-4">
+                  <p className="text-xs text-slate-500 mb-1">{s.label}</p>
+                  <p className={`text-base font-bold ${s.color}`}>
+                    {showBalance ? `₦${(s.value / 100).toLocaleString()}` : '••••'}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {/* Fund button */}
+            <button onClick={() => setShowFundPanel(p => !p)}
+              className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold rounded-xl transition shadow-lg shadow-emerald-500/20">
+              <FiPlus className="w-5 h-5" /> Fund Wallet
+            </button>
+
+            {/* Inline fund panel */}
+            {showFundPanel && (
+              <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+                className="mt-4 p-4 bg-slate-800/80 rounded-xl border border-slate-700/50 space-y-3">
+                <p className="text-sm font-semibold text-slate-300">Select or enter amount</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {QUICK_AMOUNTS.map(a => (
+                    <button key={a} onClick={() => setFundAmount(a.toString())}
+                      className={`py-2 rounded-lg text-sm font-bold transition ${fundAmount === a.toString() ? 'bg-emerald-500 text-white' : 'bg-slate-700/60 text-slate-300 hover:bg-slate-600'}`}>
+                      ₦{a.toLocaleString()}
+                    </button>
+                  ))}
+                </div>
+                <input type="number" value={fundAmount} onChange={e => setFundAmount(e.target.value)}
+                  placeholder="Custom amount (₦)"
+                  className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:border-emerald-500/60 outline-none" />
+                <button
+                  disabled={fundLoading || !fundAmount || Number(fundAmount) < 500}
+                  onClick={async () => {
+                    const amount = parseInt(fundAmount);
+                    if (isNaN(amount) || amount < 500) return;
+                    setFundLoading(true);
+                    try {
+                      const res = await fetch('/api/sabi/wallet/fund', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ amount }), credentials: 'include',
+                      });
+                      const data = await res.json();
+                      if (data.paymentLink) window.location.href = data.paymentLink;
+                    } finally { setFundLoading(false); }
+                  }}
+                  className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg transition disabled:opacity-40 flex items-center justify-center gap-2">
+                  {fundLoading ? <><FiLoader className="w-4 h-4 animate-spin" /> Processing...</> : <>Pay via Flutterwave →</>}
+                </button>
+                <p className="text-xs text-slate-500 text-center">Minimum ₦500 · Secure payment via Flutterwave</p>
+              </motion.div>
+            )}
+          </div>
         </motion.div>
-
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <InteractiveCard glowColor="blue">
-              <div className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-400 mb-1">Available Balance</p>
-                    <p className="text-2xl font-bold">
-                      {showBalance ? `₦${(wallet.balance / 100).toLocaleString()}` : '••••••'}
-                    </p>
-                  </div>
-                  <div className="text-3xl">💰</div>
-                </div>
-              </div>
-            </InteractiveCard>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <InteractiveCard glowColor="orange">
-              <div className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-400 mb-1">Active Orders</p>
-                    <p className="text-2xl font-bold">{transactions.filter(t => t.type === 'spend').length}</p>
-                  </div>
-                  <div className="text-3xl">📊</div>
-                </div>
-              </div>
-            </InteractiveCard>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <InteractiveCard glowColor="purple">
-              <div className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-400 mb-1">Total Transactions</p>
-                    <p className="text-2xl font-bold">{transactions.length}</p>
-                  </div>
-                  <div className="text-3xl">📈</div>
-                </div>
-              </div>
-            </InteractiveCard>
-          </motion.div>
-        </div>
 
         {/* Transaction History */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <InteractiveCard glowColor="blue">
-            <div className="p-8">
-              <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                <FiClock className="w-6 h-6" />
-                Transaction History
-              </h3>
-
-              {transactions.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-slate-400 text-lg">No transactions yet</p>
-                  <Link href="/sabi/order">
-                    <motion.button
-                      className="mt-4 px-6 py-2 bg-blue-500/20 border border-blue-500/50 text-blue-400 rounded-lg hover:bg-blue-500/30 transition"
-                      whileHover={{ scale: 1.05 }}
-                    >
-                      Place Your First Order
-                    </motion.button>
-                  </Link>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {transactions.map((tx, idx) => (
-                    <motion.div
-                      key={idx}
-                      className="p-4 bg-slate-800/50 rounded-lg border border-slate-700/50 flex items-center justify-between"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.05 }}
-                    >
-                      <div className="flex items-center gap-4 flex-1">
-                        <div className="text-2xl">
-                          {tx.type === 'fund' && '💵'}
-                          {tx.type === 'spend' && '🛒'}
-                          {tx.type === 'refund' && '↩️'}
-                          {tx.type === 'bonus' && '🎁'}
-                        </div>
-                        <div>
-                          <p className="font-semibold capitalize">{tx.type}</p>
-                          <p className="text-xs text-slate-400">{tx.description || 'Transaction'}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className={`font-bold ${tx.type === 'spend' ? 'text-orange-400' : 'text-emerald-400'}`}>
-                          {tx.type === 'spend' ? '-' : '+'}₦{(Math.abs(tx.amount) / 100).toLocaleString()}
-                        </p>
-                        <p className="text-xs text-slate-400">
-                          {new Date(tx.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
+          <div className="bg-slate-900/60 border border-slate-700/50 rounded-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-700/50 flex items-center gap-2">
+              <FiClock className="w-4 h-4 text-slate-400" />
+              <h3 className="text-white font-bold">Transaction History</h3>
+              <span className="ml-auto text-xs text-slate-500">{transactions.length} transactions</span>
             </div>
-          </InteractiveCard>
+
+            {transactions.length === 0 ? (
+              <div className="text-center py-16 px-6">
+                <div className="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center mx-auto mb-4">
+                  <FiCreditCard className="w-7 h-7 text-slate-600" />
+                </div>
+                <p className="text-slate-400 mb-1">No transactions yet</p>
+                <p className="text-slate-500 text-sm mb-5">Fund your wallet and place your first order</p>
+                <Link href="/sabi/order"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl text-sm transition">
+                  <FiTrendingUp className="w-4 h-4" /> Place First Order
+                </Link>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-800">
+                {transactions.map((tx, idx) => {
+                  const isDebit = tx.type === 'spend';
+                  const icons: Record<string, string> = { fund: '💵', spend: '🛒', refund: '↩️', bonus: '🎁', refund_bonus: '🎁' };
+                  return (
+                    <div key={idx} className="px-6 py-4 flex items-center gap-4 hover:bg-slate-800/30 transition">
+                      <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-lg shrink-0">
+                        {icons[tx.type] || '💳'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white font-semibold text-sm capitalize">{tx.type.replace(/_/g, ' ')}</p>
+                        <p className="text-slate-500 text-xs truncate">{tx.description || 'Transaction'}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className={`font-bold text-sm ${isDebit ? 'text-orange-400' : 'text-emerald-400'}`}>
+                          {isDebit ? '−' : '+'}₦{(Math.abs(tx.amount) / 100).toLocaleString()}
+                        </p>
+                        <p className="text-slate-500 text-xs">
+                          {new Date(tx.createdAt).toLocaleDateString('en-NG', { month: 'short', day: 'numeric' })}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </motion.div>
 
         {/* Navigation */}

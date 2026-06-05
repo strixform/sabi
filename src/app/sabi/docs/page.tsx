@@ -91,7 +91,7 @@ const CODE_EXAMPLES = [
     code: `const apiKey = 'sabi_[keyId]_[token]';
 
 // Create an order
-const response = await fetch('https://theowletonline.com/api/sabi/orders', {
+const response = await fetch('https://sability.io/api/sabi/orders', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -122,7 +122,7 @@ headers = {
 
 # Create an order
 response = requests.post(
-    'https://theowletonline.com/api/sabi/orders',
+    'https://sability.io/api/sabi/orders',
     headers=headers,
     json={
         'serviceId': 'instagram_followers',
