@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from 'redis';
 
 // Lazy-initialised Redis client for rate limiting
-let _redisClient: ReturnType<typeof createClient> | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _redisClient: any = null;
 
 async function getRateLimitRedis() {
   const url = process.env.REDIS_URL;
