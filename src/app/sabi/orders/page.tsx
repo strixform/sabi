@@ -187,66 +187,65 @@ export default function OrdersPage() {
                     transition={{ delay: i * 0.03 }}
                     className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-5 hover:border-white/[0.08]/70 transition"
                   >
-                    <div className="flex items-start gap-4">
-                      {/* Status indicator */}
-                      <div className={`mt-0.5 flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-bold shrink-0 ${STATUS_STYLE[order.status] || STATUS_STYLE.pending}`}>
-                        {STATUS_ICON[order.status]}
-                        {order.status}
+                    <div className="flex flex-col gap-3">
+                      {/* Top row: status + service name + order id */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-bold shrink-0 ${STATUS_STYLE[order.status] || STATUS_STYLE.pending}`}>
+                          {STATUS_ICON[order.status]}
+                          {order.status}
+                        </div>
+                        <p className="text-white font-bold truncate flex-1">{svc?.name || order.serviceType.replace(/_/g, ' ')}</p>
+                        <span className="text-slate-500 text-xs shrink-0">#{order.id.slice(-6)}</span>
                       </div>
 
-                      {/* Order info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="text-white font-bold truncate">{svc?.name || order.serviceType.replace(/_/g, ' ')}</p>
-                          <span className="text-slate-500 text-xs shrink-0">#{order.id.slice(-6)}</span>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400">
-                          <span>{order.quantity.toLocaleString()} units</span>
-                          <span>₦{((order.totalPrice + order.platformFee) / 100).toLocaleString()}</span>
-                          {order.audienceLocation && <span>📍 {order.audienceLocation}</span>}
-                          <span>{new Date(order.createdAt).toLocaleDateString('en-NG', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                        </div>
+                      {/* Meta row */}
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
+                        <span className="font-medium text-white/70">{order.quantity.toLocaleString()} units</span>
+                        <span className="text-emerald-400 font-medium">₦{((order.totalPrice + order.platformFee) / 100).toLocaleString()}</span>
+                        {order.audienceLocation && <span>📍 {order.audienceLocation}</span>}
+                        <span>{new Date(order.createdAt).toLocaleDateString('en-NG', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                      </div>
 
-                        {/* Progress bar for active orders */}
-                        {['processing','executing'].includes(order.status) && (
-                          <div className="mt-2">
-                            <div className="flex justify-between text-xs text-slate-500 mb-1">
-                              <span>Progress</span>
-                              <span>{order.completionPercentage || 0}%</span>
-                            </div>
-                            <div className="h-1.5 bg-[#0F1420] rounded-full overflow-hidden">
-                              <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all"
-                                style={{ width: `${order.completionPercentage || 0}%` }} />
-                            </div>
+                      {/* Target URL */}
+                      <p className="text-slate-500 text-xs">
+                        <a href={order.targetUrl} target="_blank" rel="noopener noreferrer"
+                          className="hover:text-slate-300 transition flex items-center gap-1 w-full min-w-0">
+                          <FiExternalLink className="w-3 h-3 shrink-0" />
+                          <span className="truncate">{order.targetUrl}</span>
+                        </a>
+                      </p>
+
+                      {/* Progress bar for active orders */}
+                      {['processing','executing'].includes(order.status) && (
+                        <div>
+                          <div className="flex justify-between text-xs text-slate-500 mb-1">
+                            <span>Progress</span>
+                            <span>{order.completionPercentage || 0}%</span>
                           </div>
-                        )}
+                          <div className="h-1.5 bg-[#0F1420] rounded-full overflow-hidden">
+                            <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all"
+                              style={{ width: `${order.completionPercentage || 0}%` }} />
+                          </div>
+                        </div>
+                      )}
 
-                        <p className="text-slate-500 text-xs mt-1 truncate">
-                          <a href={order.targetUrl} target="_blank" rel="noopener noreferrer"
-                            className="hover:text-slate-300 transition flex items-center gap-1 w-fit">
-                            <FiExternalLink className="w-3 h-3 shrink-0" />
-                            <span className="truncate">{order.targetUrl}</span>
-                          </a>
-                        </p>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex items-center gap-2 shrink-0">
+                      {/* Actions row — full width on mobile */}
+                      <div className="flex items-center gap-2 pt-1 border-t border-white/[0.04]">
                         <button
                           onClick={() => saveTemplate(order)}
                           disabled={savingTemplate === order.id || isSaved}
                           title={isSaved ? 'Saved as template' : 'Save as template'}
-                          className={`p-2 rounded-lg transition ${isSaved ? 'text-yellow-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-700/50'} disabled:opacity-40`}>
+                          className={`p-1.5 rounded-lg transition ${isSaved ? 'text-yellow-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-700/50'} disabled:opacity-40`}>
                           <FiBookmark className={`w-4 h-4 ${isSaved ? 'fill-yellow-400' : ''}`} />
                         </button>
                         <Link
                           href={`/sabi/order?reorder=1&serviceId=${encodeURIComponent(order.serviceType)}&quantity=${order.quantity}&url=${encodeURIComponent(order.targetUrl)}`}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-bold hover:bg-emerald-500/25 transition">
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-bold hover:bg-emerald-500/25 transition flex-1 justify-center sm:flex-none">
                           <FiRepeat className="w-3.5 h-3.5" /> Re-order
                         </Link>
                         <Link
                           href={`/sabi/orders/${order.id}`}
-                          className="px-3 py-1.5 bg-slate-700/60 text-slate-300 rounded-lg text-xs font-bold hover:bg-slate-600 transition">
+                          className="px-3 py-1.5 bg-slate-700/60 text-slate-300 rounded-lg text-xs font-bold hover:bg-slate-600 transition flex-1 text-center sm:flex-none">
                           View
                         </Link>
                       </div>
