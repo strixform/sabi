@@ -207,7 +207,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-6 h-[60px] flex items-center justify-between">
           <Link href="/" className="flex items-center group">
             <motion.div whileHover={{ scale: 1.06 }} transition={{ duration: 0.3 }}>
-              <LogoImage className="h-12 w-auto" />
+              <LogoImage className="h-14 w-auto" />
             </motion.div>
           </Link>
 
@@ -585,7 +585,7 @@ export default function Home() {
       <footer className="relative z-10 border-t border-white/[0.05] py-10 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <LogoImage className="h-8 w-auto opacity-60" />
+            <LogoImage className="h-10 w-auto opacity-60" />
             <span className="w-px h-3 bg-white/10" />
             <span className="text-white/20 text-xs font-mono tracking-wide">Real Nigerian engagement</span>
           </div>
