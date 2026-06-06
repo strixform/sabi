@@ -9,35 +9,24 @@ interface LogoImageProps {
   variant?: 'primary' | 'secondary';
 }
 
-/**
- * LogoImage component that displays Sabi logo as an image.
- *
- * Supports two variants:
- * - primary: /sabi-logo.png (main logo)
- * - secondary: /sabi-logo-secondary.png (alternative logo)
- *
- * Falls back to SVG component if image fails to load.
- *
- * Expected image locations in public/:
- * - /sabi-logo.png (256x256, transparent background)
- * - /sabi-logo-secondary.png (256x256, transparent background)
- */
 export const LogoImage: React.FC<LogoImageProps> = ({
   size = 'md',
   className = '',
   variant = 'primary'
 }) => {
-  // If className has explicit sizing, it takes full control
-  // Otherwise fall back to the size prop map
-  const hasSizeClass = /\bw-\d+/.test(className);
-  const sizeMap = {
-    sm: 'w-8 h-8',
-    md: 'w-10 h-10 md:w-12 md:h-12',
-    lg: 'w-16 h-16',
-  };
-  const sizeClass = hasSizeClass ? '' : sizeMap[size] || 'w-12 h-12';
+  // Detect any explicit size class — w-*, h-*, or auto/full variants
+  // so caller's className fully controls sizing with no conflicts
+  const hasSizeClass = /\b[wh]-(?:\d+|auto|full|screen|fit|px)\b/.test(className);
 
-  const cacheVersion = '?v=2024060502';
+  const sizeMap = {
+    sm: 'h-8 w-auto',
+    md: 'h-10 w-auto',
+    lg: 'h-14 w-auto',
+  };
+  const sizeClass = hasSizeClass ? '' : (sizeMap[size] || 'h-10 w-auto');
+
+  // Bust cache so transparent logos are fetched fresh
+  const cacheVersion = '?v=transparent1';
   const logoPath = (variant === 'secondary' ? '/sabi-logo-secondary.png' : '/sabi-logo.png') + cacheVersion;
 
   const [imageError, setImageError] = React.useState(false);
@@ -46,15 +35,13 @@ export const LogoImage: React.FC<LogoImageProps> = ({
     return <SabiLogo size={size} className={className} />;
   }
 
-  // Render img directly — no wrapper div with background.
-  // The PNG has built-in alpha channel so it blends into any background colour.
   return (
     <img
       src={logoPath}
       alt="Sabi Logo"
       onError={() => setImageError(true)}
       className={`${sizeClass} ${className} object-contain`}
-      style={{ background: 'transparent' }}
+      style={{ background: 'transparent', display: 'block' }}
       loading="eager"
     />
   );
