@@ -97,7 +97,7 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
               whileHover={{ scale: 1.06 }}
               whileTap={{ scale: 0.95 }}
             >
-              <LogoImage className="w-12 h-12 sm:w-14 sm:h-14" />
+              <LogoImage className="h-10 w-auto sm:h-12 lg:h-14" />
             </motion.div>
           </Link>
 
