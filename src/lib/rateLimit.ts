@@ -7,10 +7,24 @@ let _redisClient: ReturnType<typeof createClient> | null = null;
 async function getRateLimitRedis() {
   const url = process.env.REDIS_URL;
   if (!url) return null;
-  if (_redisClient) return _redisClient;
+
+  // Return existing connected client
+  if (_redisClient?.isOpen) return _redisClient;
+
+  // Reset stale client
+  _redisClient = null;
+
   try {
-    _redisClient = createClient({ url });
-    await _redisClient.connect();
+    const client = createClient({ url });
+
+    // Catch connection errors so they don't become uncaught exceptions
+    // that crash the Vercel function. On any error we reset and reconnect
+    // on the next request.
+    client.on('error', () => { _redisClient = null; });
+    client.on('end', () => { _redisClient = null; });
+
+    await client.connect();
+    _redisClient = client;
     return _redisClient;
   } catch {
     _redisClient = null;
