@@ -47,6 +47,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Verify the txRef was generated for THIS user (prevent user A claiming user B's payment)
+    // Format: sabi_{userId[:8]}_{timestamp}_{random}
+    if (verification.txRef) {
+      const ownerIdPrefix = session.id.substring(0, 8);
+      if (!verification.txRef.startsWith(`sabi_${ownerIdPrefix}_`)) {
+        console.error('[WALLET CALLBACK] txRef ownership mismatch', { txRef: verification.txRef, userId: session.id });
+        return NextResponse.json({ error: 'Transaction does not belong to this account', success: false }, { status: 403 });
+      }
+    }
+
     // Flutterwave returns amount in Naira, convert to Kobo (1 Naira = 100 Kobo)
     const amountInNaira = verification.amount || 0;
     const amountInKobo = Math.round(amountInNaira * 100);

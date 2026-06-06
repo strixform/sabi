@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSabiSession } from '@/lib/sabiAuth';
+import { getRateLimitKey, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit';
 
 export async function POST(req: NextRequest) {
+  // 10 attempts per 10 minutes per IP — prevents 6-digit brute force
+  const rl = checkRateLimit(getRateLimitKey(req, 'verify'), 10, 10 * 60000);
+  if (!rl.allowed) return rateLimitResponse(10, rl.resetTime);
+
   try {
     const { code } = await req.json();
     if (!code?.trim()) return NextResponse.json({ error: 'Code required' }, { status: 400 });

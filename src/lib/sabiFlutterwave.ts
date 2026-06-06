@@ -93,7 +93,7 @@ export async function initializeFlwPayment(
 
 export async function verifyFlwTransaction(
   transactionIdOrRef: string
-): Promise<{ success: boolean; status?: string; amount?: number; error?: string }> {
+): Promise<{ success: boolean; status?: string; amount?: number; txRef?: string; customerEmail?: string; error?: string }> {
   try {
     // Check if it's a numeric ID or a string reference
     const isNumericId = /^\d+$/.test(transactionIdOrRef);
@@ -131,6 +131,8 @@ export async function verifyFlwTransaction(
       success: true,
       status: data.data.status,
       amount: data.data.amount,
+      txRef: data.data.tx_ref as string,
+      customerEmail: data.data.customer?.email as string | undefined,
     };
   } catch (error) {
     console.error('[VERIFICATION] Error:', error);

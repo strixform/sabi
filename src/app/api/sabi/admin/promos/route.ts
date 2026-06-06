@@ -1,20 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getSabiSession } from '@/lib/sabiAuth';
 
-const ADMIN_SECRET = process.env.SABI_ADMIN_SECRET || '';
-
-function checkAdmin(req: NextRequest) {
-  // Check cookie-based admin session (same as existing admin auth)
-  const cookie = req.cookies.get('sabi_admin_session')?.value;
-  return cookie === ADMIN_SECRET || req.headers.get('x-admin-key') === ADMIN_SECRET;
+// Guard: must be authenticated AND be the admin email
+async function requireAdmin(req: NextRequest): Promise<boolean> {
+  const session = await getSabiSession();
+  if (!session) return false;
+  const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || '').toLowerCase();
+  return session.email.toLowerCase() === adminEmail;
 }
 
-// GET: list all promo codes
+// GET: list all promo codes — admin only
 export async function GET(req: NextRequest) {
-  // Allow admin-authed requests
-  const session = req.cookies.get('sabi_admin_token')?.value;
-  if (!session) {
-    // Fall through — let admin page handle auth check
+  if (!await requireAdmin(req)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   const promos = await prisma.sabiPromoCode.findMany({
@@ -41,8 +40,12 @@ export async function GET(req: NextRequest) {
   });
 }
 
-// POST: create a promo code
+// POST: create a promo code — admin only
 export async function POST(req: NextRequest) {
+  if (!await requireAdmin(req)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const body = await req.json();
   const { code, description, discountType, discountValue, minOrderNaira, maxUses, expiresAt } = body;
 
@@ -76,17 +79,22 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// PATCH: toggle active / update
+// PATCH: toggle active — admin only
 export async function PATCH(req: NextRequest) {
+  if (!await requireAdmin(req)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   const { id, active } = await req.json();
   if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
-
   await prisma.sabiPromoCode.update({ where: { id }, data: { active: Boolean(active) } });
   return NextResponse.json({ success: true });
 }
 
-// DELETE: remove a promo code
+// DELETE: remove a promo code — admin only
 export async function DELETE(req: NextRequest) {
+  if (!await requireAdmin(req)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   const { id } = await req.json();
   if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
   await prisma.sabiPromoCode.delete({ where: { id } });

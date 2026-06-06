@@ -2,8 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requestPasswordReset } from '@/lib/sabiAuth';
 import { sendPasswordResetEmail } from '@/lib/email';
 import { prisma } from '@/lib/prisma';
+import { getRateLimitKey, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit';
 
 export async function POST(req: NextRequest) {
+  // 3 attempts per 15 minutes per IP — prevents email flooding
+  const rl = checkRateLimit(getRateLimitKey(req, 'forgot-password'), 3, 15 * 60000);
+  if (!rl.allowed) return rateLimitResponse(3, rl.resetTime);
+
   try {
     const body = await req.json();
     const { email } = body;

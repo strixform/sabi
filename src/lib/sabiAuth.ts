@@ -40,10 +40,14 @@ export async function registerSabiUser(
       return { success: false, error: 'Email already registered' };
     }
 
-    // Validate referral code
-    let referrer: { id: string } | null = null;
+    // Validate referral code — cannot refer yourself (same email)
+    let referrer: { id: string; email: string } | null = null;
     if (referralCode) {
-      referrer = await prisma.sabiUser.findUnique({ where: { referralCode }, select: { id: true } });
+      const candidate = await prisma.sabiUser.findUnique({ where: { referralCode }, select: { id: true, email: true } });
+      // Block: same email (direct self-referral), or referral code doesn't exist
+      if (candidate && candidate.email.toLowerCase() !== email.toLowerCase()) {
+        referrer = candidate;
+      }
     }
 
     // Hash password
