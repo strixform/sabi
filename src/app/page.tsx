@@ -589,12 +589,16 @@ export default function Home() {
             <span className="w-px h-3 bg-white/10" />
             <span className="text-white/20 text-xs font-mono tracking-wide">Real Nigerian engagement</span>
           </div>
-          <div className="flex items-center gap-8 text-xs text-white/20 font-mono tracking-widest uppercase">
+          <div className="flex flex-wrap items-center gap-6 text-xs text-white/20 font-mono tracking-widest uppercase">
             {[['Services', '/sabi/services'], ['API', '/sabi/docs'], ['Sign in', '/sabi/login'], ['Register', '/sabi/register']].map(([l, h]) => (
               <Link key={l} href={h} className="hover:text-white/45 transition-colors duration-300">{l}</Link>
             ))}
+            <span className="w-px h-3 bg-white/10" />
+            {[['Terms', '/sabi/legal/terms'], ['Privacy', '/sabi/legal/privacy'], ['Refunds', '/sabi/legal/refunds'], ['Cookies', '/sabi/legal/cookies']].map(([l, h]) => (
+              <Link key={l} href={h} className="hover:text-white/45 transition-colors duration-300">{l}</Link>
+            ))}
           </div>
-          <p className="text-white/15 text-xs font-mono">© 2026 Sabi</p>
+          <p className="text-white/15 text-xs font-mono">© 2026 Sabi · All rights reserved</p>
         </div>
       </footer>
     </div>

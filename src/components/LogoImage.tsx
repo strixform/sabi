@@ -1,47 +1,60 @@
 'use client';
 
 import React from 'react';
-import { SabiLogo } from './SabiLogo';
 
 interface LogoImageProps {
   size?: 'sm' | 'md' | 'lg';
   className?: string;
   variant?: 'primary' | 'secondary';
+  // Direct height override in pixels — bypasses Tailwind purge entirely
+  height?: number;
 }
+
+// Height presets in px
+const SIZE_PX: Record<string, number> = { sm: 32, md: 40, lg: 56 };
 
 export const LogoImage: React.FC<LogoImageProps> = ({
   size = 'md',
   className = '',
-  variant = 'primary'
+  variant = 'primary',
+  height,
 }) => {
-  // Detect any explicit size class — w-*, h-*, or auto/full variants
-  // so caller's className fully controls sizing with no conflicts
-  const hasSizeClass = /\b[wh]-(?:\d+|auto|full|screen|fit|px)\b/.test(className);
-
-  const sizeMap = {
-    sm: 'h-8 w-auto',
-    md: 'h-10 w-auto',
-    lg: 'h-14 w-auto',
-  };
-  const sizeClass = hasSizeClass ? '' : (sizeMap[size] || 'h-10 w-auto');
-
-  // Bust cache so transparent logos are fetched fresh
-  const cacheVersion = '?v=transparent1';
-  const logoPath = (variant === 'secondary' ? '/sabi-logo-secondary.png' : '/sabi-logo.png') + cacheVersion;
+  // New filenames bypass ALL CDN/browser caches (Cloudflare, Vercel, browser)
+  const logoPath = variant === 'secondary'
+    ? '/sabi-logo-main-clear.png'
+    : '/sabi-logo-clear.png';
 
   const [imageError, setImageError] = React.useState(false);
 
+  // Resolve final height: explicit prop > className height > size map
+  const heightMatch = className.match(/\bh-(\d+)\b/);
+  const tailwindH = heightMatch ? parseInt(heightMatch[1]) * 4 : null; // Tailwind: h-14 = 56px
+  const finalHeight = height ?? tailwindH ?? SIZE_PX[size] ?? 40;
+
   if (imageError) {
-    return <SabiLogo size={size} className={className} />;
+    // Fallback: just show text if image fails
+    return (
+      <span
+        className={className}
+        style={{ fontSize: finalHeight * 0.6, fontWeight: 900, letterSpacing: '-0.04em', color: 'white' }}>
+        SABI
+      </span>
+    );
   }
 
   return (
     <img
       src={logoPath}
-      alt="Sabi Logo"
+      alt="Sabi"
       onError={() => setImageError(true)}
-      className={`${sizeClass} ${className} object-contain`}
-      style={{ background: 'transparent', display: 'block' }}
+      className={className}
+      style={{
+        height: finalHeight,
+        width: 'auto',
+        display: 'block',
+        background: 'transparent',
+        objectFit: 'contain',
+      }}
       loading="eager"
     />
   );
