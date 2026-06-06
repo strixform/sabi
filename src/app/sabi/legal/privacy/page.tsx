@@ -23,7 +23,7 @@ export default function PrivacyPage() {
 
             <section>
               <h2 className="text-white text-2xl font-bold mb-4">1. Introduction</h2>
-              <p>Strixform Technologies ("we", "us", "our") operates sability.io (the "Platform"). We are committed to protecting your personal data and complying with the Nigeria Data Protection Regulation (NDPR) 2019 and the Nigeria Data Protection Act (NDPA) 2023. This Privacy Policy explains how we collect, use, store, and protect your personal information.</p>
+              <p>SABI Solutions Limited ("we", "us", "our") operates sability.io (the "Platform"). We are committed to protecting your personal data and complying with the Nigeria Data Protection Regulation (NDPR) 2019 and the Nigeria Data Protection Act (NDPA) 2023. This Privacy Policy explains how we collect, use, store, and protect your personal information.</p>
               <p className="mt-3">By creating an account or using the Platform, you consent to the data practices described in this Policy.</p>
             </section>
 

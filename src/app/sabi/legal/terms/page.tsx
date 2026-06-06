@@ -23,7 +23,7 @@ export default function TermsPage() {
 
             <section>
               <h2 className="text-white text-2xl font-bold mb-4">1. About SABI</h2>
-              <p>SABI ("we", "us", "our") is a social engagement platform operated by Strixform Technologies, accessible at sability.io. SABI connects brands, creators, and individuals ("Buyers") who want genuine social media engagement with a network of verified Nigerian users ("Earners") who perform real, organic actions on social media platforms.</p>
+              <p>SABI ("we", "us", "our") is a social engagement platform operated by SABI Solutions Limited, accessible at sability.io. SABI connects brands, creators, and individuals ("Buyers") who want genuine social media engagement with a network of verified Nigerian users ("Earners") who perform real, organic actions on social media platforms.</p>
               <p className="mt-3">SABI is not a bot service, an automation tool, or a social media management panel. Every engagement delivered through SABI is performed by a real, active Nigerian person using their own social media account. By using SABI, you agree to these Terms of Service in full.</p>
             </section>
 
@@ -113,7 +113,7 @@ export default function TermsPage() {
 
             <section>
               <h2 className="text-white text-2xl font-bold mb-4">9. Intellectual Property</h2>
-              <p>All content on sability.io — including but not limited to the SABI name, logo, design, text, and software — is owned by or licensed to Strixform Technologies and is protected by applicable intellectual property laws. You may not reproduce, distribute, or create derivative works without our express written permission.</p>
+              <p>All content on sability.io — including but not limited to the SABI name, logo, design, text, and software — is owned by or licensed to SABI Solutions Limited and is protected by applicable intellectual property laws. You may not reproduce, distribute, or create derivative works without our express written permission.</p>
             </section>
 
             <section>
