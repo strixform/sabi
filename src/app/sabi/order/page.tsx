@@ -495,7 +495,9 @@ export default function OrderPage() {
 
       const data = await res.json();
       if (data.success) {
-        router.push(`/sabi/orders/${data.order.id}`);
+        // API returns orderId (not order.id) — redirect to order detail page
+        const oid = data.orderId || data.order?.id;
+        router.push(oid ? `/sabi/orders/${oid}` : '/sabi/orders');
       } else {
         setError(data.error || 'Failed to place order');
       }
