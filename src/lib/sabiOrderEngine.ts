@@ -153,57 +153,6 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
       estimatedCompletion: service.estimatedDelivery,
     };
 
-    // Dead code below — kept for reference, replaced by async cron submission
-    // eslint-disable-next-line no-unreachable
-    const campaignResult = await createGamesz360Campaign(
-      input.userId,
-      order.id,
-      input.serviceId,
-      input.quantity,
-      basePrice,
-      input.targetUrl,
-      user.name,
-      user.businessName || user.email,
-      {
-        audienceGender: input.audienceGender,
-        audienceLocation: input.audienceLocation,
-        commentGender: input.commentGender,
-        commentInstructions: input.commentInstructions,
-      }
-    );
-
-    if (campaignResult.success && campaignResult.campaignId) {
-      await prisma.sabiOrder.update({
-        where: { id: order.id },
-        data: {
-          gamesz360CampaignId: campaignResult.campaignId,
-          gamesz360AdvertiserId: campaignResult.advertiserId,
-          status: 'executing',
-          estimatedCompletion: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        },
-      });
-
-      return {
-        success: true,
-        orderId: order.id,
-        totalPrice: totalPrice,
-        basePrice: basePrice,
-        platformFee: platformFee,
-        estimatedCompletion: service.estimatedDelivery,
-        gamesz360CampaignId: campaignResult.campaignId,
-      };
-    } else {
-      await refundSabiWallet(input.userId, totalPrice, order.id, 'Campaign creation failed');
-      await prisma.sabiOrder.update({
-        where: { id: order.id },
-        data: { status: 'failed' },
-      });
-
-      return {
-        success: false,
-        error: campaignResult.error || 'Failed to create campaign',
-      };
-    }
   } catch (error) {
     // Error logging handled by external service
     return { success: false, error: 'Order creation failed' };
