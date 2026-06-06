@@ -16,6 +16,7 @@ interface Config {
   id: string;
   minOrderQuantity: number;
   maxOrderQuantity: number;
+  supportWhatsapp?: string | null;
   updatedAt: string;
   updatedBy: string | null;
   createdAt: string;
@@ -30,6 +31,7 @@ export default function SettingsPage() {
   const [config, setConfig] = useState<Config | null>(null);
   const [minOrderQuantity, setMinOrderQuantity] = useState('5');
   const [maxOrderQuantity, setMaxOrderQuantity] = useState('5000');
+  const [supportWhatsapp, setSupportWhatsapp] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -75,6 +77,7 @@ export default function SettingsPage() {
         setConfig(data.config);
         setMinOrderQuantity(String(data.config.minOrderQuantity));
         setMaxOrderQuantity(String(data.config.maxOrderQuantity));
+        setSupportWhatsapp(data.config.supportWhatsapp || '');
       }
     } catch (err) {
       console.error('Failed to fetch config:', err);
@@ -107,6 +110,7 @@ export default function SettingsPage() {
         body: JSON.stringify({
           minOrderQuantity: min,
           maxOrderQuantity: max,
+          supportWhatsapp: supportWhatsapp.trim().replace(/[^0-9]/g, '') || null,
         }),
       });
 
@@ -237,6 +241,23 @@ export default function SettingsPage() {
                   />
                   <p className="text-xs text-slate-400 mt-2">
                     Current value: {maxOrderQuantity}
+                  </p>
+                </div>
+
+                {/* WhatsApp Support Number */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-300 mb-2">
+                    WhatsApp Support Number
+                  </label>
+                  <input
+                    type="text"
+                    value={supportWhatsapp}
+                    onChange={(e) => setSupportWhatsapp(e.target.value)}
+                    placeholder="e.g. 2348012345678 (no + or spaces)"
+                    className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:border-green-500 focus:outline-none transition"
+                  />
+                  <p className="text-xs text-slate-400 mt-2">
+                    Include country code, no +, no spaces. Leave empty to hide the WhatsApp button.
                   </p>
                 </div>
 

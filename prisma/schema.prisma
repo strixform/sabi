@@ -506,6 +506,7 @@ model SABIAdminConfig {
   id                    String    @id @default(cuid())
   minOrderQuantity      Int       @default(5)
   maxOrderQuantity      Int       @default(5000)
+  supportWhatsapp       String?   // e.g. "2348012345678" (no + or spaces)
   updatedAt             DateTime  @updatedAt
   updatedBy             String?
   createdAt             DateTime  @default(now())
