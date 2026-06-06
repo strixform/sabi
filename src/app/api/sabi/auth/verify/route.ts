@@ -5,7 +5,7 @@ import { getRateLimitKey, checkRateLimit, rateLimitResponse } from '@/lib/rateLi
 
 export async function POST(req: NextRequest) {
   // 10 attempts per 10 minutes per IP — prevents 6-digit brute force
-  const rl = checkRateLimit(getRateLimitKey(req, 'verify'), 10, 10 * 60000);
+  const rl = await checkRateLimit(getRateLimitKey(req, 'verify'), 10, 10 * 60000);
   if (!rl.allowed) return rateLimitResponse(10, rl.resetTime);
 
   try {

@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
   try {
     // Rate limiting: 5 attempts per minute per IP
     const rateLimitKey = getRateLimitKey(req, 'login');
-    const rateLimit = checkRateLimit(rateLimitKey, 5, 60000);
+    const rateLimit = await checkRateLimit(rateLimitKey, 5, 60000);
 
     if (!rateLimit.allowed) {
       return rateLimitResponse(5, rateLimit.resetTime);

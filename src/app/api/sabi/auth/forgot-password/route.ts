@@ -6,7 +6,7 @@ import { getRateLimitKey, checkRateLimit, rateLimitResponse } from '@/lib/rateLi
 
 export async function POST(req: NextRequest) {
   // 3 attempts per 15 minutes per IP — prevents email flooding
-  const rl = checkRateLimit(getRateLimitKey(req, 'forgot-password'), 3, 15 * 60000);
+  const rl = await checkRateLimit(getRateLimitKey(req, 'forgot-password'), 3, 15 * 60000);
   if (!rl.allowed) return rateLimitResponse(3, rl.resetTime);
 
   try {

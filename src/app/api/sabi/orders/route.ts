@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   // 20 orders per hour per IP — prevents wallet-drain spam
-  const rl = checkRateLimit(getRateLimitKey(req, 'order-create'), 20, 60 * 60000);
+  const rl = await checkRateLimit(getRateLimitKey(req, 'order-create'), 20, 60 * 60000);
   if (!rl.allowed) return rateLimitResponse(20, rl.resetTime);
 
   try {
