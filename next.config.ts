@@ -1,8 +1,19 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  // Enable React strict mode
   reactStrictMode: true,
+
+  // Redirect www to canonical (messaging apps try www. when auto-linking)
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'www.sability.io' }],
+        destination: 'https://sability.io/:path*',
+        permanent: true,
+      },
+    ];
+  },
 
   // PWA headers
   headers: async () => {
