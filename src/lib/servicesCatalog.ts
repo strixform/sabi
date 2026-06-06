@@ -2073,12 +2073,18 @@ export const ACTION_PRICE_KOBO: Record<string, number> = {
   'Repins': 4000,
 };
 
-// Apply central pricing to every service at module load time.
+// Apply central pricing + quantity limits to every service at module load time.
 // Done once here; SERVICES_CATALOG is the authoritative source for all code.
+const GLOBAL_MIN_QTY = 10;
+const GLOBAL_MAX_QTY = 10000;
+
 (() => {
   for (const service of SERVICES_CATALOG) {
     const price = ACTION_PRICE_KOBO[service.action];
     if (price !== undefined) service.pricePerUnit = price;
+    // Enforce global quantity limits across all services
+    service.minQuantity = GLOBAL_MIN_QTY;           // min = 10 for all
+    service.maxQuantity = Math.min(GLOBAL_MAX_QTY, service.maxQuantity); // cap at 10,000
   }
 })();
 

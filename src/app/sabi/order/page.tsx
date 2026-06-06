@@ -1101,7 +1101,7 @@ export default function OrderPage() {
                             <div>
                               <p className="text-sm text-red-400 font-bold">Insufficient Balance</p>
                               <p className="text-xs text-red-400/70 mt-1">
-                                You need ₦{(totalCost * 100 - wallet.balance).toFixed(0)} more
+                                You need ₦{((totalCost * 100 - wallet.balance) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} more
                               </p>
                             </div>
                           </div>
