@@ -7,14 +7,39 @@ export async function POST(req: NextRequest) {
   if (req.headers.get('x-migrate-secret') !== process.env.MIGRATE_SECRET) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
+  const log: string[] = [];
   try {
-    await prisma.$executeRaw`ALTER TABLE "SABIAdminConfig" ADD COLUMN "supportWhatsapp" TEXT`;
-    return NextResponse.json({ ok: true, added: 'supportWhatsapp' });
-  } catch (e: any) {
-    // "duplicate column" means it already exists — that's fine
-    if (e?.message?.includes('duplicate column') || e?.message?.includes('already exists')) {
-      return NextResponse.json({ ok: true, alreadyExists: true });
+    // Create table if missing
+    await prisma.$executeRaw`CREATE TABLE IF NOT EXISTS "SABIAdminConfig" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "minOrderQuantity" INTEGER NOT NULL DEFAULT 5,
+      "maxOrderQuantity" INTEGER NOT NULL DEFAULT 5000,
+      "supportWhatsapp" TEXT,
+      "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedBy" TEXT,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`;
+    log.push('table ensured');
+
+    // Add column if table already existed without it
+    try {
+      await prisma.$executeRaw`ALTER TABLE "SABIAdminConfig" ADD COLUMN "supportWhatsapp" TEXT`;
+      log.push('column added');
+    } catch (e: any) {
+      if (e?.message?.includes('duplicate') || e?.message?.includes('already exists')) {
+        log.push('column already exists');
+      } else { throw e; }
     }
-    return NextResponse.json({ error: e?.message }, { status: 500 });
+
+    // Ensure at least one config row exists
+    const existing = await prisma.sABIAdminConfig.findFirst();
+    if (!existing) {
+      await prisma.sABIAdminConfig.create({ data: { id: 'default' } });
+      log.push('default config row created');
+    }
+
+    return NextResponse.json({ ok: true, log });
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message, log }, { status: 500 });
   }
 }
