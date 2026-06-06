@@ -56,29 +56,28 @@ export async function checkRateLimit(
   const resetTime = Date.now() + windowMs;
 
   try {
-    const redis = await getRateLimitRedis();
+    // Wrap entire Redis rate-limit block in 2s timeout — if Redis is connected
+    // but slow on operations (incr/expire/ttl), this prevents hanging requests
+    const redisResult = await Promise.race([
+      (async () => {
+        const redis = await getRateLimitRedis();
+        if (!redis) return null;
+        const count = await (redis as any).incr(key);
+        if (count === 1) await (redis as any).expire(key, windowSecs);
+        const ttl = await (redis as any).ttl(key);
+        return { count, ttl };
+      })(),
+      new Promise<null>((_, reject) => setTimeout(() => reject(new Error('rateLimit timeout')), 2000)),
+    ]);
 
-    if (redis) {
-      // Atomic increment — works correctly even with concurrent requests
-      const count = await (redis as any).incr(key);
-
-      if (count === 1) {
-        // First request in this window — set expiry
-        await (redis as any).expire(key, windowSecs);
-      }
-
-      // Get actual TTL for accurate resetTime
-      const ttl = await (redis as any).ttl(key);
+    if (redisResult) {
+      const { count, ttl } = redisResult as any;
       const actualReset = Date.now() + (ttl > 0 ? ttl * 1000 : windowMs);
-
-      if (count > maxRequests) {
-        return { allowed: false, remaining: 0, resetTime: actualReset };
-      }
-
+      if (count > maxRequests) return { allowed: false, remaining: 0, resetTime: actualReset };
       return { allowed: true, remaining: Math.max(0, maxRequests - count), resetTime: actualReset };
     }
-  } catch (err) {
-    console.warn('[RateLimit] Redis error, falling back to memory:', (err as Error).message);
+  } catch {
+    // Fall through to in-memory
   }
 
   // ── In-memory fallback ──────────────────────────────────────────────────────
