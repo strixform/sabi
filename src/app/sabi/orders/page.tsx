@@ -51,11 +51,16 @@ export default function OrdersPage() {
     setLoading(true);
     try {
       const res = await fetch('/api/sabi/orders');
+      if (res.status === 401) { router.push('/sabi/login'); return; }
       const data = await res.json();
-      if (!res.ok) { router.push('/sabi/login'); return; }
+      // Whether success or error, show whatever orders we have (including [])
       setOrders(data.orders || []);
-    } catch { router.push('/sabi/login'); }
-    finally { setLoading(false); }
+    } catch {
+      // Network error — show empty state, don't redirect
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, []);
