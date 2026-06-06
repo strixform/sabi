@@ -259,7 +259,9 @@ async function createGamesz360Campaign(
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${integrationToken}`,
-        'User-Agent': 'SABI/1.0',
+        // Use browser-compatible UA — Cloudflare challenges non-browser UAs
+        // even when WAF rules skip custom rules. Auth is via Bearer token.
+        'User-Agent': 'Mozilla/5.0 (compatible; SABI-Integration/1.0)',
       },
       body: JSON.stringify(payload),
       signal: controller.signal,
