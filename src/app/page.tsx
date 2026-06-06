@@ -207,7 +207,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-6 h-[60px] flex items-center justify-between">
           <Link href="/" className="flex items-center group">
             <motion.div whileHover={{ scale: 1.06 }} transition={{ duration: 0.3 }}>
-              <LogoImage className="h-14 w-auto" />
+              <LogoImage height={39} />
             </motion.div>
           </Link>
 
