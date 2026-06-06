@@ -215,15 +215,19 @@ export default function OrdersPage() {
                         </a>
                       </p>
 
-                      {/* Progress bar for active orders */}
-                      {['processing','executing'].includes(order.status) && (
+                      {/* Progress bar — shows live count for active orders, final for completed */}
+                      {['processing','executing','completed'].includes(order.status) && (
                         <div>
                           <div className="flex justify-between text-xs text-slate-500 mb-1">
-                            <span>Progress</span>
-                            <span>{order.completionPercentage || 0}%</span>
+                            <span>
+                              {order.status === 'completed'
+                                ? '✅ Completed'
+                                : `${(order.completedQuantity || 0).toLocaleString()} / ${(order.quantity || 0).toLocaleString()} done`}
+                            </span>
+                            <span className="font-semibold text-slate-300">{order.completionPercentage || 0}%</span>
                           </div>
                           <div className="h-1.5 bg-[#0F1420] rounded-full overflow-hidden">
-                            <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all"
+                            <div className={`h-full rounded-full transition-all ${order.status === 'completed' ? 'bg-gradient-to-r from-emerald-500 to-green-400' : 'bg-gradient-to-r from-blue-500 to-purple-500'}`}
                               style={{ width: `${order.completionPercentage || 0}%` }} />
                           </div>
                         </div>

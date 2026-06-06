@@ -1,100 +1,124 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { updateSabiOrderStatus } from '@/lib/sabiOrderEngine';
+import { invalidateOrdersCache } from '@/lib/redis';
 
 export const preferredRegion = "sfo1";
 
 /**
- * Webhook endpoint to receive completion updates from gamerz360
- * Called by gamerz360 admin when pushing campaign to taskers or when campaign completes
+ * Receives live progress + completion webhooks from gamerz360.
  *
- * Expected payload:
- * {
- *   event: 'order.progress' | 'order.completed',
- *   sabiOrderId: string,
- *   sabiUserId: string,
- *   campaignId: string,
- *   completedCount: number,
- *   targetCount: number,
- *   completionPercentage: number,
- *   status: string,
- *   timestamp: string
- * }
+ * Fired on every individual task approval (1 follow = 1 call), giving users
+ * real-time order progress. Also fires once on full campaign completion.
+ *
+ * Payload:
+ *   event            'order.progress' | 'order.completed'
+ *   sabiOrderId      string
+ *   sabiUserId       string
+ *   campaignId       string
+ *   completedCount   number   — total approved so far
+ *   targetCount      number
+ *   completionPercentage number
+ *   status           string
  */
 export async function POST(req: NextRequest) {
   try {
+    // Verify integration token so random callers can't fake progress
+    const authHeader = req.headers.get("authorization") || "";
+    const token = authHeader.replace("Bearer ", "").trim();
+    const expected = process.env.SABI_INTEGRATION_TOKEN || "";
+    if (expected && token !== expected) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json();
     const {
-      event,
-      sabiOrderId,
-      sabiUserId,
-      campaignId,
-      completedCount,
-      targetCount,
-      completionPercentage,
-      status,
+      event, sabiOrderId, sabiUserId,
+      completedCount, targetCount, completionPercentage,
     } = body;
 
     if (!sabiOrderId || !event) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // Update order status
-    let orderStatus = 'processing';
-    if (event === 'order.completed') {
-      orderStatus = 'completed';
-    } else if (event === 'order.progress') {
-      orderStatus = 'executing';
-    }
+    // Map gamerz360 events → SABI order statuses
+    const isComplete = event === "order.completed";
+    const newStatus = isComplete ? "completed" : "executing";
 
-    const result = await updateSabiOrderStatus(sabiOrderId, orderStatus, completionPercentage);
+    // Update the order with the live count + percentage
+    const order = await prisma.sabiOrder.update({
+      where: { id: sabiOrderId },
+      data: {
+        status: newStatus,
+        completedQuantity: completedCount ?? 0,
+        completionPercentage: completionPercentage ?? 0,
+        ...(isComplete ? { completedAt: new Date() } : {}),
+      },
+      include: {
+        user: { select: { id: true, email: true, name: true, notifyEmail: true } },
+      },
+    });
 
-    if (!result.success) {
-      return NextResponse.json({ error: 'Failed to update order' }, { status: 500 });
-    }
+    // Bust the Redis order cache so the user's next page load shows live count
+    await invalidateOrdersCache(order.userId).catch(() => {});
 
-    // If completed, process refund/payout logic if needed
-    if (event === 'order.completed') {
-      const order = await prisma.sabiOrder.findUnique({
-        where: { id: sabiOrderId },
-      });
+    // Send push + email notifications at key milestones — not every single tick
+    const milestones = [25, 50, 75, 100];
+    const pct = completionPercentage ?? 0;
+    const shouldNotify = isComplete || milestones.includes(pct);
 
-      if (order) {
-        // Record completion in database
-        await prisma.sabiOrder.update({
-          where: { id: sabiOrderId },
-          data: {
-            status: 'completed',
-            completionPercentage: 100,
-            completedAt: new Date(),
-          },
-        });
+    if (shouldNotify && order.user) {
+      const svcName = order.serviceType.replace(/_/g, " ");
+      try {
+        const { sendPushToUser } = await import("@/lib/pushNotifications");
+        if (isComplete) {
+          sendPushToUser(order.userId, {
+            title: "✅ Order Completed!",
+            body: `Your ${svcName} order (${order.quantity} units) is done.`,
+            url: `https://sability.io/sabi/orders/${sabiOrderId}`,
+          });
+        } else {
+          sendPushToUser(order.userId, {
+            title: `📈 Order ${pct}% done`,
+            body: `${completedCount}/${targetCount} ${svcName} completed so far.`,
+            url: `https://sability.io/sabi/orders/${sabiOrderId}`,
+          });
+        }
+      } catch {}
 
-        // Log completion transaction
-        await prisma.sabiTransaction.create({
-          data: {
-            userId: order.userId,
-            orderId: sabiOrderId,
-            type: 'bonus',
-            amount: 0, // Can add bonus amounts here if desired
-            description: `Order completed on gamerz360`,
-            reference: campaignId,
-          },
-        });
-
-        console.log(`[webhooks/gamerz360] Order ${sabiOrderId} completed`);
+      // Email only on completion
+      if (isComplete && order.user.notifyEmail) {
+        try {
+          const { sendOrderCompletedEmail } = await import("@/lib/email");
+          sendOrderCompletedEmail(order.user.email, order.user.name, sabiOrderId, svcName, order.quantity);
+        } catch {}
       }
+    }
+
+    // On completion: log a transaction record
+    if (isComplete) {
+      await prisma.sabiTransaction.create({
+        data: {
+          userId: order.userId,
+          orderId: sabiOrderId,
+          type: "bonus",
+          amount: 0,
+          description: `Order completed — ${order.quantity} ${order.serviceType.replace(/_/g, " ")}`,
+          reference: body.campaignId || sabiOrderId,
+        },
+      }).catch(() => {}); // non-fatal
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Order status updated',
-      orderStatus,
+      event,
+      sabiOrderId,
+      completedCount,
+      newStatus,
     });
-  } catch (error) {
-    console.error('[webhooks/gamerz360] error:', error);
+  } catch (error: any) {
+    console.error("[webhooks/gamerz360]", error);
     return NextResponse.json(
-      { error: 'Failed to process webhook', details: String(error) },
+      { error: "Failed to process webhook", details: error?.message },
       { status: 500 }
     );
   }
