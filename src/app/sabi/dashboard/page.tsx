@@ -126,48 +126,21 @@ export default function DashboardPage() {
           transition={{ duration: 0.6 }}
           className="space-y-2"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-5xl font-black">
-                <GradientText>
-                  <AnimateInText type="blur" delay={0.1}>
-                    Welcome Back
-                  </AnimateInText>
-                </GradientText>
-              </h1>
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.6, delay: 0.3 }}
-                className="text-lg text-slate-400"
-              >
-                <AnimateInText type="slide" delay={0.4}>
-                  Manage your account and track your orders in real-time
+          {/* Row 1: heading + eye toggle */}
+          <div className="flex items-start justify-between gap-4">
+            <h1 className="text-4xl sm:text-5xl font-black">
+              <GradientText>
+                <AnimateInText type="blur" delay={0.1}>
+                  Welcome Back
                 </AnimateInText>
-              </motion.p>
-            </div>
-            <div className="flex items-center gap-2">
-              {/* New Order CTA — always visible at top of dashboard */}
-              <Link href="/sabi/order">
-                <motion.button
-                  whileHover={{ scale: 1.04 }}
-                  whileTap={{ scale: 0.97 }}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-black relative overflow-hidden"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600" />
-                  <div className="absolute inset-0 opacity-0 hover:opacity-100 bg-gradient-to-r from-blue-600 to-purple-700 transition-opacity" />
-                  <FiShoppingCart className="w-4 h-4 text-white relative z-10" />
-                  <span className="text-white relative z-10">New Order</span>
-                </motion.button>
-              </Link>
-
-              {/* Balance toggle */}
-              <button
-                onClick={() => setShowValues(prev => !prev)}
-                className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 rounded-lg transition"
-                title={showValues ? 'Hide balances' : 'Show balances'}
-                type="button"
-              >
+              </GradientText>
+            </h1>
+            <button
+              onClick={() => setShowValues(prev => !prev)}
+              className="p-2 mt-1 shrink-0 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 rounded-lg transition"
+              title={showValues ? 'Hide balances' : 'Show balances'}
+              type="button"
+            >
               {showValues ? (
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -178,8 +151,33 @@ export default function DashboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                 </svg>
               )}
-              </button>
-            </div>
+            </button>
+          </div>
+
+          {/* Row 2: subtitle + New Order button — properly aligned */}
+          <div className="flex items-center justify-between gap-4 mt-2">
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="text-sm sm:text-base text-slate-400"
+            >
+              <AnimateInText type="slide" delay={0.4}>
+                Manage your account and track your orders in real-time
+              </AnimateInText>
+            </motion.p>
+
+            <Link href="/sabi/order" className="shrink-0">
+              <motion.button
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.97 }}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-sm relative overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600" />
+                <FiShoppingCart className="w-3.5 h-3.5 text-white relative z-10" />
+                <span className="text-white relative z-10 whitespace-nowrap">New Order</span>
+              </motion.button>
+            </Link>
           </div>
         </motion.div>
 
