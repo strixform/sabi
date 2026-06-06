@@ -4,6 +4,8 @@ import { createSabiOrder, getSabiOrders } from '@/lib/sabiOrderEngine';
 import { getCachedOrders, setCachedOrders } from '@/lib/redis';
 import { getRateLimitKey, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit';
 
+export const maxDuration = 30; // Give enough time for gamerz360 round-trip
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getSabiSession();

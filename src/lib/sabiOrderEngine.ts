@@ -250,14 +250,21 @@ async function createGamesz360Campaign(
       webhookUrl: `${process.env.SABI_BASE_URL || 'https://sability.io'}/api/webhooks/gamerz360`,
     };
 
+    // 15s timeout — gamerz360 must respond before SABI's function times out
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
     const response = await fetch(`${gamerz360ApiUrl}/api/admin/sabi/orders`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${integrationToken}`,
+        'User-Agent': 'SABI/1.0',
       },
       body: JSON.stringify(payload),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorData = await response.text();
@@ -275,11 +282,12 @@ async function createGamesz360Campaign(
       campaignId: data.campaignId,
       advertiserId: data.advertiserId,
     };
-  } catch (error) {
-    // Error logging handled by external service
+  } catch (error: any) {
+    const isTimeout = error?.name === 'AbortError' || error?.message?.includes('abort');
+    console.error('[SABI→G360] Campaign creation error:', error?.message || error);
     return {
       success: false,
-      error: 'Campaign creation failed',
+      error: isTimeout ? 'Campaign creation timed out — please try again' : 'Campaign creation failed',
     };
   }
 }
