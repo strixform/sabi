@@ -18,11 +18,21 @@ export async function GET(req: NextRequest) {
 
   const now = new Date();
 
-  // Find all scheduled orders that are due
+  // Find ALL pending orders that haven't been submitted to gamerz360 yet.
+  // This includes:
+  //   1. Scheduled orders whose scheduledAt time has passed
+  //   2. Regular orders that are pending submission (scheduledAt = null, no campaignId yet)
+  // The cron runs every 5 min — this is the only way orders reach gamerz360
+  // since the synchronous call was replaced with this async approach to avoid
+  // Cloudflare blocking Vercel's server IPs.
   const due = await prisma.sabiOrder.findMany({
     where: {
-      scheduledAt: { lte: now },
       status: 'pending',
+      gamesz360CampaignId: null, // not yet submitted to gamerz360
+      OR: [
+        { scheduledAt: null },           // regular immediate orders
+        { scheduledAt: { lte: now } },   // scheduled orders whose time has come
+      ],
     },
     include: {
       user: { select: { id: true, email: true, name: true, businessName: true } },

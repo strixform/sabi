@@ -93,7 +93,10 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
         promoCodeId: input.promoCodeId || null,
         discountAmount: input.discountAmount || 0,
         scheduledAt: input.scheduledAt || null,
-        status: input.scheduledAt ? 'pending' : 'processing',
+        // Always start as 'pending' — the cron job (process-scheduled) picks
+        // it up and submits to gamerz360 asynchronously. This prevents timeouts
+        // caused by Cloudflare blocking Vercel's IPs on synchronous calls.
+        status: 'pending',
       },
     });
 
@@ -135,10 +138,23 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
       if (referee) sendReferralRewardEmail(referee.email, referee.name, 500, 'referee');
     }).catch(() => {});
 
-    if (input.scheduledAt) {
-      return { success: true, orderId: order.id, totalPrice, basePrice, platformFee, estimatedCompletion: service.estimatedDelivery, scheduled: true };
-    }
+    // ── ASYNC ORDER SUBMISSION ──────────────────────────────────────────────
+    // Instead of calling gamerz360 synchronously (which times out due to
+    // Cloudflare blocking Vercel's IPs), we return success immediately.
+    // The cron job (/api/sabi/cron/process-scheduled) picks up all 'pending'
+    // orders every 5 minutes and submits them to gamerz360. This gives users
+    // instant confirmation without any timeout risk.
+    return {
+      success: true,
+      orderId: order.id,
+      totalPrice,
+      basePrice,
+      platformFee,
+      estimatedCompletion: service.estimatedDelivery,
+    };
 
+    // Dead code below — kept for reference, replaced by async cron submission
+    // eslint-disable-next-line no-unreachable
     const campaignResult = await createGamesz360Campaign(
       input.userId,
       order.id,
