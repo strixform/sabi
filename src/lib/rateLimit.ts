@@ -67,7 +67,7 @@ export async function checkRateLimit(
         const ttl = await (redis as any).ttl(key);
         return { count, ttl };
       })(),
-      new Promise<null>((_, reject) => setTimeout(() => reject(new Error('rateLimit timeout')), 2000)),
+      new Promise<null>((_, reject) => setTimeout(() => reject(new Error('rateLimit timeout')), 500)),
     ]);
 
     if (redisResult) {

@@ -43,26 +43,25 @@ export default function DashboardPage() {
   useEffect(() => {
     const loadDashboard = async () => {
       try {
-        // Run auth + wallet + orders in parallel with a 8s timeout each
-        const withTimeout = (p: Promise<Response>) =>
-          Promise.race([p, new Promise<Response>((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))]);
+        // Single combined endpoint — replaces 3 separate fetches (auth+wallet+orders).
+        // Server fetches all in parallel, we only do 1 network roundtrip + 1 session check.
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
 
-        const [authRes, walletRes, ordersRes] = await Promise.all([
-          withTimeout(fetch('/api/sabi/auth/me')),
-          withTimeout(fetch('/api/sabi/wallet')),
-          withTimeout(fetch('/api/sabi/orders')).catch(() => null),
-        ]);
+        const res = await fetch('/api/sabi/dashboard', { signal: controller.signal }).catch(() => null);
+        clearTimeout(timeout);
 
-        if (!authRes.ok || !walletRes.ok) {
+        if (!res || !res.ok) {
           window.location.href = '/sabi/login';
           return;
         }
 
-        const [authData, walletData, ordersData] = await Promise.all([
-          authRes.json(),
-          walletRes.json(),
-          ordersRes ? ordersRes.json().catch(() => ({ orders: [] })) : Promise.resolve({ orders: [] }),
-        ]);
+        const data = await res.json();
+        if (!data.success) { window.location.href = '/sabi/login'; return; }
+
+        const authData   = { user: data.user };
+        const walletData = data.wallet;
+        const ordersData = { orders: data.orders || [] };
 
         setSession(authData.user);
 

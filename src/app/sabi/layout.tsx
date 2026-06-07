@@ -3,8 +3,9 @@ import { PushNotificationPrompt } from '@/components/PushNotificationPrompt';
 // ModernSabiHeader so it appears in the nav bar on user pages only,
 // not on admin pages (/sabi/admin/*).
 
-// Force all /sabi/* pages to server-render on every request.
-export const dynamic = 'force-dynamic';
+// Layout is no longer force-dynamic — individual pages declare their own
+// rendering strategy. Auth-dependent pages add `export const dynamic = 'force-dynamic'`
+// directly in their page.tsx. Static/marketing pages can be cached.
 
 export default function SabiLayout({ children }: { children: React.ReactNode }) {
   return (

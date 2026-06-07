@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { loginSabiUser, createSabiSession } from '@/lib/sabiAuth';
 import { getRateLimitKey, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit';
 
+export const preferredRegion = 'sfo1';
+export const maxDuration = 15;
+
 export async function POST(req: NextRequest) {
   try {
     // Rate limiting: 5 attempts per minute per IP
