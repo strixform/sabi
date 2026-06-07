@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useEffect, useState } from 'react';
 import { FiCopy, FiCheck, FiUsers, FiDollarSign, FiClock, FiGift, FiShare2, FiChevronRight } from 'react-icons/fi';
 import { ModernSabiHeader } from '@/components/ModernSabiHeader';
