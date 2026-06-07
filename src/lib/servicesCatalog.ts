@@ -57,7 +57,7 @@ Order 1,000 genuine Nigerian followers and see your profile transform within 24-
 → Build authority in your niche (numbers command respect)
 → Get verified faster (Instagram favors growing accounts)
 
-**THE EMOTIONAL WIN:** Imagine opening your phone tomorrow and seeing 1,000 new followers. That feeling of momentum, that proof your content resonates—that's what happens here. You're not buying numbers. You're buying the confidence that comes with a real, growing community.`,
+**THE WIN:** Imagine opening your phone tomorrow and seeing 1,000 new followers. That feeling of momentum, that proof your content resonates—that's what happens here. You're not buying numbers. You're buying the confidence that comes with a real, growing community.`,
     category: PLATFORMS.INSTAGRAM,
     action: 'Followers',
     pricePerUnit: 100,
@@ -95,7 +95,7 @@ Post a photo or Reel and watch 500+ real likes pour in within the first 2 hours.
 → Influence brand perception (high-engagement accounts look credible)
 → Test content faster (see what works, double down)
 
-**THE EMOTIONAL WIN:** That moment when you post and immediately see 50...100...500 likes rolling in? That's proof your content matters. That's momentum. That's the feeling that keeps you creating. More importantly, it's the algorithmic nudge that makes Instagram work FOR you, not against you.`,
+**THE WIN:** That moment when you post and immediately see 50...100...500 likes rolling in? That's proof your content matters. That's momentum. That's the feeling that keeps you creating. More importantly, it's the algorithmic nudge that makes Instagram work FOR you, not against you.`,
     category: PLATFORMS.INSTAGRAM,
     action: 'Likes',
     pricePerUnit: 80,
@@ -133,7 +133,7 @@ Get 10-20 thoughtful, natural comments on your posts from real people. Comments 
 → Drive business inquiries (comments = engagement = sales)
 → Test messaging (see what comments people actually want)
 
-**THE EMOTIONAL WIN:** It's not just about the number. It's about seeing people engage with your actual words. Someone read your caption and cared enough to respond. That's real. That's community. And Instagram notices that energy and spreads it further.`,
+**THE WIN:** It's not just about the number. It's about seeing people engage with your actual words. Someone read your caption and cared enough to respond. That's real. That's community. And Instagram notices that energy and spreads it further.`,
     category: PLATFORMS.INSTAGRAM,
     action: 'Comments',
     pricePerUnit: 200,
@@ -171,7 +171,7 @@ Your comments on other people's posts deserve visibility too. Get 20-50 real lik
 → Start conversations that turn into partnerships
 → Become a recognizable voice in your industry
 
-**THE EMOTIONAL WIN:** Imagine being known as the person who always drops insightful, highly-liked comments. That's positioning. That's network building. That's how you become the person everyone wants to collaborate with.`,
+**THE WIN:** Imagine being known as the person who always drops insightful, highly-liked comments. That's positioning. That's network building. That's how you become the person everyone wants to collaborate with.`,
     category: PLATFORMS.INSTAGRAM,
     action: 'Comment Likes',
     pricePerUnit: 120,
@@ -209,7 +209,7 @@ Saves are Instagram's #1 signal that content is VALUABLE. When someone saves you
 → Become a go-to resource in your field
 → Build long-term authority (saved posts = referenced frequently)
 
-**THE EMOTIONAL WIN:** Saves mean you created something so useful, so inspiring, so memorable that people want to come back to it. That's not vanity—that's proof of real impact. That's legacy building.`,
+**THE WIN:** Saves mean you created something so useful, so inspiring, so memorable that people want to come back to it. That's not vanity—that's proof of real impact. That's legacy building.`,
     category: PLATFORMS.INSTAGRAM,
     action: 'Saves',
     pricePerUnit: 150,
@@ -247,7 +247,7 @@ Stories are ephemeral, which means timing is EVERYTHING. Get 500-1,000 real view
 → Flash sales reaching people in time
 → Event invitations getting better attendance
 
-**THE EMOTIONAL WIN:** Stories are real-time connection. When people see your story has 1,000+ views, they feel the momentum. They feel like they're part of something popular, something worth watching. Momentum sells.`,
+**THE WIN:** Stories are real-time connection. When people see your story has 1,000+ views, they feel the momentum. They feel like they're part of something popular, something worth watching. Momentum sells.`,
     category: PLATFORMS.INSTAGRAM,
     action: 'Story Views',
     pricePerUnit: 70,
@@ -285,7 +285,7 @@ Reels are Instagram's cash cow, and the platform prioritizes high-view content. 
 → Tutorial content getting DMs asking to share it
 → Trend content beating competitors to audience
 
-**THE EMOTIONAL WIN:** There's something magical about uploading a Reel and watching the view counter climb: 100...500...2,000...10,000. That's not luck. That's the algorithm working. That's you winning at Instagram's game. That's the validation every creator craves.`,
+**THE WIN:** There's something magical about uploading a Reel and watching the view counter climb: 100...500...2,000...10,000. That's not luck. That's the algorithm working. That's you winning at Instagram's game. That's the validation every creator craves.`,
     category: PLATFORMS.INSTAGRAM,
     action: 'Reel Views',
     pricePerUnit: 65,
@@ -323,7 +323,7 @@ When someone shares your post to their stories or via DM, they're vouching for y
 → Organic audience growing exponentially
 → Positioning yourself as a thought leader
 
-**THE EMOTIONAL WIN:** A share means someone thought "I have to show my friends this." That's respect. That's influence. That's proof your content matters beyond just your followers. That's becoming culturally relevant.`,
+**THE WIN:** A share means someone thought "I have to show my friends this." That's respect. That's influence. That's proof your content matters beyond just your followers. That's becoming culturally relevant.`,
     category: PLATFORMS.INSTAGRAM,
     action: 'Shares',
     pricePerUnit: 250,
@@ -363,7 +363,7 @@ TikTok's algorithm HEAVILY favors creators with growing follower counts. Get 500
 → Negotiate better rates (bigger following = bigger paycheck)
 → Build business on TikTok with real audience
 
-**THE EMOTIONAL WIN:** Every notification of a new follower feels like validation. You're watching your TikTok career grow in real time. Each follower is a potential customer, collaborator, or advocate. That's not vanity—that's building a media empire.`,
+**THE WIN:** Every notification of a new follower feels like validation. You're watching your TikTok career grow in real time. Each follower is a potential customer, collaborator, or advocate. That's not vanity—that's building a media empire.`,
     category: PLATFORMS.TIKTOK,
     action: 'Followers',
     pricePerUnit: 130,
@@ -401,7 +401,7 @@ TikTok's algorithm decides your video's fate in the first 2 hours. Get 1,000-5,0
 → Music launching with massive exposure
 → Personal brand becoming recognizable instantly
 
-**THE EMOTIONAL WIN:** That moment when a TikTok blows up and you see 100K...500K...1M views? That's what this creates. That's the dopamine hit every content creator lives for. That's proof you made something the world wants to see.`,
+**THE WIN:** That moment when a TikTok blows up and you see 100K...500K...1M views? That's what this creates. That's the dopamine hit every content creator lives for. That's proof you made something the world wants to see.`,
     category: PLATFORMS.TIKTOK,
     action: 'Likes',
     pricePerUnit: 90,
@@ -439,7 +439,7 @@ Comments signal interest and engagement. Get 20-50 thoughtful comments on your T
 → Collaboration offers coming from comment engagement
 → Becoming a "conversation starter" in your niche
 
-**THE EMOTIONAL WIN:** Comments mean your content sparked thoughts, reactions, feelings. Someone didn't just watch and move on—they engaged with YOU. That's community. That's audience. That's what builds empires.`,
+**THE WIN:** Comments mean your content sparked thoughts, reactions, feelings. Someone didn't just watch and move on—they engaged with YOU. That's community. That's audience. That's what builds empires.`,
     category: PLATFORMS.TIKTOK,
     action: 'Comments',
     pricePerUnit: 200,
@@ -477,7 +477,7 @@ Your comments on trending TikToks are networking opportunities. Get 15-30 likes 
 → Turn comment authority into business opportunities
 → Become the "go-to commenter" people follow
 
-**THE EMOTIONAL WIN:** Imagine scrolling TikTok and seeing your comment at the top with 100+ likes. People are reading YOUR take. Respecting YOUR opinion. Following YOU because of how you show up. That's influence.`,
+**THE WIN:** Imagine scrolling TikTok and seeing your comment at the top with 100+ likes. People are reading YOUR take. Respecting YOUR opinion. Following YOU because of how you show up. That's influence.`,
     category: PLATFORMS.TIKTOK,
     action: 'Comment Likes',
     pricePerUnit: 110,
@@ -515,7 +515,7 @@ More views = more algorithmic favor. Get 5,000-20,000 views on your new TikToks 
 → Monetization happening faster
 → Creator Fund earnings increasing rapidly
 
-**THE EMOTIONAL WIN:** Watching your view count climb from 100 to 10,000 to 100,000 is addictive. It's validating. It's proof. It's the kind of momentum that makes creators keep creating, keep improving, keep building.`,
+**THE WIN:** Watching your view count climb from 100 to 10,000 to 100,000 is addictive. It's validating. It's proof. It's the kind of momentum that makes creators keep creating, keep improving, keep building.`,
     category: PLATFORMS.TIKTOK,
     action: 'Views',
     pricePerUnit: 60,
@@ -553,7 +553,7 @@ Shares are TikTok's strongest viral signal. When someone shares your TikTok, the
 → Personal brand becoming household name
 → Partnerships and sponsorships from viral momentum
 
-**THE EMOTIONAL WIN:** A share means someone cared enough about your content to make it part of their social identity. That's proof of impact. That's influence. That's becoming someone people talk about.`,
+**THE WIN:** A share means someone cared enough about your content to make it part of their social identity. That's proof of impact. That's influence. That's becoming someone people talk about.`,
     category: PLATFORMS.TIKTOK,
     action: 'Shares',
     pricePerUnit: 180,
@@ -591,7 +591,7 @@ Bookmarks mean your content is so useful, entertaining, or inspiring that people
 → Entertainment becoming comfort watches
 → Building content library that pays dividends forever
 
-**THE EMOTIONAL WIN:** Long after you post, people are still watching, still bookmarking, still talking about your content. That's legacy. That's proof you created something that matters. That's building an asset that doesn't expire.`,
+**THE WIN:** Long after you post, people are still watching, still bookmarking, still talking about your content. That's legacy. That's proof you created something that matters. That's building an asset that doesn't expire.`,
     category: PLATFORMS.TIKTOK,
     action: 'Bookmarks',
     pricePerUnit: 140,
@@ -631,7 +631,7 @@ YouTube's algorithm is subscriber-obsessed. Get 100-500 real subscribers and wat
 → Video performance improving across board
 → Channel authority building exponentially
 
-**THE EMOTIONAL WIN:** YouTube subscribers are like email subscribers—they're recurring audience. Each subscriber is a notification that shows them your newest video. That's not one-time engagement. That's relationship. That's building a loyal following.`,
+**THE WIN:** YouTube subscribers are like email subscribers—they're recurring audience. Each subscriber is a notification that shows them your newest video. That's not one-time engagement. That's relationship. That's building a loyal following.`,
     category: PLATFORMS.YOUTUBE,
     action: 'Subscribers',
     pricePerUnit: 200,
@@ -669,7 +669,7 @@ YouTube decides if videos go viral in the first 24 hours. Get 2,000-10,000 views
 → Establishing niche authority
 → Creating momentum for next videos
 
-**THE EMOTIONAL WIN:** YouTube success is visible. Watch time goes up. Views accumulate. Revenue increases. You're literally watching your success on a dashboard. That's tangible. That's motivating. That's the kind of progress that keeps you creating.`,
+**THE WIN:** YouTube success is visible. Watch time goes up. Views accumulate. Revenue increases. You're literally watching your success on a dashboard. That's tangible. That's motivating. That's the kind of progress that keeps you creating.`,
     category: PLATFORMS.YOUTUBE,
     action: 'Views',
     pricePerUnit: 80,
@@ -707,7 +707,7 @@ YouTube uses likes as content quality indicator. Get 200-500 likes and your vide
 → Creating social proof (people trust high-liked content)
 → Starting viral feedback loop
 
-**THE EMOTIONAL WIN:** Likes are immediate feedback that people enjoyed your work. Not just watched—but appreciated. That's the validation creators live for. That's the signal that you're on the right track.`,
+**THE WIN:** Likes are immediate feedback that people enjoyed your work. Not just watched—but appreciated. That's the validation creators live for. That's the signal that you're on the right track.`,
     category: PLATFORMS.YOUTUBE,
     action: 'Likes',
     pricePerUnit: 150,
@@ -745,7 +745,7 @@ YouTube's algorithm prioritizes videos with active comments. Get 15-30 meaningfu
 → Gathering feedback that improves future content
 → Starting parasocial relationships with audience
 
-**THE EMOTIONAL WIN:** Comments mean people cared enough to speak up. They're not just consuming—they're participating. They're part of YOUR community. That's what makes content creation meaningful.`,
+**THE WIN:** Comments mean people cared enough to speak up. They're not just consuming—they're participating. They're part of YOUR community. That's what makes content creation meaningful.`,
     category: PLATFORMS.YOUTUBE,
     action: 'Comments',
     pricePerUnit: 300,
@@ -783,7 +783,7 @@ High-liked comments get pinned, get visibility, become discussion leaders. Get 2
 → Creating micro-reputation across communities
 → Positioning yourself as knowledge leader
 
-**THE EMOTIONAL WIN:** Your voice matters. When people like your comments, upvote your perspective, follow you because of how intelligently you engage—that's respect. That's influence. That's becoming someone people listen to.`,
+**THE WIN:** Your voice matters. When people like your comments, upvote your perspective, follow you because of how intelligently you engage—that's respect. That's influence. That's becoming someone people listen to.`,
     category: PLATFORMS.YOUTUBE,
     action: 'Comment Likes',
     pricePerUnit: 120,
@@ -821,7 +821,7 @@ YouTube shares mean your video is SO valuable/entertaining/important that people
 → Music launching with distribution effect
 → Personal brand spreading organically
 
-**THE EMOTIONAL WIN:** A shared video is an endorsed video. Someone literally told their network "you need to see this." That's not accidental success—that's influence. That's impact. That's proof you created something that matters beyond your immediate audience.`,
+**THE WIN:** A shared video is an endorsed video. Someone literally told their network "you need to see this." That's not accidental success—that's influence. That's impact. That's proof you created something that matters beyond your immediate audience.`,
     category: PLATFORMS.YOUTUBE,
     action: 'Shares',
     pricePerUnit: 250,
@@ -861,7 +861,7 @@ Twitter rewards active, growing accounts. Get 200-1,000 real followers and watch
 → Network expanding exponentially
 → Influence increasing with each tweet
 
-**THE EMOTIONAL WIN:** Twitter is about VOICE. Followers mean people want to hear what you have to say. Your perspective matters. Your opinions are valued. That's not just audience—that's power.`,
+**THE WIN:** Twitter is about VOICE. Followers mean people want to hear what you have to say. Your perspective matters. Your opinions are valued. That's not just audience—that's power.`,
     category: PLATFORMS.TWITTER,
     action: 'Followers',
     pricePerUnit: 120,
@@ -899,7 +899,7 @@ Twitter's algorithm prioritizes tweets getting immediate engagement. Get 500-2,0
 → Business inquiries coming from visibility
 → Becoming voice people listen to
 
-**THE EMOTIONAL WIN:** Twitter success is visible in real-time. You see retweets, likes, replies flowing in. You see your impact. You see influence building. That's addictive. That's empowering.`,
+**THE WIN:** Twitter success is visible in real-time. You see retweets, likes, replies flowing in. You see your impact. You see influence building. That's addictive. That's empowering.`,
     category: PLATFORMS.TWITTER,
     action: 'Likes',
     pricePerUnit: 90,
@@ -937,7 +937,7 @@ Retweets are Twitter's version of shares. When someone retweets you, they're end
 → Influence multiplying across networks
 → Thought becoming mainstream
 
-**THE EMOTIONAL WIN:** Your message isn't stuck with your followers—it's spreading. It's becoming part of larger conversations. That's not just engagement—that's influence. That's impact.`,
+**THE WIN:** Your message isn't stuck with your followers—it's spreading. It's becoming part of larger conversations. That's not just engagement—that's influence. That's impact.`,
     category: PLATFORMS.TWITTER,
     action: 'Retweets',
     pricePerUnit: 200,
@@ -975,7 +975,7 @@ Replies create engagement chains. Get 20-50 thoughtful replies and your tweet be
 → Creating intellectual currency
 → Becoming voice of authority
 
-**THE EMOTIONAL WIN:** Replies mean engagement. Real humans reading your words and responding. That's not passive consumption—that's active participation. That's community. That's having a voice.`,
+**THE WIN:** Replies mean engagement. Real humans reading your words and responding. That's not passive consumption—that's active participation. That's community. That's having a voice.`,
     category: PLATFORMS.TWITTER,
     action: 'Replies',
     pricePerUnit: 250,
@@ -1013,7 +1013,7 @@ Twitter views are your reach metric. Get 10,000-50,000 views and your message sp
 → Opportunities emerging from visibility
 → Personal brand strengthening
 
-**THE EMOTIONAL WIN:** Views mean your words are being seen. Your voice is carrying. That's the whole point of Twitter—being heard. More views = bigger voice.`,
+**THE WIN:** Views mean your words are being seen. Your voice is carrying. That's the whole point of Twitter—being heard. More views = bigger voice.`,
     category: PLATFORMS.TWITTER,
     action: 'Views',
     pricePerUnit: 50,
@@ -1051,7 +1051,7 @@ Quote tweets mean people are discussing your tweet, disagreeing, agreeing, addin
 → Network expanding exponentially
 → Influence becoming undeniable
 
-**THE EMOTIONAL WIN:** When people quote tweet your message, they're taking it further. They're saying "this matters enough to discuss." That's the highest compliment on Twitter.`,
+**THE WIN:** When people quote tweet your message, they're taking it further. They're saying "this matters enough to discuss." That's the highest compliment on Twitter.`,
     category: PLATFORMS.TWITTER,
     action: 'Quote Tweets',
     pricePerUnit: 300,
@@ -1090,7 +1090,7 @@ Threads is the Twitter alternative exploding. Get 100-500 followers and establis
 → Creating long-term asset
 → Positioning for Threads monetization
 
-**THE EMOTIONAL WIN:** You're building something from the ground up. You're not late to this platform. You're early. You're positioned to be a voice people remember on Threads.`,
+**THE WIN:** You're building something from the ground up. You're not late to this platform. You're early. You're positioned to be a voice people remember on Threads.`,
     category: PLATFORMS.THREADS,
     action: 'Followers',
     pricePerUnit: 150,
@@ -1127,7 +1127,7 @@ Early engagement on new platforms matters more. Get 200-500 likes on your Thread
 → Attracting early followers organically
 → Positioning for platform growth
 
-**THE EMOTIONAL WIN:** You're not just present on Threads—you're established. Your content gets engagement. People are responding. That's momentum on a new platform.`,
+**THE WIN:** You're not just present on Threads—you're established. Your content gets engagement. People are responding. That's momentum on a new platform.`,
     category: PLATFORMS.THREADS,
     action: 'Likes',
     pricePerUnit: 100,
@@ -1164,7 +1164,7 @@ Comments create discussion. Get 15-30 comments on your Threads and build communi
 → Creating network on emerging platform
 → Preparing for platform monetization
 
-**THE EMOTIONAL WIN:** You're not just posting on Threads—you're building community. People are discussing your ideas. That's the foundation of long-term influence.`,
+**THE WIN:** You're not just posting on Threads—you're building community. People are discussing your ideas. That's the foundation of long-term influence.`,
     category: PLATFORMS.THREADS,
     action: 'Comments',
     pricePerUnit: 200,
@@ -1203,7 +1203,7 @@ Pinterest followers become repeat traffic. Get 100-500 followers and build everg
 → Long-tail traffic generating sales
 → Revenue multiplying from platform
 
-**THE EMOTIONAL WIN:** Pinterest is the highest-converting social platform. Every follower is potential customer. You're building actual business, not just audience.`,
+**THE WIN:** Pinterest is the highest-converting social platform. Every follower is potential customer. You're building actual business, not just audience.`,
     category: PLATFORMS.PINTEREST,
     action: 'Followers',
     pricePerUnit: 130,
@@ -1240,7 +1240,7 @@ Repins amplify pins beyond your audience. Get 100-300 repins and your pins sprea
 → Content authority building
 → Long-term assets generating revenue
 
-**THE EMOTIONAL WIN:** Pinterest pins keep working. They drive traffic weeks, months, years after pinning. You're building evergreen income source.`,
+**THE WIN:** Pinterest pins keep working. They drive traffic weeks, months, years after pinning. You're building evergreen income source.`,
     category: PLATFORMS.PINTEREST,
     action: 'Repins',
     pricePerUnit: 160,
@@ -1277,7 +1277,7 @@ Likes on Pinterest signal valuable content. Get 150-400 likes on pins and they g
 → Sales/leads multiplying
 → Long-term traffic compounding
 
-**THE EMOTIONAL WIN:** Pinterest success means consistent traffic and sales. That's not vanity—that's business. That's real revenue.`,
+**THE WIN:** Pinterest success means consistent traffic and sales. That's not vanity—that's business. That's real revenue.`,
     category: PLATFORMS.PINTEREST,
     action: 'Likes',
     pricePerUnit: 120,
@@ -1314,7 +1314,7 @@ Comments show pins are valuable and discussion-worthy. Get 10-20 comments and in
 → Authority cementing
 → Business growing
 
-**THE EMOTIONAL WIN:** Pinterest community engagement means people are invested in your content. They're not just liking—they're discussing. That's community.`,
+**THE WIN:** Pinterest community engagement means people are invested in your content. They're not just liking—they're discussing. That's community.`,
     category: PLATFORMS.PINTEREST,
     action: 'Comments',
     pricePerUnit: 250,
@@ -1353,7 +1353,7 @@ Telegram followers are subscribers who get every message. Get 200-1,000 follower
 → Community monetization potential
 → Loyal, engaged audience
 
-**THE EMOTIONAL WIN:** Telegram audience is real community. People subscribed to hear from YOU specifically. That's not follower vanity—that's genuine connection. That's a business asset.`,
+**THE WIN:** Telegram audience is real community. People subscribed to hear from YOU specifically. That's not follower vanity—that's genuine connection. That's a business asset.`,
     category: PLATFORMS.TELEGRAM,
     action: 'Channel Followers',
     pricePerUnit: 140,
@@ -1390,7 +1390,7 @@ Post views on Telegram show engagement and reach. Get 1,000-5,000 views and esta
 📊 Authority building on platform
 → Network expanding
 
-**THE EMOTIONAL WIN:** Telegram success means direct reach. You're not competing with algorithm—you're just reaching people directly. More views = bigger voice.`,
+**THE WIN:** Telegram success means direct reach. You're not competing with algorithm—you're just reaching people directly. More views = bigger voice.`,
     category: PLATFORMS.TELEGRAM,
     action: 'Post Views',
     pricePerUnit: 80,
@@ -1427,7 +1427,7 @@ Reactions show posts resonate. Get 50-150 reactions and establish community enga
 → Authority establishing
 → Loyal community forming
 
-**THE EMOTIONAL WIN:** Reactions mean people feel your message. Different emoji reactions show different perspectives and sentiments. That's nuanced, authentic community engagement.`,
+**THE WIN:** Reactions mean people feel your message. Different emoji reactions show different perspectives and sentiments. That's nuanced, authentic community engagement.`,
     category: PLATFORMS.TELEGRAM,
     action: 'Reactions',
     pricePerUnit: 160,
@@ -1466,7 +1466,7 @@ WhatsApp channel followers get direct messages from you. Get 200-1,000 followers
 → Most trusted platform
 → Business building potential
 
-**THE EMOTIONAL WIN:** WhatsApp is intimate. People don't add just anyone. Your followers actively want your messages. That's not passive follower—that's active subscriber. That's real relationship.`,
+**THE WIN:** WhatsApp is intimate. People don't add just anyone. Your followers actively want your messages. That's not passive follower—that's active subscriber. That's real relationship.`,
     category: PLATFORMS.WHATSAPP,
     action: 'Channel Followers',
     pricePerUnit: 170,
@@ -1503,7 +1503,7 @@ Message views on WhatsApp show message engagement. Get 1,000-5,000 views and est
 → Building business from WhatsApp
 → Creating monetization model
 
-**THE EMOTIONAL WIN:** WhatsApp views are real—people are reading your messages. That's not vanity metric. That's actual reach to actual people who care.`,
+**THE WIN:** WhatsApp views are real—people are reading your messages. That's not vanity metric. That's actual reach to actual people who care.`,
     category: PLATFORMS.WHATSAPP,
     action: 'Message Views',
     pricePerUnit: 100,
@@ -1540,7 +1540,7 @@ Reactions show your messages resonate. Get 30-100 reactions and prove content va
 → Growing engaged community
 → Building business from engagement
 
-**THE EMOTIONAL WIN:** Reactions are intimate. WhatsApp reactions feel personal. Different emoji reactions show nuanced community sentiment. That's connection.`,
+**THE WIN:** Reactions are intimate. WhatsApp reactions feel personal. Different emoji reactions show nuanced community sentiment. That's connection.`,
     category: PLATFORMS.WHATSAPP,
     action: 'Message Reactions',
     pricePerUnit: 140,
@@ -1579,7 +1579,7 @@ Spotify followers = recurring listeners. Get 100-500 followers and build fanbase
 → Artist credibility establishing
 → Music career building momentum
 
-**THE EMOTIONAL WIN:** Spotify followers mean people love your music. They subscribed to you specifically. That's artist validation. That's career building.`,
+**THE WIN:** Spotify followers mean people love your music. They subscribed to you specifically. That's artist validation. That's career building.`,
     category: PLATFORMS.SPOTIFY,
     action: 'Followers',
     pricePerUnit: 200,
@@ -1616,7 +1616,7 @@ Spotify's algorithm prioritizes tracks getting plays. Get 1,000-5,000 plays and 
 → Stream revenue starting
 → Music career momentum building
 
-**THE EMOTIONAL WIN:** Spotify streams = money. Each stream is revenue. Watching stream count climb is watching your music career generate income.`,
+**THE WIN:** Spotify streams = money. Each stream is revenue. Watching stream count climb is watching your music career generate income.`,
     category: PLATFORMS.SPOTIFY,
     action: 'Plays',
     pricePerUnit: 120,
@@ -1653,7 +1653,7 @@ Saves (likes) on Spotify create repeat listeners and save you to playlists. Get 
 → Artist credibility rising
 → Music career advancing
 
-**THE EMOTIONAL WIN:** Saves mean people love your music enough to save it. They're not one-time listeners—they're fans. They're coming back. That's career foundation.`,
+**THE WIN:** Saves mean people love your music enough to save it. They're not one-time listeners—they're fans. They're coming back. That's career foundation.`,
     category: PLATFORMS.SPOTIFY,
     action: 'Likes',
     pricePerUnit: 180,
@@ -1692,7 +1692,7 @@ Twitch followers get notified when you go live. Get 500-2,000 followers and buil
 → Sponsorship opportunity emerging
 → Streaming career building
 
-**THE EMOTIONAL WIN:** Twitch followers are live viewers. Every stream they show up. That's recurring audience. That's community. That's streaming career foundation.`,
+**THE WIN:** Twitch followers are live viewers. Every stream they show up. That's recurring audience. That's community. That's streaming career foundation.`,
     category: PLATFORMS.TWITCH,
     action: 'Followers',
     pricePerUnit: 210,
@@ -1729,7 +1729,7 @@ Views during streams trigger Twitch algorithm. Get 2,000-10,000 views and establ
 → Stream quality signal sending
 → Career momentum building
 
-**THE EMOTIONAL WIN:** Live viewer counts are real-time validation. Watching viewers climb during stream is addictive. That's momentum. That's proof people want your content.`,
+**THE WIN:** Live viewer counts are real-time validation. Watching viewers climb during stream is addictive. That's momentum. That's proof people want your content.`,
     category: PLATFORMS.TWITCH,
     action: 'Views',
     pricePerUnit: 90,
@@ -1766,7 +1766,7 @@ Subscriptions are Twitch's monetization. Get 50-200 subscribers and start earnin
 → Becoming full-time streamer
 → Building media empire
 
-**THE EMOTIONAL WIN:** Subscriptions = REVENUE. Real money monthly. That's not just audience—that's income. That's turning streaming into profession.`,
+**THE WIN:** Subscriptions = REVENUE. Real money monthly. That's not just audience—that's income. That's turning streaming into profession.`,
     category: PLATFORMS.TWITCH,
     action: 'Subscriptions',
     pricePerUnit: 600,
@@ -1803,7 +1803,7 @@ Channel points gamify engagement. Get 10,000-50,000 channel points activity and 
 → Stream quality improving
 → Community becoming powerful
 
-**THE EMOTIONAL WIN:** Channel points create engagement loops. People come back to earn points. That's community building. That's loyalty. That's recurring engagement.`,
+**THE WIN:** Channel points create engagement loops. People come back to earn points. That's community building. That's loyalty. That's recurring engagement.`,
     category: PLATFORMS.TWITCH,
     action: 'Channel Points',
     pricePerUnit: 200,
@@ -1840,7 +1840,7 @@ Active chat makes streams feel alive. Get 100-300 chat messages and make streams
 → Viewer retention improving
 → Community building authentically
 
-**THE EMOTIONAL WIN:** Active chat makes streaming FUN. Dialogue with audience is why streaming matters. Active chat = community. That's the real appeal of streaming.`,
+**THE WIN:** Active chat makes streaming FUN. Dialogue with audience is why streaming matters. Active chat = community. That's the real appeal of streaming.`,
     category: PLATFORMS.TWITCH,
     action: 'Chat Comments',
     pricePerUnit: 220,
@@ -1879,7 +1879,7 @@ Snapchat rewards accounts with momentum. Get 100–1,000 real followers and boos
 → Increase story reach to broader circles
 → Qualify for Snapchat creator monetization
 
-**THE EMOTIONAL WIN:** Every new follower is a real person who chose to connect with you. That's not a number — that's your audience showing up.`,
+**THE WIN:** Every new follower is a real person who chose to connect with you. That's not a number — that's your audience showing up.`,
     category: PLATFORMS.SNAPCHAT,
     action: 'Followers',
     pricePerUnit: 5000,
@@ -1916,7 +1916,7 @@ Stories disappear in 24 hours — so timing is everything. Get 500–5,000 real 
 → Behind-the-scenes content driving engagement
 → Event announcements reaching audience in time
 
-**THE EMOTIONAL WIN:** Posting a story and watching the views climb in real time is addictive validation. Your content matters. People are watching.`,
+**THE WIN:** Posting a story and watching the views climb in real time is addictive validation. Your content matters. People are watching.`,
     category: PLATFORMS.SNAPCHAT,
     action: 'Story Views',
     pricePerUnit: 1000,
@@ -1953,7 +1953,7 @@ When someone saves your snap, they're saying "this is too good to lose." Get 100
 → Inspirational content saving as wallpapers
 → Your snaps appearing in "saved" collections
 
-**THE EMOTIONAL WIN:** Saves mean your content has value beyond the moment. It's worth keeping. That's not just engagement — that's impact.`,
+**THE WIN:** Saves mean your content has value beyond the moment. It's worth keeping. That's not just engagement — that's impact.`,
     category: PLATFORMS.SNAPCHAT,
     action: 'Saves',
     pricePerUnit: 3000,
@@ -1990,7 +1990,7 @@ Sharing on Snapchat means your content reaches networks you've never touched. Ge
 → Word-of-mouth marketing at scale
 → Brand recognition growing organically
 
-**THE EMOTIONAL WIN:** A share is the highest compliment. Someone thought your content was so good, so important, so funny — that they had to share it. That's influence at its most authentic.`,
+**THE WIN:** A share is the highest compliment. Someone thought your content was so good, so important, so funny — that they had to share it. That's influence at its most authentic.`,
     category: PLATFORMS.SNAPCHAT,
     action: 'Shares',
     pricePerUnit: 4000,
@@ -2027,7 +2027,7 @@ Snapchat Spotlight is Snapchat's answer to TikTok — and it pays creators. Get 
 → Comedy and trending content going massive
 → Tutorials reaching audience who needs them
 
-**THE EMOTIONAL WIN:** Snapchat Spotlight literally pays you when your content performs. Real views mean real potential for real income. That's not just engagement — that's your content working for you.`,
+**THE WIN:** Snapchat Spotlight literally pays you when your content performs. Real views mean real potential for real income. That's not just engagement — that's your content working for you.`,
     category: PLATFORMS.SNAPCHAT,
     action: 'Views',
     pricePerUnit: 1000,

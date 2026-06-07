@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiLogOut, FiHome, FiShoppingCart, FiKey, FiBook, FiMenu, FiX, FiCreditCard, FiDownload, FiInbox, FiUser } from 'react-icons/fi';
+import { FiLogOut, FiHome, FiShoppingCart, FiKey, FiBook, FiMenu, FiX, FiCreditCard, FiDownload, FiInbox, FiUser, FiGift } from 'react-icons/fi';
 import { LogoImage } from './LogoImage';
 
 interface ModernSabiHeaderProps {
@@ -79,6 +79,7 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
     { href: '/sabi/dashboard', label: 'Dashboard', icon: FiHome, badge: null },
     { href: '/sabi/order', label: 'New Order', icon: FiShoppingCart, badge: 'Quick' },
     { href: '/sabi/orders', label: 'Orders', icon: FiInbox, badge: null },
+    { href: '/sabi/referral', label: 'Refer & Earn', icon: FiGift, badge: '₦500' },
     { href: '/sabi/profile', label: 'Profile', icon: FiUser, badge: null },
     { href: '/sabi/api-keys', label: 'API Keys', icon: FiKey, badge: null },
     { href: '/sabi/docs', label: 'Docs', icon: FiBook, badge: 'Dev' },
