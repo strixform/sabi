@@ -1,527 +1,549 @@
+/**
+ * SABI Admin Dashboard
+ * /sabi/admin
+ *
+ * Full-featured admin panel modelled after Owlet's admin layout.
+ * Tabs: Orders | Users | Payments | Referrals | Settings
+ *
+ * Auth: accepts either a valid SABI session cookie (email must match
+ * NEXT_PUBLIC_ADMIN_EMAIL) OR the hardcoded admin token stored in
+ * sessionStorage by /sabi/admin/login.
+ * See src/lib/sabiAdminAuth.ts for the shared auth helper.
+ */
+
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import Link from 'next/link';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
-  FiArrowLeft, FiLoader, FiCheck, FiX, FiTrendingUp, FiUsers, FiZap,
-  FiChevronDown, FiFilter, FiRefreshCw, FiSend, FiAlertCircle, FiCheckCircle, FiSettings
+  FiRefreshCw, FiSearch, FiSettings, FiUsers, FiDollarSign,
+  FiShoppingBag, FiGift, FiExternalLink, FiChevronLeft, FiChevronRight,
 } from 'react-icons/fi';
-import { GradientText } from '@/components/AnimatedText';
-import { InteractiveCard } from '@/components/InteractiveCard';
-import { AnimatedBackground } from '@/components/AnimatedBackground';
 
-interface SabiOrder {
-  id: string;
-  serviceType: string;
-  targetUrl: string;
-  quantity: number;
-  totalPrice: number;
-  status: string;
-  createdAt: string;
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface Order {
+  id: string; serviceType: string; targetUrl: string;
+  quantity: number; totalPrice: number; status: string;
+  completedQuantity: number; createdAt: string;
   user: { email: string; name: string };
 }
 
-interface Tasker {
-  id: string;
-  name: string;
-  username: string;
-  currentLoad: number;
-  maxCapacity: number;
-  specializations: string[];
-  pointsPerTask: number;
+interface User {
+  id: string; email: string; name: string; status: string;
+  emailVerified: boolean; balance: number; totalSpent: number;
+  totalFunded: number; lastAuth: string | null; createdAt: string;
 }
 
-interface AdminStats {
-  totalOrders: number;
-  pendingOrders: number;
-  processingOrders: number;
-  completedOrders: number;
-  totalRevenue: number;
-  availableTaskers: number;
+interface Payment {
+  id: string; userId: string; userEmail: string; userName: string;
+  type: string; amount: number; reference: string | null;
+  description: string; createdAt: string;
 }
+
+interface Referrer {
+  userId: string; email: string; name: string;
+  registrations: number; qualified: number; paid: number;
+  totalEarnings: number; availableEarnings: number;
+}
+
+interface Stats {
+  totalOrders: number; pendingOrders: number;
+  processingOrders: number; completedOrders: number;
+  totalRevenue: number;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const STATUS_COLORS: Record<string, string> = {
+  pending:   'bg-yellow-500/15 text-yellow-400 border-yellow-500/30',
+  executing: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
+  completed: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+  failed:    'bg-red-500/15 text-red-400 border-red-500/30',
+  cancelled: 'bg-gray-500/15 text-gray-400 border-gray-500/30',
+  active:    'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+  banned:    'bg-red-500/15 text-red-400 border-red-500/30',
+  deposit:   'bg-emerald-500/15 text-emerald-400',
+  order:     'bg-blue-500/15 text-blue-400',
+  refund:    'bg-yellow-500/15 text-yellow-400',
+  bonus:     'bg-purple-500/15 text-purple-400',
+};
+
+const fmt = (kobo: number) => `₦${Math.round(kobo / 100).toLocaleString()}`;
+const fmtDate = (d: string) => new Date(d).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' });
+const TABS = ['Orders', 'Users', 'Payments', 'Referrals', 'Settings'] as const;
+type Tab = typeof TABS[number];
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
   const router = useRouter();
-  const [authorized, setAuthorized] = useState(false);
-  const [adminEmail, setAdminEmail] = useState('');
-  const [orders, setOrders] = useState<SabiOrder[]>([]);
-  const [taskers, setTaskers] = useState<Tasker[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<AdminStats | null>(null);
-  const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [forwardingOrders, setForwardingOrders] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
+  const [authorized, setAuthorized]   = useState(false);
+  const [adminEmail, setAdminEmail]   = useState('');
+  const [tab, setTab]                 = useState<Tab>('Orders');
+  const [search, setSearch]           = useState('');
+  const [loading, setLoading]         = useState(true);
+  const [msg, setMsg]                 = useState('');
 
-  // Check admin authorization — accepts either:
-  // 1. A valid SABI session cookie where the user email is the admin email
-  // 2. A valid admin token stored in sessionStorage from the token login page
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        // Check sessionStorage token first (from /sabi/admin/login page)
-        const storedToken = typeof window !== 'undefined' ? sessionStorage.getItem('sabi_admin_token') : null;
-        const hardcodedToken = 'sk_admin_1780564071_449271af_b8ad69b3dfe5739d';
-        if (storedToken === hardcodedToken || storedToken === process.env.NEXT_PUBLIC_ADMIN_TOKEN) {
-          setAuthorized(true);
-          setAdminEmail('olusehinde09@gmail.com');
-          fetchAdminData();
-          return;
-        }
+  // Orders
+  const [orders, setOrders]   = useState<Order[]>([]);
+  const [stats,  setStats]    = useState<Stats | null>(null);
+  const [orderPage, setOrderPage] = useState(0);
+  const [orderTotal, setOrderTotal] = useState(0);
+  const [statusFilter, setStatusFilter] = useState('');
 
-        // Fall back to SABI session cookie check
-        const res = await fetch('/api/sabi/auth/me');
-        const data = await res.json();
+  // Users
+  const [users, setUsers]         = useState<User[]>([]);
+  const [userPage, setUserPage]   = useState(0);
+  const [userTotal, setUserTotal] = useState(0);
 
-        if (data.success && data.user?.email) {
-          const expectedAdmin = process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'Olusehinde09@gmail.com';
-          const userEmail = data.user.email.toLowerCase();
-          const adminEmail = expectedAdmin.toLowerCase();
+  // Payments
+  const [payments, setPayments]       = useState<Payment[]>([]);
+  const [payPage,  setPayPage]        = useState(0);
+  const [payTotal, setPayTotal]       = useState(0);
+  const [payStats, setPayStats]       = useState<any>(null);
 
-          if (userEmail === adminEmail) {
-            setAuthorized(true);
-            setAdminEmail(data.user.email);
-            fetchAdminData();
-          } else {
-            console.error(`Admin check failed: ${userEmail} !== ${adminEmail}`);
-            router.push('/sabi/dashboard');
-          }
-        } else {
-          router.push('/sabi/admin/login');
-        }
-      } catch (err) {
-        console.error('Auth check error:', err);
-        router.push('/sabi/login');
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Referrals
+  const [referrers, setReferrers]   = useState<Referrer[]>([]);
+  const [refStats,  setRefStats]    = useState<any>(null);
 
-    checkAuth();
-  }, [router]);
+  // Settings (WhatsApp + order limits — managed by /sabi/admin/settings)
+  const LIMIT = 50;
 
-  // Helper: attach admin token to every API call so token-login works
-  const adminFetch = (url: string, opts: RequestInit = {}) => {
+  // ── Auth: token from sessionStorage (admin/login page) or SABI session cookie ──
+  const adminFetch = useCallback((url: string, opts: RequestInit = {}) => {
     const token = typeof window !== 'undefined' ? sessionStorage.getItem('sabi_admin_token') : null;
     return fetch(url, {
       ...opts,
       headers: { ...(opts.headers || {}), ...(token ? { 'x-admin-token': token } : {}) },
     });
-  };
+  }, []);
 
-  const fetchAdminData = async () => {
-    try {
-      setLoading(true);
-
-      const [ordersRes, statsRes] = await Promise.all([
-        adminFetch('/api/sabi/admin/orders'),
-        adminFetch('/api/sabi/admin/stats'),
-      ]);
-
-      if (ordersRes.ok) {
-        const ordersData = await ordersRes.json();
-        setOrders(ordersData.orders || []);
+  // ── Check auth on mount ────────────────────────────────────────────────────
+  useEffect(() => {
+    (async () => {
+      const token = typeof window !== 'undefined' ? sessionStorage.getItem('sabi_admin_token') : null;
+      const hardcoded = 'sk_admin_1780564071_449271af_b8ad69b3dfe5739d';
+      if (token === hardcoded || token === process.env.NEXT_PUBLIC_ADMIN_TOKEN) {
+        setAuthorized(true); setAdminEmail('olusehinde09@gmail.com'); return;
       }
+      // Fall back to SABI session
+      try {
+        const res = await fetch('/api/sabi/auth/me');
+        const d   = await res.json();
+        if (d.success && d.user?.email) {
+          const expected = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'olusehinde09@gmail.com').toLowerCase();
+          if (d.user.email.toLowerCase() === expected) {
+            setAuthorized(true); setAdminEmail(d.user.email); return;
+          }
+        }
+      } catch {}
+      router.push('/sabi/admin/login');
+    })();
+  }, [router]);
 
-      if (statsRes.ok) {
-        const statsData = await statsRes.json();
-        setStats(statsData.stats);
-      }
-    } catch (err) {
-      setErrorMessage('Failed to load admin data');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // ── Fetch data when tab or filters change ─────────────────────────────────
+  useEffect(() => {
+    if (!authorized) return;
+    setLoading(true);
+    const qs = (p: Record<string, string | number>) =>
+      '?' + new URLSearchParams(Object.entries(p).map(([k, v]) => [k, String(v)])).toString();
 
-  const toggleOrderSelection = (orderId: string) => {
-    const newSelected = new Set(selectedOrders);
-    if (newSelected.has(orderId)) {
-      newSelected.delete(orderId);
-    } else {
-      newSelected.add(orderId);
-    }
-    setSelectedOrders(newSelected);
-  };
+    const go = async () => {
+      try {
+        if (tab === 'Orders') {
+          const p: any = { limit: LIMIT, offset: orderPage * LIMIT };
+          if (search)       p.search = search;
+          if (statusFilter) p.status = statusFilter;
+          const [o, s] = await Promise.all([
+            adminFetch('/api/sabi/admin/orders'  + qs(p)).then(r => r.json()),
+            adminFetch('/api/sabi/admin/stats').then(r => r.json()),
+          ]);
+          if (o.success) { setOrders(o.orders || []); setOrderTotal(o.pagination?.total ?? o.orders?.length ?? 0); }
+          if (s.success) setStats(s.stats);
+        }
+        if (tab === 'Users') {
+          const p: any = { limit: LIMIT, offset: userPage * LIMIT };
+          if (search) p.search = search;
+          const d = await adminFetch('/api/sabi/admin/users' + qs(p)).then(r => r.json());
+          if (d.success) { setUsers(d.users || []); setUserTotal(d.total ?? 0); }
+        }
+        if (tab === 'Payments') {
+          const p: any = { limit: LIMIT, offset: payPage * LIMIT };
+          if (search) p.search = search;
+          const d = await adminFetch('/api/sabi/admin/payments' + qs(p)).then(r => r.json());
+          if (d.success) { setPayments(d.transactions || []); setPayTotal(d.total ?? 0); setPayStats(d.stats); }
+        }
+        if (tab === 'Referrals') {
+          const d = await adminFetch('/api/sabi/admin/referrals').then(r => r.json());
+          if (d.success) { setReferrers(d.referrers || []); setRefStats(d.stats); }
+        }
+      } catch (e) { console.error('Admin fetch error:', e); }
+      finally { setLoading(false); }
+    };
+    go();
+  }, [authorized, tab, orderPage, userPage, payPage, search, statusFilter, adminFetch]);
 
-  const toggleAllOrders = () => {
-    if (selectedOrders.size === filteredOrders.length) {
-      setSelectedOrders(new Set());
-    } else {
-      const allIds = new Set(filteredOrders.map(o => o.id));
-      setSelectedOrders(allIds);
-    }
-  };
+  if (!authorized) return (
+    <div className="min-h-screen bg-[#030507] flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
+    </div>
+  );
 
-  const filteredOrders = filterStatus === 'all'
-    ? orders
-    : orders.filter(o => o.status === filterStatus);
-
-  const handleForwardToGamerz360 = async () => {
-    if (selectedOrders.size === 0) {
-      setErrorMessage('Please select at least one order');
-      return;
-    }
-
-    try {
-      setForwardingOrders(true);
-      setErrorMessage('');
-      setSuccessMessage('');
-
-      const selectedOrderList = Array.from(selectedOrders);
-      const ordersToForward = orders.filter(o => selectedOrderList.includes(o.id));
-
-      // Generate Gamerz360 import data
-      const gamerz360Data = {
-        source: 'SABI Admin',
-        timestamp: new Date().toISOString(),
-        totalOrders: ordersToForward.length,
-        orders: ordersToForward.map(o => ({
-          id: o.id,
-          service: o.serviceType,
-          quantity: o.quantity,
-          url: o.targetUrl,
-          amount: o.totalPrice,
-          customer: o.user.email,
-        })),
-      };
-
-      // Copy to clipboard or download
-      const json = JSON.stringify(gamerz360Data, null, 2);
-      await navigator.clipboard.writeText(json);
-
-      setSuccessMessage(
-        `✅ ${ordersToForward.length} orders copied to clipboard! Paste in Gamerz360 Admin to continue.`
-      );
-      setSelectedOrders(new Set());
-    } catch (err) {
-      setErrorMessage('Error preparing orders for Gamerz360');
-      console.error(err);
-    } finally {
-      setForwardingOrders(false);
-    }
-  };
-
-  if (!authorized) {
+  const Pagination = ({ page, total, setPage }: { page: number; total: number; setPage: (n: number) => void }) => {
+    const pages = Math.ceil(total / LIMIT);
+    if (pages <= 1) return null;
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 to-slate-900">
-        <div className="text-center text-slate-400">
-          <FiLoader className="w-8 h-8 animate-spin mx-auto mb-4" />
-          <p>Verifying authorization...</p>
+      <div className="flex items-center justify-between px-4 py-3 border-t border-white/[0.06] text-xs text-slate-500">
+        <span>Showing {page * LIMIT + 1}–{Math.min((page + 1) * LIMIT, total)} of {total}</span>
+        <div className="flex gap-2">
+          <button onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}
+            className="px-3 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 rounded transition flex items-center gap-1">
+            <FiChevronLeft className="w-3 h-3" /> Prev
+          </button>
+          <button onClick={() => setPage(Math.min(pages - 1, page + 1))} disabled={page >= pages - 1}
+            className="px-3 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 rounded transition flex items-center gap-1">
+            Next <FiChevronRight className="w-3 h-3" />
+          </button>
         </div>
       </div>
     );
-  }
+  };
 
   return (
-    <div className="min-h-screen relative bg-gradient-to-br from-blue-950 via-blue-900 to-slate-950 overflow-hidden">
-      <AnimatedBackground />
+    <div className="min-h-screen bg-[#0a0d14] text-white">
 
-      {/* Header */}
-      <div className="relative z-20 border-b border-cyan-500/30 bg-gradient-to-r from-blue-900/80 to-cyan-900/80 backdrop-blur-xl sticky top-0">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-black mb-2">
-                <GradientText>SABI Orders</GradientText>
-              </h1>
-              <p className="text-sm text-cyan-300">View all sabi orders • Forward to Gamerz360 Admin</p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-cyan-300">Logged in as</p>
-              <p className="text-lg font-bold text-cyan-400">{adminEmail}</p>
-            </div>
-          </div>
+      {/* ── Top bar ─────────────────────────────────────────────────────── */}
+      <div className="border-b border-white/[0.06] px-6 py-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">SABI Admin</h1>
+          <p className="text-slate-500 text-xs mt-0.5">Logged in as <span className="text-white">{adminEmail}</span></p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Link href="/sabi/admin/settings"
+            className="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg transition">
+            <FiSettings className="w-4 h-4" /> Settings
+          </Link>
+          <Link href="/sabi/dashboard"
+            className="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg transition">
+            ← Dashboard
+          </Link>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 py-12">
-        {/* Alert Messages */}
-        <AnimatePresence>
-          {successMessage && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="mb-6 p-4 bg-emerald-500/20 border border-emerald-500/50 rounded-lg text-emerald-400 flex items-center gap-2"
-            >
-              <FiCheckCircle className="w-5 h-5" />
-              {successMessage}
-            </motion.div>
-          )}
-          {errorMessage && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 flex items-center gap-2"
-            >
-              <FiAlertCircle className="w-5 h-5" />
-              {errorMessage}
-            </motion.div>
-          )}
-        </AnimatePresence>
+      {/* ── Tab nav ─────────────────────────────────────────────────────── */}
+      <div className="border-b border-white/[0.06] px-6 flex gap-1">
+        {TABS.map(t => (
+          <button key={t} onClick={() => { setTab(t); setSearch(''); }}
+            className={`flex items-center gap-2 px-4 py-3.5 text-sm font-semibold border-b-2 transition ${
+              tab === t ? 'border-blue-500 text-white' : 'border-transparent text-slate-500 hover:text-slate-300'
+            }`}>
+            {t === 'Orders'    && <FiShoppingBag className="w-4 h-4" />}
+            {t === 'Users'     && <FiUsers       className="w-4 h-4" />}
+            {t === 'Payments'  && <FiDollarSign  className="w-4 h-4" />}
+            {t === 'Referrals' && <FiGift        className="w-4 h-4" />}
+            {t === 'Settings'  && <FiSettings    className="w-4 h-4" />}
+            {t}
+          </button>
+        ))}
+      </div>
 
-        {/* Stats Cards */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0 }}
-            >
-              <InteractiveCard glowColor="purple">
-                <div className="p-6">
-                  <p className="text-sm text-slate-400 mb-2">Total Orders</p>
-                  <p className="text-3xl font-bold text-blue-400">{stats.totalOrders}</p>
-                </div>
-              </InteractiveCard>
-            </motion.div>
+      <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <InteractiveCard glowColor="pink">
-                <div className="p-6">
-                  <p className="text-sm text-slate-400 mb-2">Pending</p>
-                  <p className="text-3xl font-bold text-yellow-400">{stats.pendingOrders}</p>
-                </div>
-              </InteractiveCard>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <InteractiveCard glowColor="purple">
-                <div className="p-6">
-                  <p className="text-sm text-slate-400 mb-2">Processing</p>
-                  <p className="text-3xl font-bold text-purple-400">{stats.processingOrders}</p>
-                </div>
-              </InteractiveCard>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <InteractiveCard glowColor="emerald">
-                <div className="p-6">
-                  <p className="text-sm text-slate-400 mb-2">Completed</p>
-                  <p className="text-3xl font-bold text-emerald-400">{stats.completedOrders}</p>
-                </div>
-              </InteractiveCard>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              <InteractiveCard glowColor="orange">
-                <div className="p-6">
-                  <p className="text-sm text-slate-400 mb-2">Total Revenue</p>
-                  <p className="text-3xl font-bold text-orange-400">
-                    ₦{(stats.totalRevenue / 100000).toFixed(1)}K
-                  </p>
-                </div>
-              </InteractiveCard>
-            </motion.div>
-          </div>
-        )}
-
-        {/* Orders Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-        >
-          <InteractiveCard glowColor="purple">
-            <div className="p-8">
-              {/* Toolbar */}
-              <div className="flex items-center justify-between mb-6 pb-6 border-b border-slate-700/50">
-                <div className="flex items-center gap-4">
-                  <h3 className="text-2xl font-bold flex items-center gap-2">
-                    <FiZap className="w-6 h-6 text-blue-400" />
-                    All SABI Orders
-                  </h3>
-                  <span className="text-sm bg-slate-700/50 px-3 py-1 rounded-full text-slate-300">
-                    {selectedOrders.size} selected
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {/* Filter Dropdown */}
-                  <select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    className="px-4 py-2 bg-slate-800/50 border border-slate-700/50 text-slate-300 rounded-lg cursor-pointer hover:bg-slate-800 transition"
-                  >
-                    <option value="all">All Status</option>
-                    <option value="pending">Pending</option>
-                    <option value="processing">Processing</option>
-                    <option value="completed">Completed</option>
-                    <option value="failed">Failed</option>
-                  </select>
-
-                  <button
-                    onClick={fetchAdminData}
-                    className="p-2 hover:bg-slate-700/50 rounded-lg transition text-slate-400"
-                    title="Refresh"
-                  >
-                    <FiRefreshCw className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Forward to Gamerz360 Button */}
-              {selectedOrders.size > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mb-6 p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg"
-                >
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div>
-                      <p className="text-orange-300 font-semibold">
-                        <strong>{selectedOrders.size}</strong> order{selectedOrders.size !== 1 ? 's' : ''} ready for Gamerz360
-                      </p>
-                      <p className="text-xs text-slate-400 mt-1">
-                        Copy order data and paste in Gamerz360 Admin to push to taskers
-                      </p>
-                    </div>
-                    <motion.button
-                      onClick={handleForwardToGamerz360}
-                      className="px-6 py-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold rounded-lg transition flex items-center gap-2 whitespace-nowrap"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      disabled={forwardingOrders}
-                    >
-                      <FiSend className="w-4 h-4" />
-                      {forwardingOrders ? 'Copying...' : 'Copy & Forward'}
-                    </motion.button>
+        {/* ── ORDERS tab ─────────────────────────────────────────────────── */}
+        {tab === 'Orders' && (
+          <>
+            {/* Stats */}
+            {stats && (
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                {[
+                  { label: 'Total', value: stats.totalOrders, color: 'text-white' },
+                  { label: 'Pending', value: stats.pendingOrders, color: 'text-yellow-400' },
+                  { label: 'Processing', value: stats.processingOrders, color: 'text-blue-400' },
+                  { label: 'Completed', value: stats.completedOrders, color: 'text-emerald-400' },
+                  { label: 'Revenue', value: fmt(stats.totalRevenue * 100), color: 'text-purple-400' },
+                ].map(s => (
+                  <div key={s.label} className="bg-slate-900 border border-white/[0.06] rounded-xl p-4">
+                    <div className="text-xs text-slate-500 mb-1">{s.label}</div>
+                    <div className={`text-2xl font-black ${s.color}`}>{s.value}</div>
                   </div>
-                </motion.div>
-              )}
+                ))}
+              </div>
+            )}
 
-              {/* Orders Table */}
+            {/* Filters */}
+            <div className="flex flex-wrap gap-3">
+              <div className="relative flex-1 min-w-[200px]">
+                <FiSearch className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                <input value={search} onChange={e => { setSearch(e.target.value); setOrderPage(0); }}
+                  placeholder="Search email or order ID…"
+                  className="w-full pl-9 pr-4 py-2 bg-slate-900 border border-white/[0.06] text-white text-sm rounded-lg focus:outline-none focus:border-blue-500/50" />
+              </div>
+              <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setOrderPage(0); }}
+                className="px-3 py-2 bg-slate-900 border border-white/[0.06] text-slate-300 text-sm rounded-lg focus:outline-none">
+                <option value="">All status</option>
+                {['pending','executing','completed','failed','cancelled'].map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+              <button onClick={() => { setSearch(''); setStatusFilter(''); setOrderPage(0); }}
+                className="px-3 py-2 bg-slate-900 border border-white/[0.06] text-slate-400 hover:text-white text-sm rounded-lg transition flex items-center gap-1">
+                <FiRefreshCw className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Table */}
+            <div className="bg-slate-900 border border-white/[0.06] rounded-xl overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-slate-700/50">
-                      <th className="px-4 py-3 text-left">
-                        <input
-                          type="checkbox"
-                          checked={selectedOrders.size === filteredOrders.length && filteredOrders.length > 0}
-                          onChange={toggleAllOrders}
-                          className="w-4 h-4 cursor-pointer"
-                        />
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-300">Order ID</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-300">Service</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-300">Quantity</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-300">Amount</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-300">Status</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-300">Customer</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-300">Created</th>
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-800/50 border-b border-white/[0.06]">
+                    <tr>
+                      {['ID', 'User', 'Service', 'Link', 'Qty', 'Remains', 'Amount', 'Status', 'Created'].map(h => (
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-400">{h}</th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredOrders.length > 0 ? (
-                      filteredOrders.map((order) => (
-                        <tr
-                          key={order.id}
-                          className="border-b border-slate-700/30 hover:bg-slate-800/30 transition"
-                        >
-                          <td className="px-4 py-4">
-                            <input
-                              type="checkbox"
-                              checked={selectedOrders.has(order.id)}
-                              onChange={() => toggleOrderSelection(order.id)}
-                              className="w-4 h-4 cursor-pointer"
-                            />
-                          </td>
-                          <td className="px-4 py-4 text-sm font-mono text-slate-300">{order.id.slice(0, 8)}</td>
-                          <td className="px-4 py-4 text-sm text-slate-300 capitalize">{order.serviceType}</td>
-                          <td className="px-4 py-4 text-sm text-slate-300">{order.quantity}</td>
-                          <td className="px-4 py-4 text-sm font-semibold text-emerald-400">
-                            ₦{(order.totalPrice / 100).toLocaleString()}
-                          </td>
-                          <td className="px-4 py-4 text-sm">
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                order.status === 'pending'
-                                  ? 'bg-yellow-500/20 text-yellow-400'
-                                  : order.status === 'processing'
-                                  ? 'bg-blue-500/20 text-blue-400'
-                                  : order.status === 'completed'
-                                  ? 'bg-emerald-500/20 text-emerald-400'
-                                  : 'bg-red-500/20 text-red-400'
-                              }`}
-                            >
-                              {order.status}
-                            </span>
-                          </td>
-                          <td className="px-4 py-4 text-sm text-slate-400">{order.user.email}</td>
-                          <td className="px-4 py-4 text-sm text-slate-400">
-                            {new Date(order.createdAt).toLocaleDateString()}
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
-                          No orders found
+                    {loading ? (
+                      <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-600">Loading…</td></tr>
+                    ) : orders.length === 0 ? (
+                      <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-600">No orders found</td></tr>
+                    ) : orders.map(o => (
+                      <tr key={o.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                        <td className="px-4 py-3 font-mono text-xs text-slate-400">{o.id.slice(0, 10)}</td>
+                        <td className="px-4 py-3 text-xs">
+                          <div className="text-white font-medium">{o.user?.name}</div>
+                          <div className="text-slate-500">{o.user?.email}</div>
                         </td>
+                        <td className="px-4 py-3 text-xs text-slate-300 capitalize">{o.serviceType.replace(/_/g, ' ')}</td>
+                        <td className="px-4 py-3 text-xs">
+                          <a href={o.targetUrl} target="_blank" rel="noopener noreferrer"
+                            className="text-blue-400 hover:text-blue-300 flex items-center gap-1 max-w-[160px] truncate">
+                            {o.targetUrl} <FiExternalLink className="w-3 h-3 shrink-0" />
+                          </a>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-white font-semibold">{o.quantity.toLocaleString()}</td>
+                        <td className="px-4 py-3 text-xs text-slate-400">{(o.quantity - (o.completedQuantity || 0)).toLocaleString()}</td>
+                        <td className="px-4 py-3 text-xs text-white">{fmt(o.totalPrice)}</td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${STATUS_COLORS[o.status] || ''}`}>
+                            {o.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-slate-500">{fmtDate(o.createdAt)}</td>
                       </tr>
-                    )}
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Pagination page={orderPage} total={orderTotal} setPage={setOrderPage} />
+            </div>
+          </>
+        )}
+
+        {/* ── USERS tab ──────────────────────────────────────────────────── */}
+        {tab === 'Users' && (
+          <>
+            <div className="flex gap-3">
+              <div className="relative flex-1">
+                <FiSearch className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                <input value={search} onChange={e => { setSearch(e.target.value); setUserPage(0); }}
+                  placeholder="Search by name or email…"
+                  className="w-full pl-9 pr-4 py-2 bg-slate-900 border border-white/[0.06] text-white text-sm rounded-lg focus:outline-none focus:border-blue-500/50" />
+              </div>
+            </div>
+
+            <div className="bg-slate-900 border border-white/[0.06] rounded-xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-800/50 border-b border-white/[0.06]">
+                    <tr>
+                      {['ID', 'Name', 'Email', 'Balance', 'Spent', 'Status', 'Verified', 'Created', 'Last Auth'].map(h => (
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-400">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loading ? (
+                      <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-600">Loading…</td></tr>
+                    ) : users.length === 0 ? (
+                      <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-600">No users found</td></tr>
+                    ) : users.map(u => (
+                      <tr key={u.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                        <td className="px-4 py-3 font-mono text-xs text-slate-400">{u.id.slice(0, 8)}</td>
+                        <td className="px-4 py-3 text-xs text-white font-medium">{u.name}</td>
+                        <td className="px-4 py-3 text-xs text-slate-400">{u.email}</td>
+                        <td className="px-4 py-3 text-xs text-emerald-400 font-semibold">{fmt(u.balance)}</td>
+                        <td className="px-4 py-3 text-xs text-white">{fmt(u.totalSpent)}</td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${STATUS_COLORS[u.status] || ''}`}>
+                            {u.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-xs">
+                          {u.emailVerified
+                            ? <span className="text-emerald-400">✓ Yes</span>
+                            : <span className="text-slate-500">No</span>}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-slate-500">{fmtDate(u.createdAt)}</td>
+                        <td className="px-4 py-3 text-xs text-slate-500">{u.lastAuth ? fmtDate(u.lastAuth) : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Pagination page={userPage} total={userTotal} setPage={setUserPage} />
+            </div>
+          </>
+        )}
+
+        {/* ── PAYMENTS tab ───────────────────────────────────────────────── */}
+        {tab === 'Payments' && (
+          <>
+            {/* Stats */}
+            {payStats && (
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: 'Total deposited', value: fmt(payStats.totalDeposited), color: 'text-emerald-400' },
+                  { label: 'Total spent',     value: fmt(payStats.totalSpent),     color: 'text-blue-400' },
+                  { label: 'Total refunded',  value: fmt(payStats.totalRefunded),  color: 'text-yellow-400' },
+                ].map(s => (
+                  <div key={s.label} className="bg-slate-900 border border-white/[0.06] rounded-xl p-4">
+                    <div className="text-xs text-slate-500 mb-1">{s.label}</div>
+                    <div className={`text-2xl font-black ${s.color}`}>{s.value}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <div className="relative flex-1">
+                <FiSearch className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                <input value={search} onChange={e => { setSearch(e.target.value); setPayPage(0); }}
+                  placeholder="Search by ref or description…"
+                  className="w-full pl-9 pr-4 py-2 bg-slate-900 border border-white/[0.06] text-white text-sm rounded-lg focus:outline-none focus:border-blue-500/50" />
+              </div>
+            </div>
+
+            <div className="bg-slate-900 border border-white/[0.06] rounded-xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-800/50 border-b border-white/[0.06]">
+                    <tr>
+                      {['ID', 'User', 'Type', 'Amount', 'Reference', 'Description', 'Date'].map(h => (
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-400">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loading ? (
+                      <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-600">Loading…</td></tr>
+                    ) : payments.length === 0 ? (
+                      <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-600">No transactions found</td></tr>
+                    ) : payments.map(p => (
+                      <tr key={p.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                        <td className="px-4 py-3 font-mono text-xs text-slate-400">{p.id.slice(0, 10)}</td>
+                        <td className="px-4 py-3 text-xs">
+                          <div className="text-white font-medium">{p.userName}</div>
+                          <div className="text-slate-500">{p.userEmail}</div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold capitalize ${STATUS_COLORS[p.type] || 'text-slate-400'}`}>
+                            {p.type}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-xs font-semibold text-white">{fmt(p.amount)}</td>
+                        <td className="px-4 py-3 font-mono text-xs text-slate-400">{p.reference || '—'}</td>
+                        <td className="px-4 py-3 text-xs text-slate-400 max-w-[200px] truncate">{p.description}</td>
+                        <td className="px-4 py-3 text-xs text-slate-500">{fmtDate(p.createdAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Pagination page={payPage} total={payTotal} setPage={setPayPage} />
+            </div>
+          </>
+        )}
+
+        {/* ── REFERRALS tab ──────────────────────────────────────────────── */}
+        {tab === 'Referrals' && (
+          <>
+            {refStats && (
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                {[
+                  { label: 'Referrers',   value: refStats.totalReferrers, color: 'text-white' },
+                  { label: 'Sign-ups',    value: refStats.totalReferrals, color: 'text-blue-400' },
+                  { label: 'Qualified',   value: refStats.totalQualified, color: 'text-yellow-400' },
+                  { label: 'Paid out',    value: refStats.totalPaid,      color: 'text-emerald-400' },
+                  { label: 'Total ₦',     value: `₦${refStats.totalPaidOut?.toLocaleString()}`, color: 'text-purple-400' },
+                ].map(s => (
+                  <div key={s.label} className="bg-slate-900 border border-white/[0.06] rounded-xl p-4">
+                    <div className="text-xs text-slate-500 mb-1">{s.label}</div>
+                    <div className={`text-2xl font-black ${s.color}`}>{s.value}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="bg-slate-900 border border-white/[0.06] rounded-xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-800/50 border-b border-white/[0.06]">
+                    <tr>
+                      {['User', 'Email', 'Registrations', 'Qualified', 'Paid', 'Conversion', 'Total Earned', 'Available'].map(h => (
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-400">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loading ? (
+                      <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-600">Loading…</td></tr>
+                    ) : referrers.length === 0 ? (
+                      <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-600">No referral data yet</td></tr>
+                    ) : referrers.map(r => (
+                      <tr key={r.userId} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                        <td className="px-4 py-3 text-xs text-white font-medium">{r.name}</td>
+                        <td className="px-4 py-3 text-xs text-slate-400">{r.email}</td>
+                        <td className="px-4 py-3 text-xs text-white">{r.registrations}</td>
+                        <td className="px-4 py-3 text-xs text-yellow-400">{r.qualified}</td>
+                        <td className="px-4 py-3 text-xs text-emerald-400">{r.paid}</td>
+                        <td className="px-4 py-3 text-xs text-white">
+                          {r.registrations > 0 ? `${Math.round((r.qualified / r.registrations) * 100)}%` : '0%'}
+                        </td>
+                        <td className="px-4 py-3 text-xs font-semibold text-white">₦{r.totalEarnings.toLocaleString()}</td>
+                        <td className="px-4 py-3 text-xs font-semibold text-emerald-400">₦{r.availableEarnings.toLocaleString()}</td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
             </div>
-          </InteractiveCard>
-        </motion.div>
+          </>
+        )}
 
-        {/* Navigation Buttons */}
-        <motion.div className="mt-8 flex gap-4 flex-wrap" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}>
-          <Link href="/sabi/admin/promos" className="flex-1 min-w-[140px]">
-            <motion.button
-              className="w-full px-6 py-3 bg-gradient-to-r from-purple-500/30 to-pink-500/30 hover:from-purple-500/50 hover:to-pink-500/50 border border-purple-500/50 text-purple-300 font-semibold rounded-lg transition flex items-center justify-center gap-2"
-              whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-            >
-              🎟️ Promo Codes
-            </motion.button>
-          </Link>
-          <Link href="/sabi/admin/settings" className="flex-1 min-w-[140px]">
-            <motion.button
-              className="w-full px-6 py-3 bg-gradient-to-r from-blue-500/30 to-cyan-500/30 hover:from-blue-500/50 hover:to-cyan-500/50 border border-cyan-500/50 text-cyan-300 font-semibold rounded-lg transition flex items-center justify-center gap-2"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <FiSettings className="w-5 h-5" />
-              Settings
-            </motion.button>
-          </Link>
-          <Link href="/sabi/dashboard" className="flex-1">
-            <motion.button
-              className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-semibold rounded-lg transition flex items-center justify-center gap-2"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <FiArrowLeft className="w-5 h-5" />
-              Back to Dashboard
-            </motion.button>
-          </Link>
-        </motion.div>
+        {/* ── SETTINGS tab ───────────────────────────────────────────────── */}
+        {tab === 'Settings' && (
+          <div className="max-w-lg">
+            <div className="bg-slate-900 border border-white/[0.06] rounded-xl p-6 space-y-4">
+              <h2 className="text-lg font-bold text-white">Platform Settings</h2>
+              <p className="text-slate-400 text-sm">Manage WhatsApp support number, order limits and more.</p>
+              <Link href="/sabi/admin/settings"
+                className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold rounded-xl transition hover:from-blue-600 hover:to-purple-700">
+                <FiSettings className="w-4 h-4" />
+                Open Settings
+              </Link>
+              <div className="pt-2 border-t border-white/[0.06]">
+                <Link href="/sabi/admin/promos"
+                  className="inline-flex items-center gap-2 px-5 py-3 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl transition">
+                  🎁 Manage Promo Codes
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
