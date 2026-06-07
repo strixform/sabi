@@ -2,7 +2,30 @@ import { prisma } from './prisma';
 import { hash, compare } from 'bcryptjs';
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
-import { getCachedSession, setCachedSession, invalidateSessionCache } from './redis';
+
+// ─── Stability rule: Redis is OPTIONAL and must NEVER crash core auth ──────────
+// Import is lazy (inside function bodies) so a Redis module failure cannot
+// cascade and break login/register/session-check routes.
+// If Redis is unavailable, all functions return null → falls back to DB.
+// This is the correct pattern for any optional dependency used in auth.
+async function tryGetCachedSession(token: string) {
+  try {
+    const { getCachedSession } = await import('./redis');
+    return await getCachedSession(token);
+  } catch { return null; }
+}
+async function trySetCachedSession(token: string, session: unknown, ttl: number) {
+  try {
+    const { setCachedSession } = await import('./redis');
+    await setCachedSession(token, session, ttl);
+  } catch { /* non-fatal */ }
+}
+async function tryInvalidateSession(token: string) {
+  try {
+    const { invalidateSessionCache } = await import('./redis');
+    await invalidateSessionCache(token);
+  } catch { /* non-fatal */ }
+}
 
 const SESSION_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 days
 const VERIFY_CODE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
@@ -159,7 +182,8 @@ export async function getSabiSession(): Promise<SabiSession | null> {
     if (!token || !userId) return null;
 
     // 1. Check Redis cache — avoids DB query on 90%+ of requests
-    const cached = await getCachedSession(token);
+    // Safe wrapper: Redis unavailable → null → falls through to DB
+    const cached = await tryGetCachedSession(token);
     if (cached) return cached as SabiSession;
 
     // 2. Cache miss — hit DB, then warm the cache
@@ -184,8 +208,8 @@ export async function getSabiSession(): Promise<SabiSession | null> {
       emailVerified: user.emailVerified,
     };
 
-    // Warm cache — fire-and-forget so it never delays the response
-    setCachedSession(token, session, 300);
+    // Warm cache — fire-and-forget, safe wrapper ensures Redis errors never surface
+    trySetCachedSession(token, session, 300);
 
     return session;
   } catch {
@@ -195,7 +219,7 @@ export async function getSabiSession(): Promise<SabiSession | null> {
 
 // Invalidate session cache on logout — call before clearing cookies
 export async function invalidateSabiSession(token: string): Promise<void> {
-  await invalidateSessionCache(token).catch(() => {});
+  await tryInvalidateSession(token); // safe wrapper — never throws
 }
 
 // Verify email
