@@ -5,10 +5,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FiBell, FiBellOff, FiX } from 'react-icons/fi';
 
 // Convert VAPID public key (base64url) to Uint8Array
+// Must only be called in browser context (inside useEffect / event handlers).
+// window.atob is not available during Next.js SSR — using Buffer as fallback.
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = window.atob(base64);
+  // atob is safe here because this function is only ever called from inside useEffect
+  const rawData = typeof window !== 'undefined'
+    ? window.atob(base64)
+    : Buffer.from(base64, 'base64').toString('binary');
   return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
 }
 
