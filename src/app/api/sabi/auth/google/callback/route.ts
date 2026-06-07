@@ -6,6 +6,23 @@ import crypto from 'crypto';
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GOOGLE_USERINFO_URL = 'https://openidconnect.googleapis.com/v1/userinfo';
+const BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://sability.io';
+
+// 15s max — leaves buffer before Cloudflare's 100s timeout.
+// DB calls use an 8s race so a slow/rate-limited Turso never causes a 524.
+export const maxDuration = 15;
+export const preferredRegion = 'sfo1';
+
+// Wraps any promise in an 8s timeout — if DB is slow/rate-limited,
+// fail fast with a clear error instead of hanging until Cloudflare kills us.
+async function withDbTimeout<T>(p: Promise<T>): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('db_timeout')), 8000)
+    ),
+  ]);
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -67,31 +84,38 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Find or create user
-    let user = await prisma.sabiUser.findUnique({ where: { email } });
+    // Find or create user — explicit select + 8s timeout to prevent 524s
+    const SELECT = { id: true, email: true, name: true, status: true, emailVerified: true, businessName: true };
+
+    let user = await withDbTimeout(
+      prisma.sabiUser.findUnique({ where: { email }, select: SELECT })
+    );
 
     if (!user) {
-      // Create new user with Google ID
-      user = await prisma.sabiUser.create({
-        data: {
-          email,
-          name: name || email.split('@')[0],
-          googleId,
-          emailVerified: true, // Google emails are verified
-          passwordHash: await hash(crypto.randomBytes(32).toString('hex'), 10), // Random password
-          wallet: { create: {} },
-        },
-      });
-    } else if (!user.googleId) {
-      // Link Google account to existing user
-      user = await prisma.sabiUser.update({
-        where: { id: user.id },
-        data: { googleId, emailVerified: true },
-      });
+      const randomPw = await hash(crypto.randomBytes(32).toString('hex'), 10);
+      user = await withDbTimeout(
+        prisma.sabiUser.create({
+          data: {
+            email,
+            name: name || email.split('@')[0],
+            emailVerified: true,
+            passwordHash: randomPw,
+            wallet: { create: {} },
+          },
+          select: SELECT,
+        })
+      );
+    } else {
+      // Update emailVerified via raw SQL — avoids Prisma reading all columns
+      await withDbTimeout(
+        prisma.$executeRawUnsafe(
+          `UPDATE "SabiUser" SET "emailVerified" = 1 WHERE "id" = ?`, user.id
+        )
+      ).catch(() => {});
     }
 
     // Create session and get token
-    const token = await createSabiSession(user.id);
+    const token = await withDbTimeout(createSabiSession(user.id));
 
     // Redirect to dashboard
     const response = NextResponse.redirect(
@@ -114,12 +138,16 @@ export async function GET(req: NextRequest) {
     });
 
     return response;
-  } catch (error) {
-    console.error('[Google OAuth] Callback error:', error);
-    console.error('[Google OAuth] Error message:', error instanceof Error ? error.message : String(error));
-    console.error('[Google OAuth] Stack:', error instanceof Error ? error.stack : 'N/A');
-    return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL || 'https://sability.io'}/sabi/login?error=google_exception`
-    );
+  } catch (error: any) {
+    const msg = error?.message || String(error);
+    console.error('[Google OAuth] Callback error:', msg.slice(0, 200));
+
+    // DB timeout or Turso 429 — redirect fast with a retry message
+    // (never hang here; that causes 524 from Cloudflare)
+    if (msg.includes('db_timeout') || msg.includes('429') || msg.toLowerCase().includes('rate')) {
+      return NextResponse.redirect(`${BASE}/sabi/login?error=google_exception&detail=busy`);
+    }
+
+    return NextResponse.redirect(`${BASE}/sabi/login?error=google_exception`);
   }
 }
