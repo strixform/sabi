@@ -75,6 +75,47 @@ const fmtDate = (d: string) => new Date(d).toLocaleString('en-NG', { dateStyle: 
 const TABS = ['Orders', 'Users', 'Payments', 'Referrals', 'Settings'] as const;
 type Tab = typeof TABS[number];
 
+// ─── Sort state helper ────────────────────────────────────────────────────────
+// Each table tracks { col, dir } — clicking the same column toggles asc↔desc,
+// clicking a new column sorts asc. The sort is applied client-side on the
+// current page (50 rows max) so it's instant with no extra API calls.
+interface SortState { col: string; dir: 'asc' | 'desc' }
+
+function useSortedData<T extends Record<string, any>>(data: T[], sort: SortState) {
+  return React.useMemo(() => {
+    if (!sort.col) return data;
+    return [...data].sort((a, b) => {
+      const av = a[sort.col] ?? '';
+      const bv = b[sort.col] ?? '';
+      const cmp = typeof av === 'number' && typeof bv === 'number'
+        ? av - bv
+        : String(av).localeCompare(String(bv), 'en', { numeric: true });
+      return sort.dir === 'asc' ? cmp : -cmp;
+    });
+  }, [data, sort.col, sort.dir]);
+}
+
+// ─── Sortable column header ───────────────────────────────────────────────────
+// Renders a clickable <th> that shows ↑ (asc), ↓ (desc), or ↕ (inactive).
+function SortTh({ label, col, sort, setSort, className = '' }: {
+  label: string; col: string;
+  sort: SortState; setSort: (s: SortState) => void;
+  className?: string;
+}) {
+  const active = sort.col === col;
+  const icon   = active ? (sort.dir === 'asc' ? ' ↑' : ' ↓') : ' ↕';
+  return (
+    <th
+      onClick={() => setSort({ col, dir: active && sort.dir === 'asc' ? 'desc' : 'asc' })}
+      className={`px-4 py-3 text-left text-xs font-semibold select-none cursor-pointer transition ${
+        active ? 'text-white' : 'text-slate-400 hover:text-slate-200'
+      } ${className}`}
+    >
+      {label}<span className="opacity-50">{icon}</span>
+    </th>
+  );
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
@@ -110,6 +151,18 @@ export default function AdminPage() {
 
   // Settings (WhatsApp + order limits — managed by /sabi/admin/settings)
   const LIMIT = 50;
+
+  // Per-tab sort state — each table sorts independently
+  const [orderSort, setOrderSort] = useState<SortState>({ col: 'createdAt', dir: 'desc' });
+  const [userSort,  setUserSort]  = useState<SortState>({ col: 'createdAt', dir: 'desc' });
+  const [paySort,   setPaySort]   = useState<SortState>({ col: 'createdAt', dir: 'desc' });
+  const [refSort,   setRefSort]   = useState<SortState>({ col: 'totalEarnings', dir: 'desc' });
+
+  // Sorted slices — applied client-side on the current page data
+  const sortedOrders   = useSortedData(orders,   orderSort);
+  const sortedUsers    = useSortedData(users,    userSort);
+  const sortedPayments = useSortedData(payments, paySort);
+  const sortedRefs     = useSortedData(referrers, refSort);
 
   // ── Auth: token from sessionStorage (admin/login page) or SABI session cookie ──
   const adminFetch = useCallback((url: string, opts: RequestInit = {}) => {
@@ -299,18 +352,26 @@ export default function AdminPage() {
                 <table className="w-full text-sm">
                   <thead className="bg-slate-800/50 border-b border-white/[0.06]">
                     <tr>
-                      {['ID', 'User', 'Service', 'Link', 'Qty', 'Remains', 'Amount', 'Status', 'Created'].map(h => (
-                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-400">{h}</th>
-                      ))}
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 w-10">#</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400">ID</th>
+                      <SortTh label="User"    col="user.name"      sort={orderSort} setSort={setOrderSort} />
+                      <SortTh label="Service" col="serviceType"    sort={orderSort} setSort={setOrderSort} />
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400">Link</th>
+                      <SortTh label="Qty"     col="quantity"       sort={orderSort} setSort={setOrderSort} />
+                      <SortTh label="Remains" col="completedQuantity" sort={orderSort} setSort={setOrderSort} />
+                      <SortTh label="Amount"  col="totalPrice"     sort={orderSort} setSort={setOrderSort} />
+                      <SortTh label="Status"  col="status"         sort={orderSort} setSort={setOrderSort} />
+                      <SortTh label="Created" col="createdAt"      sort={orderSort} setSort={setOrderSort} />
                     </tr>
                   </thead>
                   <tbody>
                     {loading ? (
-                      <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-600">Loading…</td></tr>
-                    ) : orders.length === 0 ? (
-                      <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-600">No orders found</td></tr>
-                    ) : orders.map(o => (
+                      <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-600">Loading…</td></tr>
+                    ) : sortedOrders.length === 0 ? (
+                      <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-600">No orders found</td></tr>
+                    ) : sortedOrders.map((o, i) => (
                       <tr key={o.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                        <td className="px-4 py-3 text-center text-xs text-slate-600 font-mono">{orderPage * LIMIT + i + 1}</td>
                         <td className="px-4 py-3 font-mono text-xs text-slate-400">{o.id.slice(0, 10)}</td>
                         <td className="px-4 py-3 text-xs">
                           <div className="text-white font-medium">{o.user?.name}</div>
@@ -359,18 +420,26 @@ export default function AdminPage() {
                 <table className="w-full text-sm">
                   <thead className="bg-slate-800/50 border-b border-white/[0.06]">
                     <tr>
-                      {['ID', 'Name', 'Email', 'Balance', 'Spent', 'Status', 'Verified', 'Created', 'Last Auth'].map(h => (
-                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-400">{h}</th>
-                      ))}
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 w-10">#</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400">ID</th>
+                      <SortTh label="Name"      col="name"          sort={userSort} setSort={setUserSort} />
+                      <SortTh label="Email"     col="email"         sort={userSort} setSort={setUserSort} />
+                      <SortTh label="Balance"   col="balance"       sort={userSort} setSort={setUserSort} />
+                      <SortTh label="Spent"     col="totalSpent"    sort={userSort} setSort={setUserSort} />
+                      <SortTh label="Status"    col="status"        sort={userSort} setSort={setUserSort} />
+                      <SortTh label="Verified"  col="emailVerified" sort={userSort} setSort={setUserSort} />
+                      <SortTh label="Created"   col="createdAt"     sort={userSort} setSort={setUserSort} />
+                      <SortTh label="Last Auth" col="lastAuth"      sort={userSort} setSort={setUserSort} />
                     </tr>
                   </thead>
                   <tbody>
                     {loading ? (
-                      <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-600">Loading…</td></tr>
-                    ) : users.length === 0 ? (
-                      <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-600">No users found</td></tr>
-                    ) : users.map(u => (
+                      <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-600">Loading…</td></tr>
+                    ) : sortedUsers.length === 0 ? (
+                      <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-600">No users found</td></tr>
+                    ) : sortedUsers.map((u, i) => (
                       <tr key={u.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                        <td className="px-4 py-3 text-center text-xs text-slate-600 font-mono">{userPage * LIMIT + i + 1}</td>
                         <td className="px-4 py-3 font-mono text-xs text-slate-400">{u.id.slice(0, 8)}</td>
                         <td className="px-4 py-3 text-xs text-white font-medium">{u.name}</td>
                         <td className="px-4 py-3 text-xs text-slate-400">{u.email}</td>
@@ -431,18 +500,24 @@ export default function AdminPage() {
                 <table className="w-full text-sm">
                   <thead className="bg-slate-800/50 border-b border-white/[0.06]">
                     <tr>
-                      {['ID', 'User', 'Type', 'Amount', 'Reference', 'Description', 'Date'].map(h => (
-                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-400">{h}</th>
-                      ))}
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 w-10">#</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400">ID</th>
+                      <SortTh label="User"        col="userName"    sort={paySort} setSort={setPaySort} />
+                      <SortTh label="Type"        col="type"        sort={paySort} setSort={setPaySort} />
+                      <SortTh label="Amount"      col="amount"      sort={paySort} setSort={setPaySort} />
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400">Reference</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400">Description</th>
+                      <SortTh label="Date"        col="createdAt"   sort={paySort} setSort={setPaySort} />
                     </tr>
                   </thead>
                   <tbody>
                     {loading ? (
-                      <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-600">Loading…</td></tr>
-                    ) : payments.length === 0 ? (
-                      <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-600">No transactions found</td></tr>
-                    ) : payments.map(p => (
+                      <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-600">Loading…</td></tr>
+                    ) : sortedPayments.length === 0 ? (
+                      <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-600">No transactions found</td></tr>
+                    ) : sortedPayments.map((p, i) => (
                       <tr key={p.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                        <td className="px-4 py-3 text-center text-xs text-slate-600 font-mono">{payPage * LIMIT + i + 1}</td>
                         <td className="px-4 py-3 font-mono text-xs text-slate-400">{p.id.slice(0, 10)}</td>
                         <td className="px-4 py-3 text-xs">
                           <div className="text-white font-medium">{p.userName}</div>
@@ -492,18 +567,25 @@ export default function AdminPage() {
                 <table className="w-full text-sm">
                   <thead className="bg-slate-800/50 border-b border-white/[0.06]">
                     <tr>
-                      {['User', 'Email', 'Registrations', 'Qualified', 'Paid', 'Conversion', 'Total Earned', 'Available'].map(h => (
-                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-400">{h}</th>
-                      ))}
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 w-10">#</th>
+                      <SortTh label="User"          col="name"            sort={refSort} setSort={setRefSort} />
+                      <SortTh label="Email"         col="email"           sort={refSort} setSort={setRefSort} />
+                      <SortTh label="Registrations" col="registrations"   sort={refSort} setSort={setRefSort} />
+                      <SortTh label="Qualified"     col="qualified"       sort={refSort} setSort={setRefSort} />
+                      <SortTh label="Paid"          col="paid"            sort={refSort} setSort={setRefSort} />
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400">Conversion</th>
+                      <SortTh label="Total Earned"  col="totalEarnings"   sort={refSort} setSort={setRefSort} />
+                      <SortTh label="Available"     col="availableEarnings" sort={refSort} setSort={setRefSort} />
                     </tr>
                   </thead>
                   <tbody>
                     {loading ? (
-                      <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-600">Loading…</td></tr>
-                    ) : referrers.length === 0 ? (
-                      <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-600">No referral data yet</td></tr>
-                    ) : referrers.map(r => (
+                      <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-600">Loading…</td></tr>
+                    ) : sortedRefs.length === 0 ? (
+                      <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-600">No referral data yet</td></tr>
+                    ) : sortedRefs.map((r, i) => (
                       <tr key={r.userId} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                        <td className="px-4 py-3 text-center text-xs text-slate-600 font-mono">{i + 1}</td>
                         <td className="px-4 py-3 text-xs text-white font-medium">{r.name}</td>
                         <td className="px-4 py-3 text-xs text-slate-400">{r.email}</td>
                         <td className="px-4 py-3 text-xs text-white">{r.registrations}</td>
