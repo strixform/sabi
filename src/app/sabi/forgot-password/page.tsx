@@ -23,7 +23,7 @@ export default function ForgotPasswordPage() {
       });
       const data = await res.json();
       if (data.success) { setSent(true); }
-      else setError(data.error || 'Something went wrong');
+      else setError(String(data.error || 'Something went wrong'));
     } catch { setError('Network error. Please try again.'); }
     finally { setLoading(false); }
   };

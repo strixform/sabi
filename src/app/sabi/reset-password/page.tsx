@@ -36,7 +36,7 @@ export default function ResetPasswordPage() {
       });
       const data = await res.json();
       if (data.success) { setDone(true); }
-      else setError(data.error || 'Reset failed. The link may have expired.');
+      else setError(String(data.error || 'Reset failed. The link may have expired.'));
     } catch { setError('Network error. Please try again.'); }
     finally { setLoading(false); }
   };

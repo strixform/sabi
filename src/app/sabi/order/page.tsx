@@ -402,7 +402,7 @@ export default function OrderPage() {
         body: JSON.stringify({ code: promoCode.trim(), serviceId: selectedService.id, quantity }),
       });
       const data = await res.json();
-      if (!res.ok) { setPromoError(data.error || 'Invalid code'); return; }
+      if (!res.ok) { setPromoError(String(data.error || 'Invalid code')); return; }
       setPromoResult(data);
     } catch { setPromoError('Could not validate code'); }
     finally { setPromoLoading(false); }
@@ -499,7 +499,7 @@ export default function OrderPage() {
         const oid = data.orderId || data.order?.id;
         router.push(oid ? `/sabi/orders/${oid}` : '/sabi/orders');
       } else {
-        setError(data.error || 'Failed to place order');
+        setError(String(data.error || 'Failed to place order'));
       }
     } catch (err) {
       setError('An error occurred while placing the order');

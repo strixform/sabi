@@ -18,10 +18,12 @@ export default function SabiError({
       <div className="max-w-md w-full text-center space-y-4">
         <div className="text-4xl mb-4">⚠️</div>
         <h2 className="text-white text-xl font-bold">Something went wrong</h2>
-        {/* Show actual error in dev so we can debug */}
+        {/* Show actual error message — String() coerce to prevent React #31 if error is non-standard */}
         <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-left">
-          <p className="text-red-400 text-xs font-mono break-all">{error?.message || 'Unknown error'}</p>
-          {error?.digest && <p className="text-red-400/50 text-[10px] mt-1">digest: {error.digest}</p>}
+          <p className="text-red-400 text-xs font-mono break-all">
+            {String(error?.message || error || 'Unknown error')}
+          </p>
+          {error?.digest && <p className="text-red-400/50 text-[10px] mt-1">digest: {String(error.digest)}</p>}
         </div>
         <div className="flex gap-3 justify-center">
           <button onClick={reset}

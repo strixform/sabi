@@ -82,5 +82,46 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, tables: counts });
   }
 
+  // Add missing columns to SabiUser table (session + auth fields)
+  // Run this if login/registration fails — these columns may be missing in prod Turso
+  if (action === 'add_sabiuser_columns') {
+    const results: { step: string; status: string; note?: string }[] = [];
+    const cols = [
+      { name: 'sessionToken',    sql: `ALTER TABLE "SabiUser" ADD COLUMN "sessionToken" TEXT` },
+      { name: 'sessionExpiry',   sql: `ALTER TABLE "SabiUser" ADD COLUMN "sessionExpiry" DATETIME` },
+      { name: 'googleId',        sql: `ALTER TABLE "SabiUser" ADD COLUMN "googleId" TEXT` },
+      { name: 'verifyCode',      sql: `ALTER TABLE "SabiUser" ADD COLUMN "verifyCode" TEXT` },
+      { name: 'verifyCodeExpiry',sql: `ALTER TABLE "SabiUser" ADD COLUMN "verifyCodeExpiry" DATETIME` },
+      { name: 'referralCode',    sql: `ALTER TABLE "SabiUser" ADD COLUMN "referralCode" TEXT` },
+      { name: 'referredByCode',  sql: `ALTER TABLE "SabiUser" ADD COLUMN "referredByCode" TEXT` },
+      { name: 'phone',           sql: `ALTER TABLE "SabiUser" ADD COLUMN "phone" TEXT` },
+      { name: 'avatarUrl',       sql: `ALTER TABLE "SabiUser" ADD COLUMN "avatarUrl" TEXT` },
+      { name: 'notifyEmail',     sql: `ALTER TABLE "SabiUser" ADD COLUMN "notifyEmail" INTEGER NOT NULL DEFAULT 1` },
+    ];
+    for (const col of cols) {
+      try {
+        await prisma.$executeRawUnsafe(col.sql);
+        results.push({ step: `ADD SabiUser.${col.name}`, status: 'OK' });
+      } catch (err: any) {
+        const msg = err?.message || String(err);
+        results.push({ step: `ADD SabiUser.${col.name}`, status: msg.includes('already exists') || msg.includes('duplicate') ? 'ALREADY_EXISTS' : 'ERROR', note: msg });
+      }
+    }
+    // Also add unique index on googleId
+    try {
+      await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "SabiUser_googleId_key" ON "SabiUser"("googleId") WHERE "googleId" IS NOT NULL`);
+      results.push({ step: 'IDX SabiUser.googleId', status: 'OK' });
+    } catch (err: any) {
+      results.push({ step: 'IDX SabiUser.googleId', status: 'ERROR', note: err?.message });
+    }
+    try {
+      await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "SabiUser_referralCode_key" ON "SabiUser"("referralCode") WHERE "referralCode" IS NOT NULL`);
+      results.push({ step: 'IDX SabiUser.referralCode', status: 'OK' });
+    } catch (err: any) {
+      results.push({ step: 'IDX SabiUser.referralCode', status: 'ERROR', note: err?.message });
+    }
+    return NextResponse.json({ ok: true, results });
+  }
+
   return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
 }

@@ -31,7 +31,7 @@ export default function LoginPage() {
       });
       const data = await res.json();
       if (data.success) { window.location.href = '/sabi/dashboard'; }
-      else setError(data.error || 'Invalid email or password');
+      else setError(String(data.error || 'Invalid email or password'));
     } catch { setError('Network error. Please try again.'); }
     finally { setLoading(false); }
   };

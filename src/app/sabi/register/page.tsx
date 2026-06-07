@@ -37,7 +37,7 @@ export default function RegisterPage() {
       });
       const data = await res.json();
       if (data.success) { setSuccess(true); setTimeout(() => { window.location.href = '/sabi/dashboard'; }, 1500); }
-      else setError(data.error || 'Registration failed');
+      else setError(String(data.error || 'Registration failed'));
     } catch { setError('Network error. Please try again.'); }
     finally { setLoading(false); }
   };
