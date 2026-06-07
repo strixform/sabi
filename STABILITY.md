@@ -66,6 +66,6 @@ Roll back: `git revert HEAD && git push origin main`
 
 | Date | Tag | What was working |
 |------|-----|-----------------|
-| 2026-07-07 | (tag after confirming login works) | SABI login, dashboard, orders, admin |
+| 2026-07-07 | stable-2026-07-07 | Email login ✅ Google OAuth ✅ Dashboard ✅ Orders ✅ Admin ✅ |
 
 Update this table after every confirmed stable deploy.
