@@ -39,14 +39,23 @@ export async function GET() {
   const paid = referrals.filter(r => r.referrerPaid);
   const pending = referrals.filter(r => r.triggeredAt && !r.referrerPaid);
 
+  const totalEarned = paid.length * REWARD_NAIRA;
+  const totalReferred = referrals.length;
+  const pendingRewards = pending.length;
+
   return NextResponse.json({
     success: true,
     referralCode: user?.referralCode,
     referralLink: `https://sability.io/sabi/register?ref=${user?.referralCode}`,
+    // Top-level fields kept for backward compat with dashboard page
+    totalReferred,
+    totalEarned,
+    pendingRewards,
+    // New stats object used by /sabi/referral page
     stats: {
-      totalReferred: referrals.length,
+      totalReferred,
       qualified: referrals.filter(r => r.triggeredAt !== null).length,
-      totalEarned: paid.length * REWARD_NAIRA,
+      totalEarned,
       pendingEarnings: pending.length * REWARD_NAIRA,
       rewardPerReferral: REWARD_NAIRA,
     },
