@@ -69,7 +69,9 @@ export async function POST(req: NextRequest) {
     const authHeader = req.headers.get("authorization") || "";
     const token = authHeader.replace("Bearer ", "").trim();
     const expected = process.env.SABI_INTEGRATION_TOKEN || "";
-    if (expected && token !== expected) {
+    // SECURITY: reject if token missing OR mismatched — never allow unguarded access.
+    // An unset SABI_INTEGRATION_TOKEN means env is misconfigured, not open door.
+    if (!expected || token !== expected) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

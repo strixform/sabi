@@ -54,7 +54,9 @@ export async function GET(req: NextRequest) {
   // Verify it's from Vercel Cron or our secret
   const auth = req.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && auth !== `Bearer ${cronSecret}`) {
+  // SECURITY: always require auth — if secret is unset the env is misconfigured,
+  // not open season. Prevents unauthenticated callers from spamming gamerz360.
+  if (!cronSecret || auth !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
