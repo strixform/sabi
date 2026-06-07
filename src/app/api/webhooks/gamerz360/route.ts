@@ -1,3 +1,46 @@
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * gamerz360 → SABI PROGRESS WEBHOOK RECEIVER
+ * POST /api/webhooks/gamerz360
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Receives real-time task completion updates from gamerz360.com and updates
+ * the SABI user's order status so they see live progress.
+ *
+ * WHEN IS THIS CALLED?
+ *   1. When a tasker submits proof on gamerz360 (tasks/[id]/complete) —
+ *      fires immediately for every single completed task (1 follow = 1 call)
+ *   2. When admin disputes a completion — count drops by 1 (corrective event)
+ *   3. When admin pushes campaign to taskers — fires "order.progress" once
+ *
+ * AUTHENTICATION:
+ *   Bearer SABI_INTEGRATION_TOKEN header. Must match the value in gamerz360's
+ *   Vercel environment variables. If tokens mismatch, all webhooks will 401.
+ *   Check both Vercel projects if progress stops updating.
+ *
+ * WHAT THIS UPDATES:
+ *   SabiOrder.status            → 'executing' (in progress) or 'completed'
+ *   SabiOrder.completedQuantity → live count (e.g. 13 of 20)
+ *   SabiOrder.completionPercentage → 0-100
+ *   SabiOrder.completedAt       → set on order.completed event only
+ *
+ * CACHE BUST:
+ *   Calls invalidateOrdersCache(userId) after every update so the user's
+ *   next /sabi/orders page load fetches fresh data instead of cached.
+ *
+ * PUSH NOTIFICATIONS:
+ *   Sent at 25%, 50%, 75%, 100% milestones ONLY — not every tick.
+ *   Completion email sent only on order.completed event.
+ *
+ * EVENTS:
+ *   order.progress  → partial completion (completedCount < targetCount)
+ *   order.completed → all tasks done (completedCount >= targetCount)
+ *
+ * PAYLOAD SHAPE (sent by gamerz360):
+ *   event, sabiOrderId, sabiUserId, campaignId,
+ *   completedCount, targetCount, completionPercentage, status, timestamp
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { invalidateOrdersCache } from '@/lib/redis';

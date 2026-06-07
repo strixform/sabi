@@ -1,3 +1,45 @@
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * SABI ORDER PROCESSING CRON
+ * GET /api/sabi/cron/process-scheduled
+ * Runs every 5 minutes via Vercel Cron (vercel.json)
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * WHY THIS EXISTS (async order architecture):
+ *   When a user places a SABI order, we DON'T call gamerz360 synchronously.
+ *   Cloudflare (which fronts both sability.io and gamerz360.com) blocks
+ *   server-to-server Vercel requests, causing 504 timeouts. Instead:
+ *     1. Order is created as status = 'pending' with no gamesz360CampaignId
+ *     2. User gets instant success response
+ *     3. THIS CRON picks it up and submits to gamerz360 within 5 minutes
+ *
+ * WHAT ORDERS ARE PROCESSED:
+ *   - status = 'pending' AND gamesz360CampaignId IS NULL
+ *   - scheduledAt IS NULL (immediate orders) OR scheduledAt <= now
+ *   Up to 50 orders per run to avoid timeout.
+ *
+ * SUCCESS PATH:
+ *   gamerz360 returns { campaignId, advertiserId }
+ *   → SabiOrder.gamesz360CampaignId = campaignId (links the two systems)
+ *   → SabiOrder.status = 'executing'
+ *   → Admin sees campaign in SABI Command Center, pushes to taskers
+ *
+ * FAILURE PATH:
+ *   gamerz360 returns non-2xx
+ *   → SabiOrder.status = 'failed'
+ *   → Full refund to user's wallet (totalPrice + platformFee)
+ *   → results array records the error for logging
+ *
+ * AUTHENTICATION:
+ *   Vercel sends Authorization: Bearer CRON_SECRET automatically.
+ *   If CRON_SECRET env is not set, the route is open (dev only).
+ *
+ * INTEGRATION TOKEN:
+ *   The POST to gamerz360/api/admin/sabi/orders uses SABI_INTEGRATION_TOKEN.
+ *   Must match gamerz360's SABI_INTEGRATION_TOKEN. If they differ, all
+ *   orders fail with 401 and stay pending indefinitely.
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
