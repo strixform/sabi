@@ -113,7 +113,13 @@ export async function loginSabiUser(
   password: string
 ): Promise<{ success: boolean; error?: string; userId?: string }> {
   try {
-    const user = await prisma.sabiUser.findUnique({ where: { email } });
+    // Explicit select — only reads columns guaranteed to exist in prod DB.
+    // Without select:, Prisma reads ALL schema columns; if any are missing
+    // in prod Turso, the entire login fails silently with a DB error.
+    const user = await prisma.sabiUser.findUnique({
+      where: { email },
+      select: { id: true, email: true, name: true, passwordHash: true, status: true, emailVerified: true, businessName: true },
+    });
 
     if (!user || !user.passwordHash) {
       return { success: false, error: 'Invalid credentials' };
@@ -130,7 +136,7 @@ export async function loginSabiUser(
 
     return { success: true, userId: user.id };
   } catch (error) {
-    // Error logging handled by external service
+    console.error('[loginSabiUser]', (error as Error)?.message?.slice(0, 200));
     return { success: false, error: 'Login failed' };
   }
 }
@@ -142,10 +148,12 @@ export async function createSabiSession(userId: string): Promise<string> {
     const hashedToken = hashToken(token);
     const sessionExpiry = new Date(Date.now() + SESSION_DURATION);
 
-    await prisma.sabiUser.update({
-      where: { id: userId },
-      data: { sessionToken: hashedToken, sessionExpiry },
-    });
+    // Raw SQL — prisma.update reads back all columns; if any are missing
+    // in prod Turso DB, it throws and login silently fails.
+    await prisma.$executeRawUnsafe(
+      `UPDATE "SabiUser" SET "sessionToken" = ?, "sessionExpiry" = ? WHERE "id" = ?`,
+      hashedToken, sessionExpiry.toISOString(), userId
+    );
 
     // Set cookies
     const cookieStore = await cookies();
@@ -186,7 +194,7 @@ export async function getSabiSession(): Promise<SabiSession | null> {
     const cached = await tryGetCachedSession(token);
     if (cached) return cached as SabiSession;
 
-    // 2. Cache miss — hit DB, then warm the cache
+    // 2. Cache miss — hit DB with explicit select (only guaranteed columns)
     const hashedToken = hashToken(token);
     const user = await prisma.sabiUser.findFirst({
       where: {
@@ -195,6 +203,7 @@ export async function getSabiSession(): Promise<SabiSession | null> {
         sessionExpiry: { gt: new Date() },
         status: { not: 'banned' },
       },
+      select: { id: true, email: true, name: true, businessName: true, status: true, emailVerified: true },
     });
 
     if (!user) return null;
