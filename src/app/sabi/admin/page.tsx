@@ -439,7 +439,8 @@ export default function AdminPage() {
                       <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-600">No users found</td></tr>
                     ) : sortedUsers.map((u, i) => (
                       <tr key={u.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
-                        <td className="px-4 py-3 text-center text-xs text-slate-600 font-mono">{userPage * LIMIT + i + 1}</td>
+                        {/* Count DOWN from total so oldest user = #1, newest = #N */}
+                        <td className="px-4 py-3 text-center text-xs text-slate-600 font-mono">{userTotal - (userPage * LIMIT + i)}</td>
                         <td className="px-4 py-3 font-mono text-xs text-slate-400">{u.id.slice(0, 8)}</td>
                         <td className="px-4 py-3 text-xs text-white font-medium">{u.name}</td>
                         <td className="px-4 py-3 text-xs text-slate-400">{u.email}</td>
