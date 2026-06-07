@@ -95,6 +95,68 @@ function useSortedData<T extends Record<string, any>>(data: T[], sort: SortState
   }, [data, sort.col, sort.dir]);
 }
 
+// ─── Shared admin fetch helper (used by inline action components) ─────────────
+function useAdminFetch() {
+  return (url: string, opts: RequestInit = {}) => {
+    const token = typeof window !== 'undefined' ? sessionStorage.getItem('sabi_admin_token') : null;
+    return fetch(url, { ...opts, headers: { ...(opts.headers || {}), ...(token ? { 'x-admin-token': token } : {}) } });
+  };
+}
+
+// ─── Cancel Order button — shown on each cancellable order row ────────────────
+// Cancels the SABI order + linked gamerz360 campaign + refunds the user.
+// Blocked for completed/cancelled/failed orders.
+function CancelOrderButton({ orderId, serviceType, onDone, adminFetch }: {
+  orderId: string; serviceType: string;
+  onDone: () => void;
+  adminFetch: (url: string, opts?: RequestInit) => Promise<Response>;
+}) {
+  const [open, setOpen]     = useState(false);
+  const [reason, setReason] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg]       = useState('');
+
+  const submit = async () => {
+    if (!reason.trim()) { setMsg('Enter a reason'); return; }
+    setLoading(true);
+    try {
+      const res = await adminFetch('/api/sabi/admin/cancel-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, reason: reason.trim() }),
+      });
+      const d = await res.json();
+      if (res.ok) { setMsg(`✅ ${d.message}`); setOpen(false); setReason(''); onDone(); }
+      else setMsg(`❌ ${d.error}`);
+    } catch { setMsg('❌ Network error'); }
+    finally { setLoading(false); setTimeout(() => setMsg(''), 8000); }
+  };
+
+  if (!open) return (
+    <button onClick={() => setOpen(true)}
+      className="px-2 py-1 bg-red-600/20 hover:bg-red-600/40 border border-red-600/30 text-red-400 text-[10px] font-bold rounded transition whitespace-nowrap">
+      Cancel
+    </button>
+  );
+
+  return (
+    <div className="space-y-1.5 min-w-[180px]">
+      {msg && <div className={`text-[10px] ${msg.startsWith('✅') ? 'text-emerald-400' : 'text-red-400'}`}>{msg}</div>}
+      <div className="text-[10px] text-red-400 font-bold">Cancel + refund?</div>
+      <input type="text" placeholder="Reason for cancellation" value={reason}
+        onChange={e => setReason(e.target.value)}
+        className="w-full bg-slate-800 border border-slate-700 text-white text-[10px] px-2 py-1 rounded focus:outline-none" />
+      <div className="flex gap-1">
+        <button onClick={submit} disabled={loading}
+          className="flex-1 px-2 py-1 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-[10px] font-bold rounded">
+          {loading ? '…' : 'Confirm Cancel'}
+        </button>
+        <button onClick={() => { setOpen(false); setMsg(''); }} className="px-2 py-1 bg-slate-700 text-slate-400 text-[10px] rounded">✕</button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Credit / Debit wallet button ─────────────────────────────────────────────
 // Credit: adds ₦ to user wallet (compensation, balance correction, manual top-up)
 // Debit:  removes ₦ from user wallet (error correction, admin adjustment)
@@ -436,6 +498,7 @@ export default function AdminPage() {
                       <SortTh label="Amount"  col="totalPrice"     sort={orderSort} setSort={setOrderSort} />
                       <SortTh label="Status"  col="status"         sort={orderSort} setSort={setOrderSort} />
                       <SortTh label="Created" col="createdAt"      sort={orderSort} setSort={setOrderSort} />
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400">Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -467,6 +530,13 @@ export default function AdminPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-xs text-slate-500">{fmtDate(o.createdAt)}</td>
+                        <td className="px-4 py-3">
+                          {/* Cancel only available for non-terminal statuses */}
+                          {!['completed','cancelled','failed'].includes(o.status) && (
+                            <CancelOrderButton orderId={o.id} serviceType={o.serviceType}
+                              onDone={() => { setOrders([]); setLoading(true); }} adminFetch={adminFetch} />
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
