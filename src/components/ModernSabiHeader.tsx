@@ -41,10 +41,11 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
     window.addEventListener('beforeinstallprompt', handler);
     window.addEventListener('appinstalled', () => setIsInstalled(true));
 
-    // Fetch WhatsApp support number from admin config (silently — no impact if missing)
+    // Fetch WhatsApp support number from public config endpoint.
+    // /api/sabi/config returns { supportWhatsapp: "234..." } flat (not nested under config).
     fetch('/api/sabi/config')
       .then(r => r.json())
-      .then(d => { if (d.config?.supportWhatsapp) setWaNumber(d.config.supportWhatsapp); })
+      .then(d => { if (d.supportWhatsapp) setWaNumber(d.supportWhatsapp); })
       .catch(() => {});
 
     return () => window.removeEventListener('beforeinstallprompt', handler);
