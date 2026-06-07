@@ -17,9 +17,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getSabiSession } from '@/lib/sabiAuth';
 
 export const preferredRegion = 'sfo1';
 export const maxDuration = 30;
+
+// Admin emails allowed to run migrations
+const ADMIN_EMAILS = ['olusehinde09@gmail.com', 'admin@sability.io'];
 
 async function run(sql: string): Promise<{ status: string; note?: string }> {
   try {
@@ -33,11 +37,10 @@ async function run(sql: string): Promise<{ status: string; note?: string }> {
 }
 
 export async function POST(req: NextRequest) {
-  // Simple secret-key auth
-  const secret = req.headers.get('x-admin-secret') || req.headers.get('authorization')?.replace('Bearer ', '');
-  const expected = process.env.SABI_ADMIN_SECRET || process.env.CRON_SECRET;
-  if (!expected || secret !== expected) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // Auth: must be logged in as an admin SABI user
+  const session = await getSabiSession();
+  if (!session || !ADMIN_EMAILS.includes(session.email?.toLowerCase())) {
+    return NextResponse.json({ error: 'Unauthorized — must be logged in as admin' }, { status: 401 });
   }
 
   const { action } = await req.json().catch(() => ({ action: null }));
