@@ -1,5 +1,4 @@
 import { prisma } from './prisma';
-import { sabiExecute } from './tursoClient';
 import { hash, compare } from 'bcryptjs';
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
@@ -114,28 +113,26 @@ export async function loginSabiUser(
   password: string
 ): Promise<{ success: boolean; error?: string; userId?: string }> {
   try {
-    // sabiExecute has 429-retry backoff — Prisma alone silently fails on rate limits
-    const result = await sabiExecute({
-      sql: `SELECT id, email, name, passwordHash, status, emailVerified, businessName
-            FROM "SabiUser" WHERE email = ? LIMIT 1`,
-      args: [email.toLowerCase()],
+    // Explicit select — only reads columns that exist in prod DB
+    const user = await prisma.sabiUser.findUnique({
+      where: { email: email.toLowerCase() },
+      select: { id: true, email: true, name: true, passwordHash: true, status: true, emailVerified: true, businessName: true },
     });
 
-    const row = result.rows[0] as any;
-    if (!row || !row.passwordHash) {
+    if (!user || !user.passwordHash) {
       return { success: false, error: 'Invalid credentials' };
     }
 
-    const passwordMatch = await compare(password, row.passwordHash);
+    const passwordMatch = await compare(password, user.passwordHash);
     if (!passwordMatch) {
       return { success: false, error: 'Invalid credentials' };
     }
 
-    if (row.status === 'banned') {
+    if (user.status === 'banned') {
       return { success: false, error: 'Account suspended' };
     }
 
-    return { success: true, userId: row.id };
+    return { success: true, userId: user.id };
   } catch (error) {
     console.error('[loginSabiUser]', (error as Error)?.message?.slice(0, 200));
     return { success: false, error: 'Login failed' };
@@ -149,11 +146,11 @@ export async function createSabiSession(userId: string): Promise<string> {
     const hashedToken = hashToken(token);
     const sessionExpiry = new Date(Date.now() + SESSION_DURATION);
 
-    // sabiExecute for 429-retry — session creation must never fail from rate limits
-    await sabiExecute({
-      sql: `UPDATE "SabiUser" SET "sessionToken" = ?, "sessionExpiry" = ? WHERE "id" = ?`,
-      args: [hashedToken, sessionExpiry.toISOString(), userId],
-    });
+    // Raw SQL via Prisma — explicit columns only, no missing-column risk
+    await prisma.$executeRawUnsafe(
+      `UPDATE "SabiUser" SET "sessionToken" = ?, "sessionExpiry" = ? WHERE "id" = ?`,
+      hashedToken, sessionExpiry.toISOString(), userId
+    );
 
     // Set cookies
     const cookieStore = await cookies();
@@ -194,26 +191,27 @@ export async function getSabiSession(): Promise<SabiSession | null> {
     const cached = await tryGetCachedSession(token);
     if (cached) return cached as SabiSession;
 
-    // 2. Cache miss — hit DB with sabiExecute (429-retry, only guaranteed columns)
+    // 2. Cache miss — Prisma with explicit select (only guaranteed columns)
     const hashedToken = hashToken(token);
-    const result = await sabiExecute({
-      sql: `SELECT id, email, name, businessName, status, emailVerified
-            FROM "SabiUser"
-            WHERE id = ? AND sessionToken = ? AND sessionExpiry > ? AND status != 'banned'
-            LIMIT 1`,
-      args: [userId, hashedToken, new Date().toISOString()],
+    const user = await prisma.sabiUser.findFirst({
+      where: {
+        id: userId,
+        sessionToken: hashedToken,
+        sessionExpiry: { gt: new Date() },
+        status: { not: 'banned' },
+      },
+      select: { id: true, email: true, name: true, businessName: true, status: true, emailVerified: true },
     });
-    const user = result.rows[0] as any || null;
 
     if (!user) return null;
 
     const session: SabiSession = {
-      id: String(user.id),
-      email: String(user.email),
-      name: String(user.name),
-      businessName: user.businessName ? String(user.businessName) : null,
-      status: String(user.status),
-      emailVerified: !!user.emailVerified,
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      businessName: user.businessName,
+      status: user.status,
+      emailVerified: user.emailVerified,
     };
 
     // Warm cache — fire-and-forget, safe wrapper ensures Redis errors never surface
