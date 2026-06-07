@@ -119,5 +119,37 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, results });
   }
 
+  // Add missing columns to SABIAdminConfig (supportWhatsapp, updatedBy)
+  // Run this if settings page fails to save — columns may be missing in prod Turso
+  if (action === 'add_config_columns') {
+    const results: { step: string; status: string; note?: string }[] = [];
+    // Create the table in case it doesn't exist at all
+    results.push({ step: 'CREATE SABIAdminConfig', ...(await run(`
+      CREATE TABLE IF NOT EXISTS "SABIAdminConfig" (
+        "id"               TEXT NOT NULL PRIMARY KEY,
+        "minOrderQuantity" INTEGER NOT NULL DEFAULT 5,
+        "maxOrderQuantity" INTEGER NOT NULL DEFAULT 5000,
+        "supportWhatsapp"  TEXT,
+        "updatedAt"        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedBy"        TEXT,
+        "createdAt"        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `)) });
+    // Add columns if table already exists but columns are missing
+    for (const col of [
+      { name: 'supportWhatsapp', sql: `ALTER TABLE "SABIAdminConfig" ADD COLUMN "supportWhatsapp" TEXT` },
+      { name: 'updatedBy',       sql: `ALTER TABLE "SABIAdminConfig" ADD COLUMN "updatedBy" TEXT` },
+    ]) {
+      try {
+        await prisma.$executeRawUnsafe(col.sql);
+        results.push({ step: `ADD SABIAdminConfig.${col.name}`, status: 'OK' });
+      } catch (err: any) {
+        const msg = err?.message || String(err);
+        results.push({ step: `ADD SABIAdminConfig.${col.name}`, status: msg.includes('already exists') || msg.includes('duplicate') ? 'ALREADY_EXISTS' : 'ERROR', note: msg });
+      }
+    }
+    return NextResponse.json({ ok: true, results });
+  }
+
   return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
 }

@@ -96,9 +96,15 @@ export default function SettingsPage() {
 
     try {
       setSaving(true);
+      // Include admin token header so the API accepts the request when
+      // the user is logged in via the token-based /sabi/admin/login page
+      const adminToken = typeof window !== 'undefined' ? sessionStorage.getItem('sabi_admin_token') : null;
       const res = await fetch('/api/sabi/admin/config', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(adminToken ? { 'x-admin-token': adminToken } : {}),
+        },
         body: JSON.stringify({
           minOrderQuantity: min,
           maxOrderQuantity: max,
