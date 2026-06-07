@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiLogOut, FiHome, FiShoppingCart, FiKey, FiBook, FiMenu, FiX, FiCreditCard, FiDownload, FiInbox, FiUser, FiGift } from 'react-icons/fi';
+import { SiWhatsapp } from 'react-icons/si';
 import { LogoImage } from './LogoImage';
 
 interface ModernSabiHeaderProps {
@@ -20,6 +21,8 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
   const [isInstalled, setIsInstalled] = useState(false);
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  // WhatsApp support number — fetched from admin config
+  const [waNumber, setWaNumber] = useState<string | null>(null);
 
   useEffect(() => {
     // Detect iOS Safari
@@ -37,6 +40,13 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
     };
     window.addEventListener('beforeinstallprompt', handler);
     window.addEventListener('appinstalled', () => setIsInstalled(true));
+
+    // Fetch WhatsApp support number from admin config (silently — no impact if missing)
+    fetch('/api/sabi/config')
+      .then(r => r.json())
+      .then(d => { if (d.config?.supportWhatsapp) setWaNumber(d.config.supportWhatsapp); })
+      .catch(() => {});
+
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
@@ -215,6 +225,22 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
                 <FiLogOut className="w-4 h-4" />
                 <span className="hidden lg:inline tracking-wide">Logout</span>
               </motion.button>
+            )}
+
+            {/* WhatsApp support icon — only shown when a number is configured in admin settings */}
+            {waNumber && (
+              <motion.a
+                href={`https://wa.me/${waNumber}?text=${encodeURIComponent('Hi SABI Support, I need help with my account.')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center w-8 h-8 rounded-lg border border-white/[0.07] text-[#25D366] hover:bg-[#25D366]/10 hover:border-[#25D366]/30 transition-all duration-200"
+                whileHover={{ scale: 1.08 }}
+                whileTap={{ scale: 0.95 }}
+                title="WhatsApp Support"
+                aria-label="Chat on WhatsApp"
+              >
+                <SiWhatsapp className="w-4 h-4" />
+              </motion.a>
             )}
 
             {/* Install App Button */}
