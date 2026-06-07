@@ -1,0 +1,36 @@
+#!/bin/sh
+# Runs automatically before every git push — blocks push if checks fail.
+# To bypass in emergency: git push --no-verify
+
+echo ""
+echo "🔍 Pre-push check running..."
+echo ""
+
+echo "1/2 TypeScript..."
+npx tsc --noEmit
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "❌ TypeScript errors found. Push blocked."
+  echo "   Fix the errors above, then push again."
+  echo "   Emergency bypass: git push --no-verify"
+  echo ""
+  exit 1
+fi
+
+echo "✅ TypeScript clean"
+echo ""
+echo "2/2 Build check..."
+npx next build --no-lint > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "❌ Build failed. Push blocked."
+  echo "   Run: npx next build to see the error"
+  echo "   Emergency bypass: git push --no-verify"
+  echo ""
+  exit 1
+fi
+
+echo "✅ Build clean"
+echo ""
+echo "✅ All checks passed — pushing now"
+echo ""

@@ -7,7 +7,8 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "postinstall": "prisma generate",
-    "migrate": "prisma migrate deploy"
+    "migrate": "prisma migrate deploy",
+    "prepare": "husky"
   },
   "dependencies": {
     "@libsql/client": "^0.17.3",
@@ -39,6 +40,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/web-push": "^3.6.4",
+    "husky": "^9.1.7",
     "prisma": "^7.8.0",
     "tailwindcss": "^4",
     "typescript": "^5"
