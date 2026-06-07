@@ -12,21 +12,28 @@ export async function GET() {
     select: { referralCode: true, name: true },
   });
 
-  // Full referral breakdown — who signed up, who qualified, who earned
-  const referrals = await prisma.sabiReferral.findMany({
-    where: { referrerId: session.id },
-    orderBy: { createdAt: 'desc' },
-  });
+  // Full referral breakdown — wrapped in try/catch because SabiReferral table
+  // may not exist in prod Turso (schema changes don't auto-migrate on Turso).
+  // Gracefully return empty data rather than a 500 that crashes the dashboard.
+  let referrals: any[] = [];
+  let refereeMap = new Map<string, any>();
+  try {
+    referrals = await prisma.sabiReferral.findMany({
+      where: { referrerId: session.id },
+      orderBy: { createdAt: 'desc' },
+    });
 
-  // Fetch referee names/emails for display (masked for privacy)
-  const refereeIds = referrals.map(r => r.refereeId);
-  const referees = refereeIds.length
-    ? await prisma.sabiUser.findMany({
-        where: { id: { in: refereeIds } },
-        select: { id: true, name: true, email: true, createdAt: true },
-      })
-    : [];
-  const refereeMap = new Map(referees.map(u => [u.id, u]));
+    const refereeIds = referrals.map((r: any) => r.refereeId);
+    const referees = refereeIds.length
+      ? await prisma.sabiUser.findMany({
+          where: { id: { in: refereeIds } },
+          select: { id: true, name: true, email: true, createdAt: true },
+        })
+      : [];
+    refereeMap = new Map(referees.map((u: any) => [u.id, u]));
+  } catch {
+    // Table not yet migrated in prod — return empty state gracefully
+  }
 
   const REWARD_NAIRA = 500;
   const paid = referrals.filter(r => r.referrerPaid);
@@ -47,7 +54,7 @@ export async function GET() {
       const referee = refereeMap.get(r.refereeId);
       // Mask email: jo***@gmail.com
       const maskedEmail = referee?.email
-        ? referee.email.replace(/^(.{2})(.*)(@.+)$/, (_, a, _b, c) => `${a}***${c}`)
+        ? referee.email.replace(/^(.{2})(.*)(@.+)$/, (_: string, a: string, _b: string, c: string) => `${a}***${c}`)
         : '—';
       return {
         id: r.id,
