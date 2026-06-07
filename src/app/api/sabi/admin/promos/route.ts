@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getSabiSession } from '@/lib/sabiAuth';
+import { checkSabiAdmin } from '@/lib/sabiAdminAuth';
 
-// Guard: must be authenticated AND be the admin email
-async function requireAdmin(req: NextRequest): Promise<boolean> {
-  const session = await getSabiSession();
-  if (!session) return false;
-  const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || '').toLowerCase();
-  return session.email.toLowerCase() === adminEmail;
-}
+const requireAdmin = (req: NextRequest) => checkSabiAdmin(req);
 
 // GET: list all promo codes — admin only
 export async function GET(req: NextRequest) {

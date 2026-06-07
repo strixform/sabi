@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSabiSession } from '@/lib/sabiAuth';
+import { checkSabiAdmin } from '@/lib/sabiAdminAuth';
 import { prisma } from '@/lib/prisma';
 
 interface DistributionRequest {
@@ -70,13 +70,7 @@ function findBestTasker(
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getSabiSession();
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check if user is admin
-    if (session.email !== process.env.NEXT_PUBLIC_ADMIN_EMAIL) {
+    if (!await checkSabiAdmin(req)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

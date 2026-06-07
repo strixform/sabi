@@ -103,14 +103,22 @@ export default function AdminPage() {
     checkAuth();
   }, [router]);
 
+  // Helper: attach admin token to every API call so token-login works
+  const adminFetch = (url: string, opts: RequestInit = {}) => {
+    const token = typeof window !== 'undefined' ? sessionStorage.getItem('sabi_admin_token') : null;
+    return fetch(url, {
+      ...opts,
+      headers: { ...(opts.headers || {}), ...(token ? { 'x-admin-token': token } : {}) },
+    });
+  };
+
   const fetchAdminData = async () => {
     try {
       setLoading(true);
 
-      // Fetch orders and stats
       const [ordersRes, statsRes] = await Promise.all([
-        fetch('/api/sabi/admin/orders'),
-        fetch('/api/sabi/admin/stats'),
+        adminFetch('/api/sabi/admin/orders'),
+        adminFetch('/api/sabi/admin/stats'),
       ]);
 
       if (ordersRes.ok) {
