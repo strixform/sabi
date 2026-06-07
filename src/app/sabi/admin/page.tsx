@@ -315,7 +315,8 @@ export default function AdminPage() {
                   { label: 'Pending', value: stats.pendingOrders, color: 'text-yellow-400' },
                   { label: 'Processing', value: stats.processingOrders, color: 'text-blue-400' },
                   { label: 'Completed', value: stats.completedOrders, color: 'text-emerald-400' },
-                  { label: 'Revenue', value: fmt(stats.totalRevenue * 100), color: 'text-purple-400' },
+                  // totalRevenue from API is already in kobo — fmt() divides by 100 to get naira
+                  { label: 'Revenue', value: fmt(stats.totalRevenue), color: 'text-purple-400' },
                 ].map(s => (
                   <div key={s.label} className="bg-slate-900 border border-white/[0.06] rounded-xl p-4">
                     <div className="text-xs text-slate-500 mb-1">{s.label}</div>
