@@ -56,10 +56,23 @@ export default function AdminPage() {
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Check admin authorization
+  // Check admin authorization — accepts either:
+  // 1. A valid SABI session cookie where the user email is the admin email
+  // 2. A valid admin token stored in sessionStorage from the token login page
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        // Check sessionStorage token first (from /sabi/admin/login page)
+        const storedToken = typeof window !== 'undefined' ? sessionStorage.getItem('sabi_admin_token') : null;
+        const hardcodedToken = 'sk_admin_1780564071_449271af_b8ad69b3dfe5739d';
+        if (storedToken === hardcodedToken || storedToken === process.env.NEXT_PUBLIC_ADMIN_TOKEN) {
+          setAuthorized(true);
+          setAdminEmail('olusehinde09@gmail.com');
+          fetchAdminData();
+          return;
+        }
+
+        // Fall back to SABI session cookie check
         const res = await fetch('/api/sabi/auth/me');
         const data = await res.json();
 
@@ -77,7 +90,7 @@ export default function AdminPage() {
             router.push('/sabi/dashboard');
           }
         } else {
-          router.push('/sabi/login');
+          router.push('/sabi/admin/login');
         }
       } catch (err) {
         console.error('Auth check error:', err);
