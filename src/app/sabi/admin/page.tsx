@@ -95,6 +95,65 @@ function useSortedData<T extends Record<string, any>>(data: T[], sort: SortState
   }, [data, sort.col, sort.dir]);
 }
 
+// ─── Manual refund button — appears on each user row in the Users tab ────────
+// Allows admin to credit any amount back to a user's wallet with a reason.
+// Calls POST /api/sabi/admin/refund, sends the user an email, logs the transaction.
+function RefundButton({ userId, userName, userEmail, onDone }: {
+  userId: string; userName: string; userEmail: string; onDone: () => void;
+}) {
+  const [open, setOpen]   = useState(false);
+  const [amount, setAmount] = useState('');
+  const [reason, setReason] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg]     = useState('');
+
+  const adminFetch = (url: string, opts: RequestInit = {}) => {
+    const token = typeof window !== 'undefined' ? sessionStorage.getItem('sabi_admin_token') : null;
+    return fetch(url, { ...opts, headers: { ...(opts.headers || {}), ...(token ? { 'x-admin-token': token } : {}) } });
+  };
+
+  const submit = async () => {
+    const kobo = Math.round(Number(amount) * 100);
+    if (!kobo || kobo <= 0 || !reason.trim()) { setMsg('Enter amount (₦) and reason'); return; }
+    setLoading(true);
+    try {
+      const res = await adminFetch('/api/sabi/admin/refund', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, amountKobo: kobo, reason: reason.trim() }),
+      });
+      const d = await res.json();
+      if (res.ok) { setMsg(`✅ ${d.message}`); setOpen(false); setAmount(''); setReason(''); onDone(); }
+      else setMsg(`❌ ${d.error}`);
+    } catch { setMsg('❌ Network error'); }
+    finally { setLoading(false); setTimeout(() => setMsg(''), 6000); }
+  };
+
+  if (!open) return (
+    <button onClick={() => setOpen(true)}
+      className="px-2 py-1 bg-yellow-600/20 hover:bg-yellow-600/40 border border-yellow-600/30 text-yellow-400 text-[10px] font-bold rounded transition whitespace-nowrap">
+      Refund
+    </button>
+  );
+
+  return (
+    <div className="space-y-1.5 min-w-[180px]">
+      {msg && <div className={`text-[10px] ${msg.startsWith('✅') ? 'text-emerald-400' : 'text-red-400'}`}>{msg}</div>}
+      <input type="number" min="1" placeholder="₦ amount" value={amount} onChange={e => setAmount(e.target.value)}
+        className="w-full bg-slate-800 border border-slate-700 text-white text-[10px] px-2 py-1 rounded focus:outline-none" />
+      <input type="text" placeholder="Reason" value={reason} onChange={e => setReason(e.target.value)}
+        className="w-full bg-slate-800 border border-slate-700 text-white text-[10px] px-2 py-1 rounded focus:outline-none" />
+      <div className="flex gap-1">
+        <button onClick={submit} disabled={loading}
+          className="flex-1 px-2 py-1 bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 text-black text-[10px] font-bold rounded">
+          {loading ? '…' : 'Confirm'}
+        </button>
+        <button onClick={() => setOpen(false)} className="px-2 py-1 bg-slate-700 text-slate-400 text-[10px] rounded">✕</button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Sortable column header ───────────────────────────────────────────────────
 // Renders a clickable <th> that shows ↑ (asc), ↓ (desc), or ↕ (inactive).
 function SortTh({ label, col, sort, setSort, className = '' }: {
@@ -431,6 +490,7 @@ export default function AdminPage() {
                       <SortTh label="Verified"  col="emailVerified" sort={userSort} setSort={setUserSort} />
                       <SortTh label="Created"   col="createdAt"     sort={userSort} setSort={setUserSort} />
                       <SortTh label="Last Auth" col="lastAuth"      sort={userSort} setSort={setUserSort} />
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400">Refund</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -459,6 +519,9 @@ export default function AdminPage() {
                         </td>
                         <td className="px-4 py-3 text-xs text-slate-500">{fmtDate(u.createdAt)}</td>
                         <td className="px-4 py-3 text-xs text-slate-500">{u.lastAuth ? fmtDate(u.lastAuth) : '—'}</td>
+                        <td className="px-4 py-3">
+                          <RefundButton userId={u.id} userName={u.name} userEmail={u.email} onDone={() => setUsers([])} />
+                        </td>
                       </tr>
                     ))}
                   </tbody>
