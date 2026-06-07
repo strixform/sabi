@@ -295,6 +295,8 @@ export default function OrderPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // Disclaimer acceptance — must be ticked before placing order
+  const [accepted, setAccepted] = useState(false);
   const [wallet, setWallet] = useState({ balance: 0 });
   const [session, setSession] = useState<any>(null);
   const [favorites, setFavorites] = useState<string[]>([]);
@@ -1137,25 +1139,54 @@ export default function OrderPage() {
                       </Link>
 
                       {wallet.balance >= totalCost * 100 && (
-                        <motion.button
-                          onClick={handlePlaceOrder}
-                          disabled={loading}
-                          className="w-full px-4 py-3 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          {loading ? (
-                            <>
-                              <FiLoader className="w-5 h-5 animate-spin" />
-                              Placing Order...
-                            </>
-                          ) : (
-                            <>
-                              <FiShoppingCart className="w-5 h-5" />
-                              Place Order Now
-                            </>
-                          )}
-                        </motion.button>
+                        <>
+                          {/* ── Delivery disclaimer — must be accepted before placing ── */}
+                          <div className="bg-[#0F1420] border border-blue-500/20 rounded-xl p-4 text-sm">
+                            <p className="text-slate-300 text-xs leading-relaxed mb-3">
+                              <span className="text-blue-400 font-semibold">⏱ Delivery: 5 minutes – 24 hours</span>
+                              <br />
+                              Your order is fulfilled by <strong className="text-white">real Nigerian users</strong> — not bots. Delivery time depends on when they're active. We appreciate your patience.
+                              <br /><br />
+                              If your order is not completed within 24 hours, you'll receive a <strong className="text-emerald-400">full refund</strong> to your wallet and can re-order at any time.
+                            </p>
+                            <label className="flex items-start gap-3 cursor-pointer group">
+                              <div className="relative mt-0.5 shrink-0">
+                                <input
+                                  type="checkbox"
+                                  checked={accepted}
+                                  onChange={e => setAccepted(e.target.checked)}
+                                  className="sr-only"
+                                />
+                                <div className={`w-5 h-5 rounded border-2 transition flex items-center justify-center ${accepted ? 'bg-blue-500 border-blue-500' : 'border-slate-600 bg-slate-800 group-hover:border-blue-500/50'}`}>
+                                  {accepted && <svg className="w-3 h-3 text-white" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                                </div>
+                              </div>
+                              <span className="text-slate-400 text-xs leading-relaxed group-hover:text-slate-300 transition">
+                                I understand my order will be completed by real people and may take up to 24 hours. I accept the refund policy if my order is not fulfilled.
+                              </span>
+                            </label>
+                          </div>
+
+                          <motion.button
+                            onClick={handlePlaceOrder}
+                            disabled={loading || !accepted}
+                            className="w-full px-4 py-3 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            whileHover={accepted ? { scale: 1.05 } : {}}
+                            whileTap={accepted ? { scale: 0.95 } : {}}
+                          >
+                            {loading ? (
+                              <>
+                                <FiLoader className="w-5 h-5 animate-spin" />
+                                Placing Order...
+                              </>
+                            ) : (
+                              <>
+                                <FiShoppingCart className="w-5 h-5" />
+                                {accepted ? 'Place Order Now' : 'Accept terms above to continue'}
+                              </>
+                            )}
+                          </motion.button>
+                        </>
                       )}
                     </div>
                   </InteractiveCard>

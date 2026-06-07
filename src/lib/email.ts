@@ -77,6 +77,38 @@ export async function sendOrderFailedEmail(email: string, name: string, orderId:
   } catch {}
 }
 
+/**
+ * Sent immediately when a user places an order — before taskers are assigned.
+ * Sets expectations: real people, 5min–24hr delivery, refund guarantee.
+ * Fires from sabiOrderEngine.ts after the SabiOrder record is created.
+ */
+export async function sendOrderPlacedEmail(email: string, name: string, orderId: string, serviceName: string, quantity: number, totalNaira: number) {
+  try {
+    await resend.emails.send({
+      from: FROM, to: email,
+      subject: `🎯 Order received — ${serviceName} (${quantity.toLocaleString()})`,
+      html: baseHtml('Order Placed!', `
+        <p>Hi <b>${name}</b>,</p>
+        <p>We've received your order and it's now in queue. Here's what happens next:</p>
+        <table style="width:100%;border-collapse:collapse;margin:20px 0">
+          <tr><td style="padding:8px;color:#94a3b8">Service</td><td style="padding:8px;color:#f1f5f9;font-weight:bold">${serviceName}</td></tr>
+          <tr><td style="padding:8px;color:#94a3b8">Quantity</td><td style="padding:8px;color:#f1f5f9;font-weight:bold">${quantity.toLocaleString()}</td></tr>
+          <tr><td style="padding:8px;color:#94a3b8">Amount paid</td><td style="padding:8px;color:#f1f5f9;font-weight:bold">₦${totalNaira.toLocaleString()}</td></tr>
+          <tr><td style="padding:8px;color:#94a3b8">Order ID</td><td style="padding:8px;color:#94a3b8;font-size:12px">${orderId}</td></tr>
+        </table>
+        <div style="background:#1e293b;border-left:4px solid #3b82f6;padding:16px;border-radius:0 8px 8px 0;margin:20px 0">
+          <p style="margin:0 0 8px;font-weight:bold;color:#93c5fd">⏱ Delivery time: 5 minutes – 24 hours</p>
+          <p style="margin:0;color:#94a3b8;font-size:14px">Your order is fulfilled by <b>real Nigerian users</b> — not bots. Delivery depends on when they're active. We appreciate your patience.</p>
+        </div>
+        <p style="color:#94a3b8;font-size:13px">If your order is not completed within 24 hours, you'll receive a <b style="color:#f1f5f9">full refund</b> to your wallet automatically.</p>
+        <div style="text-align:center;margin-top:24px">
+          <a href="${APP_URL}/sabi/orders/${orderId}" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:bold">Track Order</a>
+        </div>
+      `),
+    });
+  } catch {}
+}
+
 export async function sendAutoTopupEmail(email: string, name: string, amountNaira: number) {
   try {
     await resend.emails.send({

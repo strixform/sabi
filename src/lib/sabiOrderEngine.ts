@@ -138,6 +138,17 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
       if (referee) sendReferralRewardEmail(referee.email, referee.name, 500, 'referee');
     }).catch(() => {});
 
+    // ── PLACEMENT EMAIL ─────────────────────────────────────────────────────
+    // Fire-and-forget — never block the order response for email delivery.
+    // Sets expectations: real people, 5min–24hr, refund guarantee.
+    import('./email').then(({ sendOrderPlacedEmail }) => {
+      sendOrderPlacedEmail(
+        user.email, user.name, order.id,
+        service.name, input.quantity,
+        Math.round(totalPrice / 100), // kobo → naira
+      );
+    }).catch(() => {});
+
     // ── ASYNC ORDER SUBMISSION ──────────────────────────────────────────────
     // Instead of calling gamerz360 synchronously (which times out due to
     // Cloudflare blocking Vercel's IPs), we return success immediately.
