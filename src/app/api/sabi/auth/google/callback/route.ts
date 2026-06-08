@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { hash } from 'bcryptjs';
-import { createSabiSession } from '@/lib/sabiAuth';
+import { createSabiSession, prewarmSessionCache } from '@/lib/sabiAuth';
 import crypto from 'crypto';
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
@@ -116,6 +116,13 @@ export async function GET(req: NextRequest) {
 
     // Create session and get token
     const token = await withDbTimeout(createSabiSession(user.id));
+
+    // Pre-warm Redis so the next page load reads from cache, not Turso
+    prewarmSessionCache(token, {
+      id: user.id, email: user.email, name: user.name,
+      businessName: user.businessName ?? null,
+      status: user.status, emailVerified: true,
+    });
 
     // Redirect to dashboard
     const response = NextResponse.redirect(

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { loginSabiUser, createSabiSession } from '@/lib/sabiAuth';
+import { loginSabiUser, createSabiSession, prewarmSessionCache } from '@/lib/sabiAuth';
 import { getRateLimitKey, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit';
+import { prisma } from '@/lib/prisma';
 
 export const preferredRegion = 'sfo1';
 export const maxDuration = 30; // Turso wake-up can take 15-20s on first cold request
@@ -47,6 +48,26 @@ export async function POST(req: NextRequest) {
         setTimeout(() => reject(new Error('session_timeout')), 25000)
       ),
     ]);
+
+    // Pre-warm Redis — next page load reads from Redis, not Turso
+    // userId is enough to build a minimal session; getSabiSession will enrich on next miss
+    if (result.userId) {
+      // Fetch the minimal user data needed to build the session object for the cache
+      // This is already in the DB from loginSabiUser — but we don't carry it through
+      // the return type to keep the interface clean. Fire-and-forget is fine here.
+      prisma.sabiUser.findUnique({
+        where: { id: result.userId },
+        select: { id: true, email: true, name: true, businessName: true, status: true, emailVerified: true },
+      }).then(u => {
+        if (u) {
+          prewarmSessionCache(token, {
+            id: u.id, email: u.email, name: u.name,
+            businessName: u.businessName ?? null,
+            status: u.status, emailVerified: u.emailVerified,
+          });
+        }
+      }).catch(() => {});
+    }
 
     const response = NextResponse.json({
       success: true,

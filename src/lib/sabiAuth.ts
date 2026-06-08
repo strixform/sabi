@@ -195,6 +195,16 @@ export async function createSabiSession(userId: string): Promise<string> {
   }
 }
 
+// Pre-warm Redis cache immediately after login — avoids first-request Turso hit.
+// Call this right after createSabiSession to ensure the session is cached before
+// the user's first page navigation (which would otherwise cause a Turso lookup).
+export async function prewarmSessionCache(
+  token: string,
+  session: SabiSession
+): Promise<void> {
+  trySetCachedSession(token, session, 1800); // 30-minute cache
+}
+
 // Get session — Redis-first with DB fallback.
 // Cache hit: ~5ms. Cache miss (first request or after expiry): ~100-200ms DB query.
 // TTL: 5 minutes — short enough to catch bans/logouts within a reasonable window.
@@ -235,8 +245,9 @@ export async function getSabiSession(): Promise<SabiSession | null> {
       emailVerified: user.emailVerified,
     };
 
-    // Warm cache — fire-and-forget, safe wrapper ensures Redis errors never surface
-    trySetCachedSession(token, session, 300);
+    // Warm cache for 30 minutes — long TTL means cold-start storms don't hit Turso
+    // for active sessions. Sessions are invalidated on logout anyway.
+    trySetCachedSession(token, session, 1800);
 
     return session;
   } catch {
