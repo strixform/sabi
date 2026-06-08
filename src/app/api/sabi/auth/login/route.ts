@@ -25,7 +25,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = await loginSabiUser(email, password);
+    // Race against 10s — if Turso is rate-limiting, fail fast instead of hanging
+    const result = await Promise.race([
+      loginSabiUser(email, password),
+      new Promise<{ success: false; error: string }>((resolve) =>
+        setTimeout(() => resolve({ success: false, error: 'Login timed out — please try again' }), 10000)
+      ),
+    ]);
 
     if (!result.success) {
       return NextResponse.json(
@@ -34,7 +40,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const token = await createSabiSession(result.userId!);
+    const token = await Promise.race([
+      createSabiSession(result.userId!),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('session_timeout')), 10000)
+      ),
+    ]);
 
     const response = NextResponse.json({
       success: true,

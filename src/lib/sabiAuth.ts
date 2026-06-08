@@ -28,6 +28,19 @@ async function tryInvalidateSession(token: string) {
 }
 
 const SESSION_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+// ─── DB timeout guard ─────────────────────────────────────────────────────────
+// Prisma/Turso can hang indefinitely when Turso is rate-limiting (429).
+// Wrap every Prisma call with this so auth routes never time out silently.
+// 8s is aggressive but safe — Turso P95 is <300ms, 8s means something is broken.
+function withDbTimeout<T>(p: Promise<T>, ms = 8000): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error('DB_TIMEOUT')), ms)
+    ),
+  ]);
+}
 const VERIFY_CODE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
 export interface SabiSession {
@@ -114,10 +127,11 @@ export async function loginSabiUser(
 ): Promise<{ success: boolean; error?: string; userId?: string }> {
   try {
     // Explicit select — only reads columns that exist in prod DB
-    const user = await prisma.sabiUser.findUnique({
+    // withDbTimeout: prevents hanging when Turso is rate-limiting (429)
+    const user = await withDbTimeout(prisma.sabiUser.findUnique({
       where: { email: email.toLowerCase() },
       select: { id: true, email: true, name: true, passwordHash: true, status: true, emailVerified: true, businessName: true },
-    });
+    }));
 
     if (!user || !user.passwordHash) {
       return { success: false, error: 'Invalid credentials' };
@@ -147,10 +161,11 @@ export async function createSabiSession(userId: string): Promise<string> {
     const sessionExpiry = new Date(Date.now() + SESSION_DURATION);
 
     // Raw SQL via Prisma — explicit columns only, no missing-column risk
-    await prisma.$executeRawUnsafe(
+    // withDbTimeout: prevents hanging when Turso is rate-limiting (429)
+    await withDbTimeout(prisma.$executeRawUnsafe(
       `UPDATE "SabiUser" SET "sessionToken" = ?, "sessionExpiry" = ? WHERE "id" = ?`,
       hashedToken, sessionExpiry.toISOString(), userId
-    );
+    ));
 
     // Set cookies
     const cookieStore = await cookies();
@@ -192,8 +207,9 @@ export async function getSabiSession(): Promise<SabiSession | null> {
     if (cached) return cached as SabiSession;
 
     // 2. Cache miss — Prisma with explicit select (only guaranteed columns)
+    // withDbTimeout: prevents hanging when Turso is rate-limiting (429)
     const hashedToken = hashToken(token);
-    const user = await prisma.sabiUser.findFirst({
+    const user = await withDbTimeout(prisma.sabiUser.findFirst({
       where: {
         id: userId,
         sessionToken: hashedToken,
@@ -201,7 +217,7 @@ export async function getSabiSession(): Promise<SabiSession | null> {
         status: { not: 'banned' },
       },
       select: { id: true, email: true, name: true, businessName: true, status: true, emailVerified: true },
-    });
+    }));
 
     if (!user) return null;
 
