@@ -46,6 +46,7 @@ import { prisma } from '@/lib/prisma';
 import { invalidateOrdersCache } from '@/lib/redis';
 
 export const preferredRegion = "sfo1";
+export const maxDuration = 10; // fast DB update + fire-and-forget notifications
 
 /**
  * Receives live progress + completion webhooks from gamerz360.
@@ -114,27 +115,29 @@ export async function POST(req: NextRequest) {
     if (shouldNotify && order.user) {
       const svcName = order.serviceType.replace(/_/g, " ");
       try {
+        // Fire-and-forget with explicit .catch() — non-awaited is intentional
+        // (notifications must never block the webhook response)
         const { sendPushToUser } = await import("@/lib/pushNotifications");
         if (isComplete) {
           sendPushToUser(order.userId, {
             title: "✅ Order Completed!",
             body: `Your ${svcName} order (${order.quantity} units) is done.`,
             url: `https://sability.io/sabi/orders/${sabiOrderId}`,
-          });
+          }).catch(() => {});
         } else {
           sendPushToUser(order.userId, {
             title: `📈 Order ${pct}% done`,
             body: `${completedCount}/${targetCount} ${svcName} completed so far.`,
             url: `https://sability.io/sabi/orders/${sabiOrderId}`,
-          });
+          }).catch(() => {});
         }
       } catch {}
 
-      // Email only on completion
+      // Email only on completion — fire-and-forget with .catch()
       if (isComplete && order.user.notifyEmail) {
         try {
           const { sendOrderCompletedEmail } = await import("@/lib/email");
-          sendOrderCompletedEmail(order.user.email, order.user.name, sabiOrderId, svcName, order.quantity);
+          sendOrderCompletedEmail(order.user.email, order.user.name, sabiOrderId, svcName, order.quantity).catch(() => {});
         } catch {}
       }
     }

@@ -29,6 +29,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://sability.io';
 const G360_URL = process.env.GAMERZ360_API_URL || 'https://gamerz360.com';
 
 export const preferredRegion = 'sfo1';
+export const maxDuration = 15; // calls gamerz360 cancel-campaign externally
 
 const NON_CANCELLABLE = ['completed', 'cancelled'];
 
