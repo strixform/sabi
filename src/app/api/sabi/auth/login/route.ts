@@ -3,7 +3,7 @@ import { loginSabiUser, createSabiSession } from '@/lib/sabiAuth';
 import { getRateLimitKey, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit';
 
 export const preferredRegion = 'sfo1';
-export const maxDuration = 15;
+export const maxDuration = 30; // Turso wake-up can take 15-20s on first cold request
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,11 +25,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Race against 10s — if Turso is rate-limiting, fail fast instead of hanging
+    // Race against 25s — allows Turso to wake from suspension (can take 15-20s cold)
+    // Falls back with a clean error rather than hanging
     const result = await Promise.race([
       loginSabiUser(email, password),
       new Promise<{ success: false; error: string }>((resolve) =>
-        setTimeout(() => resolve({ success: false, error: 'Login timed out — please try again' }), 10000)
+        setTimeout(() => resolve({ success: false, error: 'Service temporarily unavailable — please try again in a moment' }), 25000)
       ),
     ]);
 
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
     const token = await Promise.race([
       createSabiSession(result.userId!),
       new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('session_timeout')), 10000)
+        setTimeout(() => reject(new Error('session_timeout')), 25000)
       ),
     ]);
 

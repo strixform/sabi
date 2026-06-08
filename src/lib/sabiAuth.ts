@@ -33,7 +33,7 @@ const SESSION_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 days
 // Prisma/Turso can hang indefinitely when Turso is rate-limiting (429).
 // Wrap every Prisma call with this so auth routes never time out silently.
 // 8s is aggressive but safe — Turso P95 is <300ms, 8s means something is broken.
-function withDbTimeout<T>(p: Promise<T>, ms = 8000): Promise<T> {
+function withDbTimeout<T>(p: Promise<T>, ms = 20000): Promise<T> {
   return Promise.race([
     p,
     new Promise<T>((_, reject) =>
