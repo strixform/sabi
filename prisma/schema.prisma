@@ -55,6 +55,7 @@ model SabiUser {
   wallet        SabiWallet?
   apiTokens     SabiApiToken[]
   transactions  SabiTransaction[]
+  customRequests SabiCustomRequest[]
 
   @@index([email])
   @@index([status])
@@ -500,6 +501,31 @@ model SabiPushSubscription {
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+}
+
+model SabiCustomRequest {
+  id              String    @id @default(cuid())
+  userId          String?   // logged-in user who submitted (null = anonymous)
+  name            String
+  email           String
+  whatsapp        String
+  category        String    // social_growth | app_reviews | website_traffic | community | content_amp | business | voting | other
+  description     String    // full brief of what they need
+  targetPlatform  String?   // e.g. "Instagram", "Google Play Store"
+  targetUrl       String?   // optional link
+  quantity        Int?      // estimated units (optional)
+  budget          String?   // e.g. "₦50,000 – ₦100,000" or "Flexible"
+  timeline        String?   // e.g. "1 week", "ASAP"
+  status          String    @default("new") // new | reviewing | contacted | quoted | active | completed | rejected
+  adminNotes      String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user            SabiUser? @relation(fields: [userId], references: [id])
+
+  @@index([status])
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model SABIAdminConfig {

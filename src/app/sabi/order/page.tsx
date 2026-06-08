@@ -590,6 +590,21 @@ export default function OrderPage() {
                 </p>
               </div>
 
+              {/* Custom Order banner — shown above platforms */}
+              <Link href="/sabi/order/custom"
+                className="flex items-center justify-between p-4 sm:p-5 rounded-xl mb-5 border border-violet-500/30 bg-gradient-to-r from-violet-500/10 to-blue-500/10 hover:from-violet-500/20 hover:to-blue-500/20 transition-all group">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-blue-600 flex items-center justify-center flex-shrink-0">
+                    <FiStar className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-white text-sm sm:text-base">Custom Order</div>
+                    <div className="text-xs sm:text-sm text-slate-400">Need something unique? Request any digital action — app reviews, website traffic, community building, or more.</div>
+                  </div>
+                </div>
+                <FiArrowRight className="w-5 h-5 text-violet-400 group-hover:translate-x-1 transition-transform flex-shrink-0 ml-4" />
+              </Link>
+
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
                 {Object.entries(PLATFORMS).map(([label, value]) => {
                   const Icon = PLATFORM_ICONS[value];

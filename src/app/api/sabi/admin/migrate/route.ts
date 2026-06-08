@@ -151,5 +151,33 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, results });
   }
 
+  // Create SabiCustomRequest table for the Custom Order feature
+  if (action === 'create_custom_request_table') {
+    results.push({ step: 'CREATE SabiCustomRequest', ...(await run(`
+      CREATE TABLE IF NOT EXISTS "SabiCustomRequest" (
+        "id"             TEXT NOT NULL PRIMARY KEY,
+        "userId"         TEXT,
+        "name"           TEXT NOT NULL,
+        "email"          TEXT NOT NULL,
+        "whatsapp"       TEXT NOT NULL,
+        "category"       TEXT NOT NULL,
+        "description"    TEXT NOT NULL,
+        "targetPlatform" TEXT,
+        "targetUrl"      TEXT,
+        "quantity"       INTEGER,
+        "budget"         TEXT,
+        "timeline"       TEXT,
+        "status"         TEXT NOT NULL DEFAULT 'new',
+        "adminNotes"     TEXT,
+        "createdAt"      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt"      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `)) });
+    results.push({ step: 'IDX SabiCustomRequest_status', ...(await run(`CREATE INDEX IF NOT EXISTS "SabiCustomRequest_status_idx" ON "SabiCustomRequest"("status")`)) });
+    results.push({ step: 'IDX SabiCustomRequest_userId', ...(await run(`CREATE INDEX IF NOT EXISTS "SabiCustomRequest_userId_idx" ON "SabiCustomRequest"("userId")`)) });
+    results.push({ step: 'IDX SabiCustomRequest_createdAt', ...(await run(`CREATE INDEX IF NOT EXISTS "SabiCustomRequest_createdAt_idx" ON "SabiCustomRequest"("createdAt")`)) });
+    return NextResponse.json({ ok: true, results });
+  }
+
   return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
 }

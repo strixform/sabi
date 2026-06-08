@@ -19,6 +19,7 @@ import Link from 'next/link';
 import {
   FiRefreshCw, FiSearch, FiSettings, FiUsers, FiDollarSign,
   FiShoppingBag, FiGift, FiExternalLink, FiChevronLeft, FiChevronRight,
+  FiChevronDown, FiPhone,
 } from 'react-icons/fi';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -48,6 +49,14 @@ interface Referrer {
   totalEarnings: number; availableEarnings: number;
 }
 
+interface CustomRequest {
+  id: string; name: string; email: string; whatsapp: string;
+  category: string; description: string; targetPlatform: string | null;
+  targetUrl: string | null; quantity: number | null;
+  budget: string | null; timeline: string | null;
+  status: string; adminNotes: string | null; createdAt: string; userId: string | null;
+}
+
 interface Stats {
   totalOrders: number; pendingOrders: number;
   processingOrders: number; completedOrders: number;
@@ -72,7 +81,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 const fmt = (kobo: number | undefined | null) => `₦${Math.round((kobo ?? 0) / 100).toLocaleString()}`;
 const fmtDate = (d: string) => new Date(d).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' });
-const TABS = ['Orders', 'Users', 'Payments', 'Referrals', 'Settings'] as const;
+const TABS = ['Orders', 'Users', 'Payments', 'Referrals', 'Requests', 'Settings'] as const;
 type Tab = typeof TABS[number];
 
 // ─── Sort state helper ────────────────────────────────────────────────────────
@@ -251,6 +260,132 @@ function SortTh({ label, col, sort, setSort, className = '' }: {
   );
 }
 
+// ─── Request Card ─────────────────────────────────────────────────────────────
+const REQ_STATUS_OPTIONS = ['new','reviewing','contacted','quoted','active','completed','rejected'];
+const REQ_STATUS_COLORS: Record<string, string> = {
+  new:       'bg-yellow-500/20 text-yellow-300 border-yellow-500/40',
+  reviewing: 'bg-blue-500/20 text-blue-300 border-blue-500/40',
+  contacted: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
+  quoted:    'bg-purple-500/20 text-purple-300 border-purple-500/40',
+  active:    'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+  completed: 'bg-green-500/20 text-green-300 border-green-500/40',
+  rejected:  'bg-red-500/20 text-red-300 border-red-500/40',
+};
+const CAT_LABELS: Record<string, string> = {
+  social_growth: '📈 Social Media Growth', app_reviews: '⭐ App Reviews & Ratings',
+  website_traffic: '🌐 Website Traffic', community: '👥 Community Building',
+  content_amp: '⚡ Content Amplification', business: '🏢 Business Promotions',
+  voting: '🗳️ Voting & Petitions', other: '🎯 Custom',
+};
+
+function RequestCard({ request: r, expanded, onToggle, adminFetch, onUpdated }: {
+  request: CustomRequest; expanded: boolean;
+  onToggle: () => void;
+  adminFetch: (url: string, opts?: RequestInit) => Promise<Response>;
+  onUpdated: () => void;
+}) {
+  const [status, setStatus] = useState(r.status);
+  const [notes, setNotes] = useState(r.adminNotes || '');
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  const save = async () => {
+    setSaving(true); setMsg('');
+    try {
+      const res = await adminFetch('/api/sabi/admin/custom-requests', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: r.id, status, adminNotes: notes }),
+      });
+      const d = await res.json();
+      if (res.ok) { setMsg('✅ Saved'); onUpdated(); }
+      else setMsg(`❌ ${d.error}`);
+    } catch { setMsg('❌ Network error'); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div className="bg-slate-900/60 border border-white/[0.06] rounded-xl overflow-hidden">
+      {/* Summary row */}
+      <button onClick={onToggle} className="w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-white/[0.02] transition-colors">
+        <div className={`px-2 py-1 rounded-full text-xs font-semibold border capitalize ${REQ_STATUS_COLORS[status] || 'bg-slate-700 text-slate-300 border-white/10'}`}>
+          {status}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-sm truncate">{r.name}
+            <span className="text-slate-500 font-normal ml-2">{r.email}</span>
+          </div>
+          <div className="text-xs text-slate-500 truncate">{CAT_LABELS[r.category] || r.category} · {r.description.slice(0, 80)}…</div>
+        </div>
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <a href={`https://wa.me/${r.whatsapp}`} target="_blank" rel="noopener noreferrer"
+            onClick={e => e.stopPropagation()}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs rounded-lg hover:bg-emerald-500/20 transition-colors">
+            <FiPhone className="w-3.5 h-3.5" /> WhatsApp
+          </a>
+          <div className="text-xs text-slate-600">{new Date(r.createdAt).toLocaleDateString('en-NG')}</div>
+          <FiChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+        </div>
+      </button>
+
+      {/* Expanded detail */}
+      {expanded && (
+        <div className="px-5 pb-5 border-t border-white/[0.06] pt-4 space-y-4">
+          {/* Meta row */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            {[
+              { label: 'Category', value: CAT_LABELS[r.category] || r.category },
+              { label: 'Platform', value: r.targetPlatform || '—' },
+              { label: 'Quantity', value: r.quantity?.toLocaleString() || '—' },
+              { label: 'Budget', value: r.budget || '—' },
+              { label: 'Timeline', value: r.timeline || '—' },
+              { label: 'Target URL', value: r.targetUrl ? <a href={r.targetUrl} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline truncate block max-w-[180px]">{r.targetUrl}</a> : '—' },
+              { label: 'Email', value: <a href={`mailto:${r.email}`} className="text-blue-400 underline">{r.email}</a> },
+              { label: 'WhatsApp', value: <a href={`https://wa.me/${r.whatsapp}`} target="_blank" rel="noopener noreferrer" className="text-emerald-400 underline">+{r.whatsapp}</a> },
+            ].map(item => (
+              <div key={item.label} className="bg-slate-800/50 rounded-lg p-3">
+                <div className="text-slate-500 mb-0.5">{item.label}</div>
+                <div className="text-white font-medium">{item.value}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Description */}
+          <div className="bg-slate-800/40 border border-white/[0.04] rounded-xl p-4">
+            <div className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-2">Brief / Description</div>
+            <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">{r.description}</p>
+          </div>
+
+          {/* Admin actions */}
+          <div className="flex flex-wrap gap-3 items-end">
+            <div>
+              <div className="text-xs text-slate-500 mb-1">Update status</div>
+              <select value={status} onChange={e => setStatus(e.target.value)}
+                className="px-3 py-2 bg-slate-800 border border-white/[0.08] text-white text-sm rounded-lg focus:outline-none">
+                {REQ_STATUS_OPTIONS.map(s => <option key={s} value={s} className="capitalize">{s}</option>)}
+              </select>
+            </div>
+            <div className="flex-1 min-w-[200px]">
+              <div className="text-xs text-slate-500 mb-1">Admin notes (internal)</div>
+              <input value={notes} onChange={e => setNotes(e.target.value)}
+                placeholder="Quote sent, follow-up scheduled…"
+                className="w-full px-3 py-2 bg-slate-800 border border-white/[0.08] text-white text-sm rounded-lg focus:outline-none placeholder-slate-600" />
+            </div>
+            <button onClick={save} disabled={saving}
+              className="px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors flex-shrink-0">
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+            {msg && <span className="text-xs text-slate-400">{msg}</span>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const qs = (p: Record<string, string | number>) =>
+  '?' + new URLSearchParams(Object.entries(p).map(([k, v]) => [k, String(v)])).toString();
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
@@ -283,6 +418,13 @@ export default function AdminPage() {
   // Referrals
   const [referrers, setReferrers]   = useState<Referrer[]>([]);
   const [refStats,  setRefStats]    = useState<any>(null);
+
+  // Custom Requests
+  const [requests, setRequests]           = useState<CustomRequest[]>([]);
+  const [reqTotal, setReqTotal]           = useState(0);
+  const [reqStatusFilter, setReqStatusFilter] = useState('all');
+  const [reqStatusCounts, setReqStatusCounts] = useState<Record<string, number>>({});
+  const [reqExpanded, setReqExpanded]     = useState<string | null>(null);
 
   // Settings (WhatsApp + order limits — managed by /sabi/admin/settings)
   const LIMIT = 50;
@@ -335,8 +477,6 @@ export default function AdminPage() {
   useEffect(() => {
     if (!authorized) return;
     setLoading(true);
-    const qs = (p: Record<string, string | number>) =>
-      '?' + new URLSearchParams(Object.entries(p).map(([k, v]) => [k, String(v)])).toString();
 
     const go = async () => {
       try {
@@ -367,11 +507,18 @@ export default function AdminPage() {
           const d = await adminFetch('/api/sabi/admin/referrals').then(r => r.json());
           if (d.success) { setReferrers(d.referrers || []); setRefStats(d.stats); }
         }
+        if (tab === 'Requests') {
+          const p: any = { limit: LIMIT, offset: 0 };
+          if (reqStatusFilter && reqStatusFilter !== 'all') p.status = reqStatusFilter;
+          if (search) p.search = search;
+          const d = await adminFetch('/api/sabi/admin/custom-requests' + qs(p)).then(r => r.json());
+          if (d.success) { setRequests(d.requests || []); setReqTotal(d.total ?? 0); setReqStatusCounts(d.statusCounts || {}); }
+        }
       } catch (e) { console.error('Admin fetch error:', e); }
       finally { setLoading(false); }
     };
     go();
-  }, [authorized, tab, orderPage, userPage, payPage, search, statusFilter, adminFetch]);
+  }, [authorized, tab, orderPage, userPage, payPage, search, statusFilter, reqStatusFilter, adminFetch]);
 
   if (!authorized) return (
     <div className="min-h-screen bg-[#030507] flex items-center justify-center">
@@ -751,6 +898,51 @@ export default function AdminPage() {
                 </table>
               </div>
             </div>
+          </>
+        )}
+
+        {/* ── REQUESTS tab ───────────────────────────────────────────────── */}
+        {tab === 'Requests' && (
+          <>
+            {/* Status filter pills */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {['all', 'new', 'reviewing', 'contacted', 'quoted', 'active', 'completed', 'rejected'].map(s => (
+                <button key={s}
+                  onClick={() => setReqStatusFilter(s)}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all capitalize ${
+                    reqStatusFilter === s
+                      ? 'bg-violet-500/20 text-violet-300 border-violet-500/40'
+                      : 'bg-slate-800 text-slate-400 border-white/[0.06] hover:border-white/20'
+                  }`}>
+                  {s === 'all' ? `All (${reqTotal})` : `${s} ${reqStatusCounts[s] ? `(${reqStatusCounts[s]})` : ''}`}
+                </button>
+              ))}
+            </div>
+
+            {loading ? (
+              <div className="text-center py-16 text-slate-600">Loading requests…</div>
+            ) : requests.length === 0 ? (
+              <div className="text-center py-16 bg-slate-900/60 border border-white/[0.06] rounded-xl">
+                <div className="text-4xl mb-3">📬</div>
+                <div className="text-slate-400 font-semibold">No custom requests yet</div>
+                <div className="text-slate-600 text-sm mt-1">Requests submitted via the Custom Order page will appear here.</div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {requests.map(r => (
+                  <RequestCard key={r.id} request={r} expanded={reqExpanded === r.id}
+                    onToggle={() => setReqExpanded(reqExpanded === r.id ? null : r.id)}
+                    adminFetch={adminFetch} onUpdated={() => {
+                      // Refresh
+                      const p: any = { limit: LIMIT, offset: 0 };
+                      if (reqStatusFilter !== 'all') p.status = reqStatusFilter;
+                      adminFetch('/api/sabi/admin/custom-requests' + qs(p)).then(r => r.json()).then(d => {
+                        if (d.success) { setRequests(d.requests || []); setReqTotal(d.total ?? 0); setReqStatusCounts(d.statusCounts || {}); }
+                      });
+                    }} />
+                ))}
+              </div>
+            )}
           </>
         )}
 
