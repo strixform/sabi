@@ -148,7 +148,12 @@ export async function loginSabiUser(
 
     return { success: true, userId: user.id };
   } catch (error) {
-    console.error('[loginSabiUser]', (error as Error)?.message?.slice(0, 200));
+    const msg = (error as Error)?.message || '';
+    console.error('[loginSabiUser]', msg.slice(0, 200));
+    // Turso 429 → surface a clear retry message instead of generic "Login failed"
+    if (msg.includes('429') || msg.includes('rate') || msg.includes('DB_TIMEOUT')) {
+      return { success: false, error: 'Server is busy — please try again in a moment' };
+    }
     return { success: false, error: 'Login failed' };
   }
 }
