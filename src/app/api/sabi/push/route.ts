@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSabiSession } from '@/lib/sabiAuth';
 import { createClient } from '@libsql/client';
 import { randomUUID } from 'crypto';
+export const maxDuration = 15;
+
 
 function db() {
   let url = (process.env.TURSO_DATABASE_URL || process.env.DATABASE_URL || '').trim();

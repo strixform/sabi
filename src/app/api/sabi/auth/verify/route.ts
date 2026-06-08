@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSabiSession } from '@/lib/sabiAuth';
 import { getRateLimitKey, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit';
+export const maxDuration = 15;
+
 
 export async function POST(req: NextRequest) {
   // 10 attempts per 10 minutes per IP — prevents 6-digit brute force

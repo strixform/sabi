@@ -3,6 +3,8 @@ import { requestPasswordReset } from '@/lib/sabiAuth';
 import { sendPasswordResetEmail } from '@/lib/email';
 import { prisma } from '@/lib/prisma';
 import { getRateLimitKey, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit';
+export const maxDuration = 15;
+
 
 export async function POST(req: NextRequest) {
   // 3 attempts per 15 minutes per IP — prevents email flooding

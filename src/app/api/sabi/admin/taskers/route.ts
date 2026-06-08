@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkSabiAdmin } from '@/lib/sabiAdminAuth';
+export const maxDuration = 15;
+
 
 interface Tasker {
   id: string;

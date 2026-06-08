@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSabiSession } from '@/lib/sabiAuth';
 import { generateFlwTxRef, initializeFlwPayment } from '@/lib/sabiFlutterwave';
+export const maxDuration = 15;
+
 
 export async function POST(req: NextRequest) {
   try {

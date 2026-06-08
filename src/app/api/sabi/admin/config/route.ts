@@ -17,6 +17,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkSabiAdmin } from '@/lib/sabiAdminAuth';
+export const maxDuration = 15;
+
 
 // GET — public, used by WhatsAppButton on every /sabi/* page
 export async function GET(request: NextRequest) {

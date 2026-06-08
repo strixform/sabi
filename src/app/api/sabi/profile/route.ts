@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSabiSession } from '@/lib/sabiAuth';
 import { prisma } from '@/lib/prisma';
 import { hash, compare } from 'bcryptjs';
+export const maxDuration = 15;
+
 
 // GET: return full profile data for the logged-in user
 export async function GET() {

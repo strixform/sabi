@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getSabiSession } from '@/lib/sabiAuth';
 import { prisma } from '@/lib/prisma';
+export const maxDuration = 15;
+
 
 // GET: return the current user's referral code + full stats + per-referral breakdown
 export async function GET() {

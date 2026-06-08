@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSabiSession } from '@/lib/sabiAuth';
 import { prisma } from '@/lib/prisma';
 import { computePricing } from '@/lib/servicesCatalog';
+export const maxDuration = 15;
+
 
 // Validate a promo code at checkout
 export async function POST(req: NextRequest) {

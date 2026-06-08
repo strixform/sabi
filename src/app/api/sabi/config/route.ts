@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+export const maxDuration = 15;
+
 
 // Public endpoint — returns only non-sensitive config needed by the frontend
 export async function GET() {

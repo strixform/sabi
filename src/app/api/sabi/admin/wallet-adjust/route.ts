@@ -32,6 +32,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://sability.io';
 const FROM = 'Sabi <noreply@sability.io>';
 
 export const preferredRegion = 'sfo1';
+export const maxDuration = 15;
 
 export async function POST(req: NextRequest) {
   if (!await checkSabiAdmin(req)) {

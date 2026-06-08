@@ -18,6 +18,7 @@ import { prisma } from '@/lib/prisma';
 import { checkSabiAdmin } from '@/lib/sabiAdminAuth';
 
 export const preferredRegion = 'sfo1';
+export const maxDuration = 15;
 
 export async function GET(req: NextRequest) {
   if (!await checkSabiAdmin(req)) {

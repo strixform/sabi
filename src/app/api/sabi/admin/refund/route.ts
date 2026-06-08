@@ -28,6 +28,7 @@ import { checkSabiAdmin } from '@/lib/sabiAdminAuth';
 import { sendOrderFailedEmail } from '@/lib/email';
 
 export const preferredRegion = 'sfo1';
+export const maxDuration = 15;
 
 export async function POST(req: NextRequest) {
   if (!await checkSabiAdmin(req)) {

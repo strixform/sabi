@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyKorapayWebhookSignature, parseKorapayWebhook } from '@/lib/sabiKorapay';
 import { creditSabiWallet } from '@/lib/sabiWallet';
 import { prisma } from '@/lib/prisma';
+export const maxDuration = 15;
+
 
 export async function POST(req: NextRequest) {
   try {

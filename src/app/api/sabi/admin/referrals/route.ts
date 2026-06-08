@@ -13,6 +13,7 @@ import { prisma } from '@/lib/prisma';
 import { checkSabiAdmin } from '@/lib/sabiAdminAuth';
 
 export const preferredRegion = 'sfo1';
+export const maxDuration = 15;
 
 const REWARD_NAIRA = 500; // ₦500 per qualifying referral
 

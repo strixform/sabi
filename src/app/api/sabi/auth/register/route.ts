@@ -3,6 +3,8 @@ import { registerSabiUser, createSabiSession } from '@/lib/sabiAuth';
 import { getRateLimitKey, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit';
 import { sendVerificationEmail } from '@/lib/email';
 import { prisma } from '@/lib/prisma';
+export const maxDuration = 15;
+
 
 export async function POST(req: NextRequest) {
   try {

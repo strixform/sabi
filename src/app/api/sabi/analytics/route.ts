@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getSabiSession } from '@/lib/sabiAuth';
 import { prisma } from '@/lib/prisma';
+export const maxDuration = 15;
+
 
 export async function GET() {
   const session = await getSabiSession();

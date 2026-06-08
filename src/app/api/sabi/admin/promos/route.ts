@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkSabiAdmin } from '@/lib/sabiAdminAuth';
+export const maxDuration = 15;
+
 
 const requireAdmin = (req: NextRequest) => checkSabiAdmin(req);
 

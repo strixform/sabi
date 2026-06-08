@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { resetPassword } from '@/lib/sabiAuth';
+export const maxDuration = 15;
+
 
 export async function POST(req: NextRequest) {
   try {

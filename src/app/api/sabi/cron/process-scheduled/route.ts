@@ -44,7 +44,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
+export const maxDuration = 25; // keep short — cron runs every 5min, 60s was holding Turso connections too long
 
 // Called by Vercel Cron every 5 minutes.
 // Finds SabiOrders where scheduledAt <= now AND status = 'pending',
@@ -61,6 +61,20 @@ export async function GET(req: NextRequest) {
   }
 
   const now = new Date();
+
+  // Quick DB health check — bail out immediately if Turso is 429-ing
+  // so we don't hold a 25s connection and worsen the rate limit
+  try {
+    await Promise.race([
+      prisma.$queryRaw`SELECT 1`,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('db_ping_timeout')), 3000)),
+    ]);
+  } catch (pingErr: any) {
+    const msg = String(pingErr?.message || pingErr);
+    if (msg.includes('429') || msg.includes('timeout')) {
+      return NextResponse.json({ skipped: true, reason: 'Turso rate-limited — skipping this cron run', msg }, { status: 200 });
+    }
+  }
 
   // Find ALL pending orders that haven't been submitted to gamerz360 yet.
   // This includes:
@@ -81,7 +95,7 @@ export async function GET(req: NextRequest) {
     include: {
       user: { select: { id: true, email: true, name: true, businessName: true } },
     },
-    take: 50, // process max 50 at once
+    take: 10, // process max 10 at once — keeps Turso write pressure low
   });
 
   if (due.length === 0) {
