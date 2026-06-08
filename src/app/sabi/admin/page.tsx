@@ -70,7 +70,7 @@ const STATUS_COLORS: Record<string, string> = {
   bonus:     'bg-purple-500/15 text-purple-400',
 };
 
-const fmt = (kobo: number) => `₦${Math.round(kobo / 100).toLocaleString()}`;
+const fmt = (kobo: number | undefined | null) => `₦${Math.round((kobo ?? 0) / 100).toLocaleString()}`;
 const fmtDate = (d: string) => new Date(d).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' });
 const TABS = ['Orders', 'Users', 'Payments', 'Referrals', 'Settings'] as const;
 type Tab = typeof TABS[number];
@@ -623,9 +623,9 @@ export default function AdminPage() {
             {payStats && (
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { label: 'Total deposited', value: fmt(payStats.totalDeposited), color: 'text-emerald-400' },
-                  { label: 'Total spent',     value: fmt(payStats.totalSpent),     color: 'text-blue-400' },
-                  { label: 'Total refunded',  value: fmt(payStats.totalRefunded),  color: 'text-yellow-400' },
+                  { label: 'Total deposited',    value: fmt(payStats.totalDeposited),                            color: 'text-emerald-400' },
+                  { label: 'Total deposits',     value: `${(payStats.totalTransactions ?? 0).toLocaleString()} deposits`, color: 'text-blue-400' },
+                  { label: 'Avg per deposit',    value: payStats.totalTransactions > 0 ? fmt(Math.round((payStats.totalDeposited ?? 0) / payStats.totalTransactions)) : '₦0', color: 'text-yellow-400' },
                 ].map(s => (
                   <div key={s.label} className="bg-slate-900 border border-white/[0.06] rounded-xl p-4">
                     <div className="text-xs text-slate-500 mb-1">{s.label}</div>
