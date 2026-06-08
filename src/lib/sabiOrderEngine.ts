@@ -39,6 +39,23 @@ function mapServiceToTaskType(serviceId: string): string {
 
 export async function createSabiOrder(input: CreateOrderInput): Promise<OrderResponse> {
   try {
+    // Check platform-wide minimum quantity from SABIAdminConfig (set by admin).
+    // This overrides the per-service catalog minimum when it's higher.
+    // e.g. admin sets minOrderQuantity=50 → orders < 50 are rejected regardless of service.
+    try {
+      const configRow = await prisma.sABIAdminConfig.findFirst({
+        select: { minOrderQuantity: true, maxOrderQuantity: true },
+      });
+      if (configRow) {
+        if (input.quantity < configRow.minOrderQuantity) {
+          return { success: false, error: `Minimum order quantity is ${configRow.minOrderQuantity}` };
+        }
+        if (input.quantity > configRow.maxOrderQuantity) {
+          return { success: false, error: `Maximum order quantity is ${configRow.maxOrderQuantity}` };
+        }
+      }
+    } catch { /* Config table missing — fall through to service-level validation */ }
+
     const validation = validateOrder(input.serviceId, input.quantity, input.targetUrl);
     if (!validation.valid) {
       return { success: false, error: validation.error };

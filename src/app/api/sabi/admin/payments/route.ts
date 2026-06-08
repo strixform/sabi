@@ -1,14 +1,14 @@
 /**
- * SABI Admin — Payments / transaction history
+ * SABI Admin — Incoming Payments (Flutterwave deposits only)
  * GET /api/sabi/admin/payments
  *
- * Returns all wallet transactions (top-ups, bonuses, refunds, order charges)
- * across all users. Mirrors the Owlet admin Payments tab.
+ * Returns only real incoming wallet top-ups from Flutterwave.
+ * Excludes order charges, refunds, bonuses — those are internal movements.
+ * This is the "money in" view: what users have actually paid into the platform.
  *
  * Auth: checkSabiAdmin (session cookie OR x-admin-token header)
  * Query params:
  *   search  — filter by user email / transaction ref
- *   type    — filter by type (deposit / order / refund / bonus)
  *   limit   — default 50, max 200
  *   offset  — pagination offset
  */
@@ -30,13 +30,17 @@ export async function GET(req: NextRequest) {
   const limit  = Math.min(parseInt(searchParams.get('limit')  || '50'),  200);
   const offset = parseInt(searchParams.get('offset') || '0');
 
-  const where: any = {};
-  if (type) where.type = type;
+  // Always filter to deposits only — this page shows money IN (Flutterwave top-ups).
+  // Order charges, refunds, bonuses are internal movements shown elsewhere.
+  const where: any = { type: 'deposit' };
   if (search) {
-    where.OR = [
-      { reference:   { contains: search } },
-      { description: { contains: search } },
-    ];
+    where.AND = [{
+      OR: [
+        { reference:   { contains: search } },
+        { description: { contains: search } },
+        { user: { email: { contains: search } } },
+      ],
+    }];
   }
 
   const [txns, total] = await Promise.all([
@@ -52,11 +56,10 @@ export async function GET(req: NextRequest) {
     prisma.sabiTransaction.count({ where }),
   ]);
 
-  // Aggregate revenue stats for the header cards
-  const [totalDeposited, totalSpent, totalRefunded] = await Promise.all([
+  // Stats cards — deposits only (this is the incoming money view)
+  const [totalDeposited, depositCount] = await Promise.all([
     prisma.sabiTransaction.aggregate({ where: { type: 'deposit' }, _sum: { amount: true } }),
-    prisma.sabiTransaction.aggregate({ where: { type: 'order'   }, _sum: { amount: true } }),
-    prisma.sabiTransaction.aggregate({ where: { type: 'refund'  }, _sum: { amount: true } }),
+    prisma.sabiTransaction.count({ where: { type: 'deposit' } }),
   ]);
 
   return NextResponse.json({
@@ -75,8 +78,7 @@ export async function GET(req: NextRequest) {
     total,
     stats: {
       totalDeposited: totalDeposited._sum.amount ?? 0,
-      totalSpent:     totalSpent._sum.amount     ?? 0,
-      totalRefunded:  totalRefunded._sum.amount  ?? 0,
+      totalTransactions: depositCount,
     },
     limit,
     offset,
