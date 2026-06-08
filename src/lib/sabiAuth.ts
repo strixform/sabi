@@ -3,6 +3,27 @@ import { hash, compare } from 'bcryptjs';
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
 
+/**
+ * ─── SABI AUTH STABILITY RULES — READ BEFORE CHANGING ──────────────────────
+ *
+ * 1. LAZY REDIS IMPORTS: Redis is imported INSIDE function bodies, never at the
+ *    top of this file. A Redis failure must NEVER crash auth. The pattern:
+ *      async function tryGetCachedSession() { const { getCachedSession } = await import('./redis'); }
+ *    If you add Redis to the top-level imports, login will break when Redis is down.
+ *
+ * 2. withDbTimeout DEFAULT: Currently 6s. This MUST be shorter than the
+ *    maxDuration of routes that call it (Google callback = 15s, login = 30s).
+ *    If withDbTimeout > maxDuration, Vercel kills the function before the
+ *    timeout fires → Cloudflare sees an upstream cut → "Host Error" for users.
+ *
+ * 3. PRISMA SELECT: Every prisma query MUST use explicit `select:` with only
+ *    columns guaranteed to exist in the prod Turso DB. The prod schema may lag
+ *    behind prisma/schema.prisma. Missing columns cause 500 errors in production.
+ *
+ * 4. SESSION CACHE TTL: trySetCachedSession calls use 1800s (30 min).
+ *    Never reduce below 300s — too short causes Turso floods.
+ */
+
 // ─── Stability rule: Redis is OPTIONAL and must NEVER crash core auth ──────────
 // Import is lazy (inside function bodies) so a Redis module failure cannot
 // cascade and break login/register/session-check routes.
