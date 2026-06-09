@@ -66,17 +66,19 @@ interface Stats {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const STATUS_COLORS: Record<string, string> = {
-  pending:   'bg-yellow-500/15 text-yellow-400 border-yellow-500/30',
-  executing: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  completed: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-  failed:    'bg-red-500/15 text-red-400 border-red-500/30',
-  cancelled: 'bg-gray-500/15 text-gray-400 border-gray-500/30',
-  active:    'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-  banned:    'bg-red-500/15 text-red-400 border-red-500/30',
-  deposit:   'bg-emerald-500/15 text-emerald-400',
-  order:     'bg-blue-500/15 text-blue-400',
-  refund:    'bg-yellow-500/15 text-yellow-400',
-  bonus:     'bg-purple-500/15 text-purple-400',
+  pending:     'bg-yellow-500/15 text-yellow-400 border-yellow-500/30',
+  processing:  'bg-blue-400/15 text-blue-300 border-blue-400/30',
+  in_progress: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30',
+  executing:   'bg-blue-500/15 text-blue-400 border-blue-500/30',
+  completed:   'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+  failed:      'bg-red-500/15 text-red-400 border-red-500/30',
+  cancelled:   'bg-gray-500/15 text-gray-400 border-gray-500/30',
+  active:      'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+  banned:      'bg-red-500/15 text-red-400 border-red-500/30',
+  deposit:     'bg-emerald-500/15 text-emerald-400',
+  order:       'bg-blue-500/15 text-blue-400',
+  refund:      'bg-yellow-500/15 text-yellow-400',
+  bonus:       'bg-purple-500/15 text-purple-400',
 };
 
 const fmt = (kobo: number | undefined | null) => `₦${Math.round((kobo ?? 0) / 100).toLocaleString()}`;
@@ -162,6 +164,111 @@ function CancelOrderButton({ orderId, serviceType, onDone, adminFetch }: {
         </button>
         <button onClick={() => { setOpen(false); setMsg(''); }} className="px-2 py-1 bg-slate-700 text-slate-400 text-[10px] rounded">✕</button>
       </div>
+    </div>
+  );
+}
+
+// ─── Update Order Status button ───────────────────────────────────────────────
+// Allows admin to move order through lifecycle: pending → processing → in_progress
+// → completed. Also supports failed and cancelled overrides.
+const ORDER_STATUSES = ['pending', 'processing', 'in_progress', 'executing', 'completed', 'failed', 'cancelled'] as const;
+const STATUS_LABELS: Record<string, string> = {
+  pending:    '⏳ Pending',
+  processing: '⚙️ Processing',
+  in_progress:'▶️ In Progress',
+  executing:  '🚀 Executing',
+  completed:  '✅ Completed',
+  failed:     '❌ Failed',
+  cancelled:  '🚫 Cancelled',
+};
+
+function UpdateOrderStatusButton({ order, onDone, adminFetch }: {
+  order: Order;
+  onDone: () => void;
+  adminFetch: (url: string, opts?: RequestInit) => Promise<Response>;
+}) {
+  const [open,     setOpen]     = useState(false);
+  const [status,   setStatus]   = useState(order.status);
+  const [qty,      setQty]      = useState(String(order.completedQuantity || 0));
+  const [note,     setNote]     = useState('');
+  const [loading,  setLoading]  = useState(false);
+  const [msg,      setMsg]      = useState('');
+
+  const save = async () => {
+    setLoading(true);
+    try {
+      const body: Record<string, any> = { orderId: order.id };
+      if (status !== order.status) body.status = status;
+      const qtyN = parseInt(qty);
+      if (!isNaN(qtyN) && qtyN !== order.completedQuantity) body.completedQuantity = qtyN;
+      if (note.trim()) body.adminNote = note.trim();
+
+      if (Object.keys(body).length <= 1) { setMsg('No changes made'); return; }
+
+      const res = await adminFetch('/api/sabi/admin/orders', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const d = await res.json();
+      if (res.ok && d.success) {
+        setMsg(`✅ ${d.message}`);
+        setOpen(false);
+        onDone();
+      } else {
+        setMsg(`❌ ${d.error || 'Update failed'}`);
+      }
+    } catch { setMsg('❌ Network error'); }
+    finally { setLoading(false); setTimeout(() => setMsg(''), 5000); }
+  };
+
+  return (
+    <div className="relative">
+      {msg && <div className={`text-[9px] mb-1 ${msg.startsWith('✅') ? 'text-emerald-400' : 'text-red-400'}`}>{msg}</div>}
+      {!open ? (
+        <button onClick={() => setOpen(true)}
+          className="px-2 py-1 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-600/30 text-blue-400 text-[10px] font-bold rounded transition whitespace-nowrap">
+          ✏️ Status
+        </button>
+      ) : (
+        <div className="space-y-1.5 min-w-[200px] bg-slate-900 border border-white/10 rounded-lg p-2.5">
+          <div className="text-[9px] font-bold text-slate-400 mb-1">UPDATE ORDER</div>
+
+          {/* Status dropdown */}
+          <div>
+            <div className="text-[9px] text-slate-500 mb-1">Status</div>
+            <select value={status} onChange={e => setStatus(e.target.value)}
+              className="w-full bg-slate-800 border border-slate-700 text-white text-[10px] px-2 py-1.5 rounded focus:outline-none focus:border-blue-500/50">
+              {ORDER_STATUSES.map(s => (
+                <option key={s} value={s}>{STATUS_LABELS[s] || s}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Completed quantity */}
+          <div>
+            <div className="text-[9px] text-slate-500 mb-1">Completed qty (of {order.quantity})</div>
+            <input type="number" min="0" max={order.quantity} value={qty}
+              onChange={e => setQty(e.target.value)}
+              className="w-full bg-slate-800 border border-slate-700 text-white text-[10px] px-2 py-1.5 rounded focus:outline-none" />
+          </div>
+
+          {/* Admin note */}
+          <div>
+            <div className="text-[9px] text-slate-500 mb-1">Admin note (optional)</div>
+            <input value={note} onChange={e => setNote(e.target.value)} placeholder="Internal note…"
+              className="w-full bg-slate-800 border border-slate-700 text-white text-[10px] px-2 py-1.5 rounded focus:outline-none" />
+          </div>
+
+          <div className="flex gap-1 pt-0.5">
+            <button onClick={save} disabled={loading}
+              className="flex-1 px-2 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-[10px] font-bold rounded">
+              {loading ? '…' : 'Save Changes'}
+            </button>
+            <button onClick={() => { setOpen(false); setMsg(''); }} className="px-2 py-1.5 bg-slate-700 text-slate-400 text-[10px] rounded">✕</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -678,11 +785,18 @@ export default function AdminPage() {
                         </td>
                         <td className="px-4 py-3 text-xs text-slate-500">{fmtDate(o.createdAt)}</td>
                         <td className="px-4 py-3">
-                          {/* Cancel only available for non-terminal statuses */}
-                          {!['completed','cancelled','failed'].includes(o.status) && (
-                            <CancelOrderButton orderId={o.id} serviceType={o.serviceType}
-                              onDone={() => { setOrders([]); setLoading(true); }} adminFetch={adminFetch} />
-                          )}
+                          <div className="flex flex-col gap-1.5">
+                            {/* Status update — always available */}
+                            <UpdateOrderStatusButton
+                              order={o}
+                              onDone={() => { setOrders([]); setLoading(true); }}
+                              adminFetch={adminFetch} />
+                            {/* Cancel — only for non-terminal statuses */}
+                            {!['completed','cancelled','failed'].includes(o.status) && (
+                              <CancelOrderButton orderId={o.id} serviceType={o.serviceType}
+                                onDone={() => { setOrders([]); setLoading(true); }} adminFetch={adminFetch} />
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}

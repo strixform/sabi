@@ -217,18 +217,19 @@ export async function createSabiSession(userId: string): Promise<string> {
 }
 
 // Pre-warm Redis cache immediately after login — avoids first-request Turso hit.
-// Call this right after createSabiSession to ensure the session is cached before
-// the user's first page navigation (which would otherwise cause a Turso lookup).
+// CRITICAL: must be awaited — fire-and-forget causes login loop where dashboard
+// loads before Redis has the session, falls back to Turso, Turso is slow → null → login redirect.
 export async function prewarmSessionCache(
   token: string,
   session: SabiSession
 ): Promise<void> {
-  trySetCachedSession(token, session, 1800); // 30-minute cache
+  await trySetCachedSession(token, session, 1800); // 30-minute cache — AWAITED
 }
 
 // Get session — Redis-first with DB fallback.
-// Cache hit: ~5ms. Cache miss (first request or after expiry): ~100-200ms DB query.
-// TTL: 5 minutes — short enough to catch bans/logouts within a reasonable window.
+// Cache hit: ~5ms. Cache miss: ~100-200ms DB query.
+// Resilience: if Prisma sessionExpiry filter fails (column comparison issue on Turso TEXT),
+// falls back to token-only lookup. Two-tier fallback ensures no false "not found" on login.
 export async function getSabiSession(): Promise<SabiSession | null> {
   try {
     const cookieStore = await cookies();
@@ -238,22 +239,37 @@ export async function getSabiSession(): Promise<SabiSession | null> {
     if (!token || !userId) return null;
 
     // 1. Check Redis cache — avoids DB query on 90%+ of requests
-    // Safe wrapper: Redis unavailable → null → falls through to DB
     const cached = await tryGetCachedSession(token);
     if (cached) return cached as SabiSession;
 
-    // 2. Cache miss — Prisma with explicit select (only guaranteed columns)
-    // withDbTimeout: prevents hanging when Turso is rate-limiting (429)
     const hashedToken = hashToken(token);
-    const user = await withDbTimeout(prisma.sabiUser.findFirst({
-      where: {
-        id: userId,
-        sessionToken: hashedToken,
-        sessionExpiry: { gt: new Date() },
-        status: { not: 'banned' },
-      },
-      select: { id: true, email: true, name: true, businessName: true, status: true, emailVerified: true },
-    }));
+    const SEL = { id: true, email: true, name: true, businessName: true, status: true, emailVerified: true, sessionExpiry: true };
+
+    // 2. Primary: query with expiry filter
+    let user: (typeof SEL extends infer _ ? any : never) | null = null;
+    try {
+      user = await withDbTimeout(prisma.sabiUser.findFirst({
+        where: {
+          id: userId,
+          sessionToken: hashedToken,
+          sessionExpiry: { gt: new Date() },
+          status: { not: 'banned' },
+        },
+        select: SEL,
+      }));
+    } catch {
+      // 3. Fallback: if sessionExpiry comparison fails (Turso TEXT column edge case),
+      //    try without it — we manually check expiry below
+      user = await withDbTimeout(prisma.sabiUser.findFirst({
+        where: { id: userId, sessionToken: hashedToken, status: { not: 'banned' } },
+        select: SEL,
+      })).catch(() => null);
+      // Manual expiry check
+      if (user?.sessionExpiry) {
+        const exp = new Date(user.sessionExpiry);
+        if (isNaN(exp.getTime()) || exp < new Date()) user = null;
+      }
+    }
 
     if (!user) return null;
 
@@ -261,15 +277,13 @@ export async function getSabiSession(): Promise<SabiSession | null> {
       id: user.id,
       email: user.email,
       name: user.name,
-      businessName: user.businessName,
+      businessName: user.businessName ?? null,
       status: user.status,
       emailVerified: user.emailVerified,
     };
 
-    // Warm cache for 30 minutes — long TTL means cold-start storms don't hit Turso
-    // for active sessions. Sessions are invalidated on logout anyway.
+    // Re-warm cache for 30 min on every DB hit
     trySetCachedSession(token, session, 1800);
-
     return session;
   } catch {
     return null;

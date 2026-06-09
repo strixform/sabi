@@ -45,13 +45,23 @@ export default function DashboardPage() {
   useEffect(() => {
     const loadDashboard = async () => {
       try {
-        // Single combined endpoint — replaces 3 separate fetches (auth+wallet+orders).
-        // Server fetches all in parallel, we only do 1 network roundtrip + 1 session check.
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 8000);
+        // Fetch with retry — Google OAuth may hit the dashboard before Redis prewarm
+        // completes on slow connections. One 1.5s retry eliminates the login loop.
+        const tryFetch = async () => {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 8000);
+          const res = await fetch('/api/sabi/dashboard', { signal: controller.signal }).catch(() => null);
+          clearTimeout(timeout);
+          return res;
+        };
 
-        const res = await fetch('/api/sabi/dashboard', { signal: controller.signal }).catch(() => null);
-        clearTimeout(timeout);
+        let res = await tryFetch();
+
+        // One retry after 1.5s — covers race where prewarm hasn't hit Redis yet
+        if (!res || !res.ok) {
+          await new Promise(r => setTimeout(r, 1500));
+          res = await tryFetch();
+        }
 
         if (!res || !res.ok) {
           window.location.href = '/sabi/login';
@@ -59,7 +69,15 @@ export default function DashboardPage() {
         }
 
         const data = await res.json();
-        if (!data.success) { window.location.href = '/sabi/login'; return; }
+        if (!data.success) {
+          // One more retry for transient failures (Turso 429 etc.)
+          await new Promise(r => setTimeout(r, 1500));
+          const res2 = await tryFetch();
+          if (!res2?.ok) { window.location.href = '/sabi/login'; return; }
+          const data2 = await res2.json();
+          if (!data2.success) { window.location.href = '/sabi/login'; return; }
+          Object.assign(data, data2);
+        }
 
         const authData   = { user: data.user };
         const walletData = data.wallet;

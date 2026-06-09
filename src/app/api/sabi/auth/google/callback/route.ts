@@ -117,8 +117,10 @@ export async function GET(req: NextRequest) {
     // Create session and get token
     const token = await withDbTimeout(createSabiSession(user.id));
 
-    // Pre-warm Redis so the next page load reads from cache, not Turso
-    prewarmSessionCache(token, {
+    // CRITICAL: await prewarm — ensures Redis has the session BEFORE the redirect fires.
+    // Without await, browser loads /sabi/dashboard before cache is set → Turso fallback
+    // → if Turso is slow → getSabiSession returns null → back to login (loop).
+    await prewarmSessionCache(token, {
       id: user.id, email: user.email, name: user.name,
       businessName: user.businessName ?? null,
       status: user.status, emailVerified: true,
