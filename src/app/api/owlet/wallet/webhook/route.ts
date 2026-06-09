@@ -1,7 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { verifyFlwWebhookSignature, verifyFlwTransaction } from '@/lib/owletFlutterwave';
 import { creditOwletWallet } from '@/lib/owletWallet';
 import { prisma } from '@/lib/prisma';
+
+export const maxDuration = 15;
+export const preferredRegion = 'sfo1'; // Turso DB in Oregon (sfo1) — keeps latency minimal
 
 export async function POST(req: NextRequest) {
   try {
@@ -72,7 +75,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log(`Wallet credited: User ${user.id}, Amount ₦${amountInKobo / 100}, Ref ${txRef}`);
+    console.log(`Wallet credited: User ${user.id}, Amount â‚¦${amountInKobo / 100}, Ref ${txRef}`);
 
     return NextResponse.json({
       success: true,

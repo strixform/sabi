@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { getSabiSession } from '@/lib/sabiAuth';
 import { prisma } from '@/lib/prisma';
 export const maxDuration = 15;
+export const preferredRegion = 'sfo1'; // Turso DB in Oregon (sfo1) — keeps latency minimal
 
 
 // GET: auto top-up settings
@@ -28,7 +29,7 @@ export async function PATCH(req: NextRequest) {
     where: { userId: session.id },
     data: {
       autoTopupEnabled: Boolean(autoTopupEnabled),
-      autoTopupThreshold: Math.max(0, Number(autoTopupThreshold) * 100), // naira → kobo
+      autoTopupThreshold: Math.max(0, Number(autoTopupThreshold) * 100), // naira â†’ kobo
       autoTopupAmount: Math.max(0, Number(autoTopupAmount) * 100),
     },
   });

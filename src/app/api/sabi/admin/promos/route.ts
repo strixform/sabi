@@ -1,12 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkSabiAdmin } from '@/lib/sabiAdminAuth';
 export const maxDuration = 15;
+export const preferredRegion = 'sfo1'; // Turso DB in Oregon (sfo1) — keeps latency minimal
 
 
 const requireAdmin = (req: NextRequest) => checkSabiAdmin(req);
 
-// GET: list all promo codes — admin only
+// GET: list all promo codes â€” admin only
 export async function GET(req: NextRequest) {
   if (!await requireAdmin(req)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -36,7 +37,7 @@ export async function GET(req: NextRequest) {
   });
 }
 
-// POST: create a promo code — admin only
+// POST: create a promo code â€” admin only
 export async function POST(req: NextRequest) {
   if (!await requireAdmin(req)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -75,7 +76,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// PATCH: toggle active — admin only
+// PATCH: toggle active â€” admin only
 export async function PATCH(req: NextRequest) {
   if (!await requireAdmin(req)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -86,7 +87,7 @@ export async function PATCH(req: NextRequest) {
   return NextResponse.json({ success: true });
 }
 
-// DELETE: remove a promo code — admin only
+// DELETE: remove a promo code â€” admin only
 export async function DELETE(req: NextRequest) {
   if (!await requireAdmin(req)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });

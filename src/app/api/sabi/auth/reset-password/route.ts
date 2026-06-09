@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { resetPassword } from '@/lib/sabiAuth';
 export const maxDuration = 15;
+export const preferredRegion = 'sfo1'; // Turso DB in Oregon (sfo1) — keeps latency minimal
 
 
 export async function POST(req: NextRequest) {

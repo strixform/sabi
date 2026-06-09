@@ -1,15 +1,15 @@
-/**
+﻿/**
  * SABI Admin Config API
- * GET  /api/sabi/admin/config  — fetch current platform config (public read for WhatsApp button)
- * POST /api/sabi/admin/config  — update config (admin only)
+ * GET  /api/sabi/admin/config  â€” fetch current platform config (public read for WhatsApp button)
+ * POST /api/sabi/admin/config  â€” update config (admin only)
  *
  * Config fields:
- *   minOrderQuantity  — minimum order quantity allowed on the order page
- *   maxOrderQuantity  — maximum order quantity allowed on the order page
- *   supportWhatsapp   — WhatsApp support number (no + or spaces, e.g. "2348012345678")
+ *   minOrderQuantity  â€” minimum order quantity allowed on the order page
+ *   maxOrderQuantity  â€” maximum order quantity allowed on the order page
+ *   supportWhatsapp   â€” WhatsApp support number (no + or spaces, e.g. "2348012345678")
  *                       shown as floating button on every SABI page via WhatsAppButton component
  *
- * The GET is intentionally unauthenticated — the WhatsApp button component
+ * The GET is intentionally unauthenticated â€” the WhatsApp button component
  * calls it on every page to check if a number is configured.
  * The POST requires admin auth via checkSabiAdmin (session or token header).
  */
@@ -18,9 +18,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkSabiAdmin } from '@/lib/sabiAdminAuth';
 export const maxDuration = 15;
+export const preferredRegion = 'sfo1'; // Turso DB in Oregon (sfo1) — keeps latency minimal
 
 
-// GET — public, used by WhatsAppButton on every /sabi/* page
+// GET â€” public, used by WhatsAppButton on every /sabi/* page
 export async function GET(request: NextRequest) {
   try {
     let config = await prisma.sABIAdminConfig.findFirst();
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST — admin only — updates all config fields including supportWhatsapp
+// POST â€” admin only â€” updates all config fields including supportWhatsapp
 export async function POST(request: NextRequest) {
   // Guard: only the admin can change platform config
   if (!await checkSabiAdmin(request)) {
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
     const existing = await prisma.sABIAdminConfig.findFirst();
 
     if (!existing) {
-      // First-time create — use raw SQL since Prisma client may not have supportWhatsapp
+      // First-time create â€” use raw SQL since Prisma client may not have supportWhatsapp
       const newId = `cfg_${Math.random().toString(36).slice(2, 12)}`;
       await prisma.$executeRawUnsafe(
         `INSERT INTO "SABIAdminConfig" (id, minOrderQuantity, maxOrderQuantity, supportWhatsapp, updatedAt, createdAt)
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
         newId, Number(minOrderQuantity), Number(maxOrderQuantity), cleanWhatsapp
       );
     } else {
-      // Update — raw SQL to include supportWhatsapp which may not be in Prisma client
+      // Update â€” raw SQL to include supportWhatsapp which may not be in Prisma client
       await prisma.$executeRawUnsafe(
         `UPDATE "SABIAdminConfig"
          SET minOrderQuantity = ?, maxOrderQuantity = ?, supportWhatsapp = ?, updatedAt = datetime('now')

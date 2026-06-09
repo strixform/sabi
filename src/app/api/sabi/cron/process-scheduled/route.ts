@@ -1,9 +1,9 @@
-/**
- * ═══════════════════════════════════════════════════════════════════════════
+﻿/**
+ * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
  * SABI ORDER PROCESSING CRON
  * GET /api/sabi/cron/process-scheduled
  * Runs every 5 minutes via Vercel Cron (vercel.json)
- * ═══════════════════════════════════════════════════════════════════════════
+ * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
  *
  * WHY THIS EXISTS (async order architecture):
  *   When a user places a SABI order, we DON'T call gamerz360 synchronously.
@@ -20,15 +20,15 @@
  *
  * SUCCESS PATH:
  *   gamerz360 returns { campaignId, advertiserId }
- *   → SabiOrder.gamesz360CampaignId = campaignId (links the two systems)
- *   → SabiOrder.status = 'executing'
- *   → Admin sees campaign in SABI Command Center, pushes to taskers
+ *   â†’ SabiOrder.gamesz360CampaignId = campaignId (links the two systems)
+ *   â†’ SabiOrder.status = 'executing'
+ *   â†’ Admin sees campaign in SABI Command Center, pushes to taskers
  *
  * FAILURE PATH:
  *   gamerz360 returns non-2xx
- *   → SabiOrder.status = 'failed'
- *   → Full refund to user's wallet (totalPrice + platformFee)
- *   → results array records the error for logging
+ *   â†’ SabiOrder.status = 'failed'
+ *   â†’ Full refund to user's wallet (totalPrice + platformFee)
+ *   â†’ results array records the error for logging
  *
  * AUTHENTICATION:
  *   Vercel sends Authorization: Bearer CRON_SECRET automatically.
@@ -44,7 +44,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 25; // keep short — cron runs every 5min, 60s was holding Turso connections too long
+export const maxDuration = 25;
+export const preferredRegion = 'sfo1'; // Turso DB in Oregon (sfo1) — keeps latency minimal // keep short â€” cron runs every 5min, 60s was holding Turso connections too long
 
 // Called by Vercel Cron every 5 minutes.
 // Finds SabiOrders where scheduledAt <= now AND status = 'pending',
@@ -54,7 +55,7 @@ export async function GET(req: NextRequest) {
   // Verify it's from Vercel Cron or our secret
   const auth = req.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
-  // SECURITY: always require auth — if secret is unset the env is misconfigured,
+  // SECURITY: always require auth â€” if secret is unset the env is misconfigured,
   // not open season. Prevents unauthenticated callers from spamming gamerz360.
   if (!cronSecret || auth !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -62,7 +63,7 @@ export async function GET(req: NextRequest) {
 
   const now = new Date();
 
-  // Quick DB health check — bail out immediately if Turso is 429-ing
+  // Quick DB health check â€” bail out immediately if Turso is 429-ing
   // so we don't hold a 25s connection and worsen the rate limit
   try {
     await Promise.race([
@@ -72,7 +73,7 @@ export async function GET(req: NextRequest) {
   } catch (pingErr: any) {
     const msg = String(pingErr?.message || pingErr);
     if (msg.includes('429') || msg.includes('timeout')) {
-      return NextResponse.json({ skipped: true, reason: 'Turso rate-limited — skipping this cron run', msg }, { status: 200 });
+      return NextResponse.json({ skipped: true, reason: 'Turso rate-limited â€” skipping this cron run', msg }, { status: 200 });
     }
   }
 
@@ -80,7 +81,7 @@ export async function GET(req: NextRequest) {
   // This includes:
   //   1. Scheduled orders whose scheduledAt time has passed
   //   2. Regular orders that are pending submission (scheduledAt = null, no campaignId yet)
-  // The cron runs every 5 min — this is the only way orders reach gamerz360
+  // The cron runs every 5 min â€” this is the only way orders reach gamerz360
   // since the synchronous call was replaced with this async approach to avoid
   // Cloudflare blocking Vercel's server IPs.
   const due = await prisma.sabiOrder.findMany({
@@ -95,7 +96,7 @@ export async function GET(req: NextRequest) {
     include: {
       user: { select: { id: true, email: true, name: true, businessName: true } },
     },
-    take: 10, // process max 10 at once — keeps Turso write pressure low
+    take: 10, // process max 10 at once â€” keeps Turso write pressure low
   });
 
   if (due.length === 0) {

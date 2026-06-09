@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { getSabiSession } from '@/lib/sabiAuth';
 import { prisma } from '@/lib/prisma';
 import { hash, compare } from 'bcryptjs';
 export const maxDuration = 15;
+export const preferredRegion = 'sfo1'; // Turso DB in Oregon (sfo1) — keeps latency minimal
 
 
 // GET: return full profile data for the logged-in user
@@ -33,7 +34,7 @@ export async function PATCH(req: NextRequest) {
   const user = await prisma.sabiUser.findUnique({ where: { id: session.id } });
   if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-  // ── Update display name / business name ──────────────────────────────────
+  // â”€â”€ Update display name / business name â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (action === 'updateInfo') {
     const updates: any = {};
     if (name?.trim()) updates.name = name.trim();
@@ -43,7 +44,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ success: true, message: 'Profile updated' });
   }
 
-  // ── Change email ──────────────────────────────────────────────────────────
+  // â”€â”€ Change email â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (action === 'changeEmail') {
     if (!newEmail?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
       return NextResponse.json({ error: 'Invalid email address' }, { status: 400 });
@@ -76,7 +77,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ success: true, message: 'Email updated. Please verify your new email address.' });
   }
 
-  // ── Change password ───────────────────────────────────────────────────────
+  // â”€â”€ Change password â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (action === 'changePassword') {
     if (!currentPassword || !newPassword) {
       return NextResponse.json({ error: 'Both current and new password required' }, { status: 400 });

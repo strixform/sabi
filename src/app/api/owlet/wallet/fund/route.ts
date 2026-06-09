@@ -1,7 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { getOwletSession } from '@/lib/owletAuth';
 import { initializeFlwPayment, generateFlwTxRef } from '@/lib/owletFlutterwave';
 import { prisma } from '@/lib/prisma';
+
+export const maxDuration = 15;
+export const preferredRegion = 'sfo1'; // Turso DB in Oregon (sfo1) — keeps latency minimal
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,7 +22,7 @@ export async function POST(req: NextRequest) {
 
     if (!amount || amount < 500 || amount > 10000000) {
       return NextResponse.json(
-        { error: 'Amount must be between ₦500 and ₦10,000,000' },
+        { error: 'Amount must be between â‚¦500 and â‚¦10,000,000' },
         { status: 400 }
       );
     }
@@ -34,7 +37,7 @@ export async function POST(req: NextRequest) {
         type: 'fund_pending',
         amount: amount * 100, // Convert to kobo
         reference: txRef,
-        description: `Wallet funding initiated - ₦${amount}`,
+        description: `Wallet funding initiated - â‚¦${amount}`,
       },
     });
 

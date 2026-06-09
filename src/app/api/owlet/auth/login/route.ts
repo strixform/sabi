@@ -1,5 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { loginOwletUser, createOwletSession } from '@/lib/owletAuth';
+
+export const maxDuration = 15;
+export const preferredRegion = 'sfo1'; // Turso DB in Oregon (sfo1) — keeps latency minimal
 
 export async function POST(req: NextRequest) {
   try {

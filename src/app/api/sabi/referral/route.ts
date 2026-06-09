@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { getSabiSession } from '@/lib/sabiAuth';
 import { prisma } from '@/lib/prisma';
 export const maxDuration = 15;
+export const preferredRegion = 'sfo1'; // Turso DB in Oregon (sfo1) — keeps latency minimal
 
 
 // GET: return the current user's referral code + full stats + per-referral breakdown
@@ -14,7 +15,7 @@ export async function GET() {
     select: { referralCode: true, name: true },
   });
 
-  // Full referral breakdown — wrapped in try/catch because SabiReferral table
+  // Full referral breakdown â€” wrapped in try/catch because SabiReferral table
   // may not exist in prod Turso (schema changes don't auto-migrate on Turso).
   // Gracefully return empty data rather than a 500 that crashes the dashboard.
   let referrals: any[] = [];
@@ -34,7 +35,7 @@ export async function GET() {
       : [];
     refereeMap = new Map(referees.map((u: any) => [u.id, u]));
   } catch {
-    // Table not yet migrated in prod — return empty state gracefully
+    // Table not yet migrated in prod â€” return empty state gracefully
   }
 
   const REWARD_NAIRA = 500;
@@ -66,7 +67,7 @@ export async function GET() {
       // Mask email: jo***@gmail.com
       const maskedEmail = referee?.email
         ? referee.email.replace(/^(.{2})(.*)(@.+)$/, (_: string, a: string, _b: string, c: string) => `${a}***${c}`)
-        : '—';
+        : 'â€”';
       return {
         id: r.id,
         name: referee?.name || 'Unknown',

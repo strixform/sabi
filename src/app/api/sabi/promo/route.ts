@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { getSabiSession } from '@/lib/sabiAuth';
 import { prisma } from '@/lib/prisma';
 import { computePricing } from '@/lib/servicesCatalog';
 export const maxDuration = 15;
+export const preferredRegion = 'sfo1'; // Turso DB in Oregon (sfo1) — keeps latency minimal
 
 
 // Validate a promo code at checkout
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
 
   if (baseKobo < promo.minOrderKobo) {
     const minNaira = Math.round(promo.minOrderKobo / 100);
-    return NextResponse.json({ error: `Minimum order of ₦${minNaira.toLocaleString()} required for this code` }, { status: 400 });
+    return NextResponse.json({ error: `Minimum order of â‚¦${minNaira.toLocaleString()} required for this code` }, { status: 400 });
   }
 
   const discountKobo = promo.discountType === 'percent'

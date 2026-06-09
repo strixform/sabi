@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { getSabiSession } from '@/lib/sabiAuth';
 import { createSabiOrder, getSabiOrders } from '@/lib/sabiOrderEngine';
 import { getCachedOrders, setCachedOrders } from '@/lib/redis';
 import { getRateLimitKey, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit';
 
-export const maxDuration = 30; // Give enough time for gamerz360 round-trip
+export const maxDuration = 30;
+export const preferredRegion = 'sfo1'; // Turso DB in Oregon (sfo1) — keeps latency minimal // Give enough time for gamerz360 round-trip
 
 export async function GET(req: NextRequest) {
   try {
@@ -33,7 +34,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  // 20 orders per hour per IP — prevents wallet-drain spam
+  // 20 orders per hour per IP â€” prevents wallet-drain spam
   const rl = await checkRateLimit(getRateLimitKey(req, 'order-create'), 20, 60 * 60000);
   if (!rl.allowed) return rateLimitResponse(20, rl.resetTime);
 

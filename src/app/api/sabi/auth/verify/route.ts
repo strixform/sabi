@@ -1,12 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSabiSession } from '@/lib/sabiAuth';
 import { getRateLimitKey, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit';
 export const maxDuration = 15;
+export const preferredRegion = 'sfo1'; // Turso DB in Oregon (sfo1) — keeps latency minimal
 
 
 export async function POST(req: NextRequest) {
-  // 10 attempts per 10 minutes per IP — prevents 6-digit brute force
+  // 10 attempts per 10 minutes per IP â€” prevents 6-digit brute force
   const rl = await checkRateLimit(getRateLimitKey(req, 'verify'), 10, 10 * 60000);
   if (!rl.allowed) return rateLimitResponse(10, rl.resetTime);
 

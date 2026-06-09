@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 export const maxDuration = 15;
+export const preferredRegion = 'sfo1'; // Turso DB in Oregon (sfo1) — keeps latency minimal
 
 
-// Public endpoint — returns only non-sensitive config needed by the frontend
+// Public endpoint â€” returns only non-sensitive config needed by the frontend
 export async function GET() {
   try {
     const config = await prisma.sABIAdminConfig.findFirst();

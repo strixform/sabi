@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { verifyFlwWebhookSignature, parseFlwWebhook, verifyFlwTransaction } from '@/lib/sabiFlutterwave';
 import { creditSabiWallet } from '@/lib/sabiWallet';
 import { prisma } from '@/lib/prisma';
 export const maxDuration = 15;
+export const preferredRegion = 'sfo1'; // Turso DB in Oregon (sfo1) — keeps latency minimal
 
 
 export async function POST(req: NextRequest) {
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
 
     const amountInKobo = Math.round(webhook.data.amount * 100);
 
-    // Validate amount is reasonable (≤ 10M naira)
+    // Validate amount is reasonable (â‰¤ 10M naira)
     if (amountInKobo > 1000000000) {
       // Silently reject suspicious amounts
       return NextResponse.json({ success: true }, { status: 200 });

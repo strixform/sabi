@@ -1,13 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { requestPasswordReset } from '@/lib/sabiAuth';
 import { sendPasswordResetEmail } from '@/lib/email';
 import { prisma } from '@/lib/prisma';
 import { getRateLimitKey, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit';
 export const maxDuration = 15;
+export const preferredRegion = 'sfo1'; // Turso DB in Oregon (sfo1) — keeps latency minimal
 
 
 export async function POST(req: NextRequest) {
-  // 3 attempts per 15 minutes per IP — prevents email flooding
+  // 3 attempts per 15 minutes per IP â€” prevents email flooding
   const rl = await checkRateLimit(getRateLimitKey(req, 'forgot-password'), 3, 15 * 60000);
   if (!rl.allowed) return rateLimitResponse(3, rl.resetTime);
 
