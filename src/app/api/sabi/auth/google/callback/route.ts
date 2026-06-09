@@ -8,9 +8,10 @@ const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GOOGLE_USERINFO_URL = 'https://openidconnect.googleapis.com/v1/userinfo';
 const BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://sability.io';
 
-// 15s max — leaves buffer before Cloudflare's 100s timeout.
-// DB calls use an 8s race so a slow/rate-limited Turso never causes a 524.
-export const maxDuration = 15;
+// 25s max — Google token exchange (external) + up to 3 DB ops (findUnique/create/session)
+// each with 6s withDbTimeout + Redis prewarm. Under Turso load this easily hits 15s.
+// Still well under Cloudflare's 100s limit.
+export const maxDuration = 25;
 export const preferredRegion = 'sfo1';
 
 // Wraps any promise in an 8s timeout — if DB is slow/rate-limited,
