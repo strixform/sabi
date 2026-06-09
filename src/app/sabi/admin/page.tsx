@@ -506,6 +506,10 @@ export default function AdminPage() {
 
   // Orders
   const [orders, setOrders]   = useState<Order[]>([]);
+  const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set());
+  const [bulkStatus, setBulkStatus] = useState('processing');
+  const [bulkRunning, setBulkRunning] = useState(false);
+  const [bulkMsg, setBulkMsg] = useState('');
   const [stats,  setStats]    = useState<Stats | null>(null);
   const [orderPage, setOrderPage] = useState(0);
   const [orderTotal, setOrderTotal] = useState(0);
@@ -736,12 +740,58 @@ export default function AdminPage() {
               </button>
             </div>
 
+            {/* Bulk Action Bar — appears when orders are selected */}
+            {selectedOrderIds.size > 0 && (
+              <div className="flex items-center gap-3 p-3 bg-blue-600/10 border border-blue-500/30 rounded-xl">
+                <span className="text-sm text-blue-300 font-bold">{selectedOrderIds.size} selected</span>
+                <select value={bulkStatus} onChange={e => setBulkStatus(e.target.value)}
+                  className="bg-slate-800 border border-slate-700 text-white text-xs px-2 py-1.5 rounded-lg focus:outline-none flex-1 max-w-[160px]">
+                  {['pending','processing','in_progress','executing','completed','failed','cancelled'].map(s => (
+                    <option key={s} value={s}>{STATUS_LABELS[s] || s}</option>
+                  ))}
+                </select>
+                <button disabled={bulkRunning} onClick={async () => {
+                  if (!confirm(`Change ${selectedOrderIds.size} orders to "${bulkStatus}"?`)) return;
+                  setBulkRunning(true); setBulkMsg('');
+                  let ok = 0; let fail = 0;
+                  for (const orderId of selectedOrderIds) {
+                    const res = await adminFetch('/api/sabi/admin/orders', {
+                      method: 'PATCH', headers: {'Content-Type':'application/json'},
+                      body: JSON.stringify({ orderId, status: bulkStatus }),
+                    }).catch(() => null);
+                    if (res?.ok) ok++; else fail++;
+                  }
+                  setBulkMsg(`✅ ${ok} updated${fail > 0 ? ` · ❌ ${fail} failed` : ''}`);
+                  setSelectedOrderIds(new Set());
+                  setBulkRunning(false);
+                  setTimeout(() => setBulkMsg(''), 5000);
+                  setOrders([]); setLoading(true);
+                }}
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition">
+                  {bulkRunning ? 'Updating…' : 'Apply to All'}
+                </button>
+                <button onClick={() => setSelectedOrderIds(new Set())} className="text-slate-500 text-xs hover:text-white">✕ Clear</button>
+                {bulkMsg && <span className="text-xs text-emerald-400">{bulkMsg}</span>}
+              </div>
+            )}
+
             {/* Table */}
             <div className="bg-slate-900 border border-white/[0.06] rounded-xl overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-slate-800/50 border-b border-white/[0.06]">
                     <tr>
+                      {/* Select-all checkbox */}
+                      <th className="px-3 py-3 w-8">
+                        <input type="checkbox"
+                          checked={sortedOrders.length > 0 && sortedOrders.every(o => selectedOrderIds.has(o.id))}
+                          onChange={e => {
+                            if (e.target.checked) setSelectedOrderIds(new Set(sortedOrders.map(o => o.id)));
+                            else setSelectedOrderIds(new Set());
+                          }}
+                          className="rounded border-slate-600 bg-slate-800 cursor-pointer"
+                        />
+                      </th>
                       <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 w-10">#</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400">ID</th>
                       <SortTh label="User"    col="user.name"      sort={orderSort} setSort={setOrderSort} />
@@ -757,11 +807,22 @@ export default function AdminPage() {
                   </thead>
                   <tbody>
                     {loading ? (
-                      <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-600">Loading…</td></tr>
+                      <tr><td colSpan={11} className="px-4 py-8 text-center text-slate-600">Loading…</td></tr>
                     ) : sortedOrders.length === 0 ? (
-                      <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-600">No orders found</td></tr>
+                      <tr><td colSpan={11} className="px-4 py-8 text-center text-slate-600">No orders found</td></tr>
                     ) : sortedOrders.map((o, i) => (
-                      <tr key={o.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                      <tr key={o.id} className={`border-b border-white/[0.04] hover:bg-white/[0.02] ${selectedOrderIds.has(o.id) ? 'bg-blue-600/5' : ''}`}>
+                        <td className="px-3 py-3">
+                          <input type="checkbox"
+                            checked={selectedOrderIds.has(o.id)}
+                            onChange={e => {
+                              const next = new Set(selectedOrderIds);
+                              e.target.checked ? next.add(o.id) : next.delete(o.id);
+                              setSelectedOrderIds(next);
+                            }}
+                            className="rounded border-slate-600 bg-slate-800 cursor-pointer"
+                          />
+                        </td>
                         <td className="px-4 py-3 text-center text-xs text-slate-600 font-mono">{orderPage * LIMIT + i + 1}</td>
                         <td className="px-4 py-3 font-mono text-xs text-slate-400">{o.id.slice(0, 10)}</td>
                         <td className="px-4 py-3 text-xs">

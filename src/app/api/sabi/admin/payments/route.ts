@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
+  try {
   const { searchParams } = new URL(req.url);
   const search = searchParams.get('search')?.trim() || '';
   const type   = searchParams.get('type')   || '';
@@ -84,4 +85,8 @@ export async function GET(req: NextRequest) {
     limit,
     offset,
   });
+  } catch (err: any) {
+    console.error('[admin/payments]', err?.message?.slice(0, 200));
+    return NextResponse.json({ error: 'Failed to load payments', detail: err?.message?.slice(0, 100) }, { status: 500 });
+  }
 }
