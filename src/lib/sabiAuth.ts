@@ -2,6 +2,7 @@ import { prisma } from './prisma';
 import { hash, compare } from 'bcryptjs';
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
+import { sabiExecute } from './tursoClient';
 
 /**
  * ─── SABI AUTH STABILITY RULES — READ BEFORE CHANGING ──────────────────────
@@ -207,20 +208,16 @@ export async function createSabiSession(userId: string): Promise<string> {
   cookieStore.set('sabi_session_token', token, cookieOpts);
   cookieStore.set('sabi_session_id', userId, cookieOpts);
 
-  // 2. Persist the session token to Turso — AWAITED so the session is findable
-  //    immediately when the dashboard loads after redirect. Without this, the
-  //    dashboard's getSabiSession() Turso fallback returns null → login loop.
-  //    3s timeout — safe since createSabiSession is called from login (maxDuration=30s).
-  const persist = () => prisma.$executeRawUnsafe(
-    `UPDATE "SabiUser" SET "sessionToken" = ?, "sessionExpiry" = ? WHERE "id" = ?`,
-    hashedToken, sessionExpiry.toISOString(), userId
-  );
+  // 2. Write session token via direct libsql (NOT Prisma — Prisma has 10-80s cold starts
+  //    on Vercel which caused the session write to always timeout → login loop).
+  //    sabiExecute has its own retry backoff so we just await it directly.
   try {
-    await withDbTimeout(persist(), 3000);
+    await sabiExecute({
+      sql: `UPDATE SabiUser SET sessionToken = ?, sessionExpiry = ? WHERE id = ?`,
+      args: [hashedToken, sessionExpiry.toISOString(), userId],
+    });
   } catch {
-    // If first attempt fails, retry once in background — cookies are already set
-    // so login still succeeds; next getSabiSession will retry via Redis or Turso
-    withDbTimeout(persist(), 3000).catch(() => {});
+    // Non-fatal — getSabiSession will still work via the token lookup below
   }
 
   return token;
@@ -253,43 +250,37 @@ export async function getSabiSession(): Promise<SabiSession | null> {
     if (cached) return cached as SabiSession;
 
     const hashedToken = hashToken(token);
-    const SEL = { id: true, email: true, name: true, businessName: true, status: true, emailVerified: true, sessionExpiry: true };
 
-    // 2. Primary: query with expiry filter
-    let user: (typeof SEL extends infer _ ? any : never) | null = null;
+    // 2. Direct libsql lookup — bypasses Prisma's 10-80s cold start which was
+    //    causing the session write/read race condition → login loop.
+    let user: any = null;
     try {
-      user = await withDbTimeout(prisma.sabiUser.findFirst({
-        where: {
-          id: userId,
-          sessionToken: hashedToken,
-          sessionExpiry: { gt: new Date() },
-          status: { not: 'banned' },
-        },
-        select: SEL,
-      }));
-    } catch {
-      // 3. Fallback: if sessionExpiry comparison fails (Turso TEXT column edge case),
-      //    try without it — we manually check expiry below
-      user = await withDbTimeout(prisma.sabiUser.findFirst({
-        where: { id: userId, sessionToken: hashedToken, status: { not: 'banned' } },
-        select: SEL,
-      })).catch(() => null);
+      const result = await sabiExecute({
+        sql: `SELECT id, email, name, businessName, status, emailVerified, sessionExpiry
+              FROM SabiUser
+              WHERE id = ? AND sessionToken = ? AND status != 'banned'
+              LIMIT 1`,
+        args: [userId, hashedToken],
+      });
+      user = result.rows[0] ?? null;
       // Manual expiry check
       if (user?.sessionExpiry) {
-        const exp = new Date(user.sessionExpiry);
+        const exp = new Date(user.sessionExpiry as string);
         if (isNaN(exp.getTime()) || exp < new Date()) user = null;
       }
+    } catch {
+      user = null;
     }
 
     if (!user) return null;
 
     const session: SabiSession = {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      businessName: user.businessName ?? null,
-      status: user.status,
-      emailVerified: user.emailVerified,
+      id: user.id as string,
+      email: user.email as string,
+      name: user.name as string,
+      businessName: (user.businessName as string) ?? null,
+      status: user.status as string,
+      emailVerified: !!user.emailVerified,
     };
 
     // Re-warm cache for 30 min on every DB hit
