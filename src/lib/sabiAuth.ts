@@ -12,7 +12,7 @@ import crypto from 'crypto';
  *    If you add Redis to the top-level imports, login will break when Redis is down.
  *
  * 2. withDbTimeout DEFAULT: Currently 6s. This MUST be shorter than the
- *    maxDuration of routes that call it (Google callback = 15s, login = 30s).
+ *    maxDuration of routes that call it (Google callback = 25s, login = 30s).
  *    If withDbTimeout > maxDuration, Vercel kills the function before the
  *    timeout fires → Cloudflare sees an upstream cut → "Host Error" for users.
  *
@@ -20,8 +20,12 @@ import crypto from 'crypto';
  *    columns guaranteed to exist in the prod Turso DB. The prod schema may lag
  *    behind prisma/schema.prisma. Missing columns cause 500 errors in production.
  *
- * 4. SESSION CACHE TTL: trySetCachedSession calls use 1800s (30 min).
- *    Never reduce below 300s — too short causes Turso floods.
+ * 4. SESSION CACHE TTL: trySetCachedSession calls use 86400s (24h) so sessions
+ *    survive a Turso outage (Redis is the authoritative session store during one).
+ *    Never reduce below 3600s — too short causes Turso floods + false logouts.
+ *
+ * 5. createSabiSession sets cookies + Redis FIRST; the Turso sessionToken write is
+ *    BEST-EFFORT (never throws). Login must complete even when Turso is slow.
  */
 
 // ─── Stability rule: Redis is OPTIONAL and must NEVER crash core auth ──────────
@@ -147,12 +151,17 @@ export async function loginSabiUser(
   password: string
 ): Promise<{ success: boolean; error?: string; userId?: string }> {
   try {
-    // Explicit select — only reads columns that exist in prod DB
-    // withDbTimeout: prevents hanging when Turso is rate-limiting (429)
-    const user = await withDbTimeout(prisma.sabiUser.findUnique({
+    // Explicit select — only reads columns that exist in prod DB.
+    // Retry the read ONCE on a transient Turso slowdown before giving up, so a
+    // single slow query doesn't show "server busy" when the next attempt would work.
+    const readUser = () => prisma.sabiUser.findUnique({
       where: { email: email.toLowerCase() },
       select: { id: true, email: true, name: true, passwordHash: true, status: true, emailVerified: true, businessName: true },
-    }));
+    });
+    const user = await withDbTimeout(readUser()).catch(async () => {
+      await new Promise(r => setTimeout(r, 400));
+      return withDbTimeout(readUser());
+    });
 
     if (!user || !user.passwordHash) {
       return { success: false, error: 'Invalid credentials' };
@@ -181,39 +190,36 @@ export async function loginSabiUser(
 
 // Create session
 export async function createSabiSession(userId: string): Promise<string> {
-  try {
-    const token = crypto.randomBytes(32).toString('hex');
-    const hashedToken = hashToken(token);
-    const sessionExpiry = new Date(Date.now() + SESSION_DURATION);
+  const token = crypto.randomBytes(32).toString('hex');
+  const hashedToken = hashToken(token);
+  const sessionExpiry = new Date(Date.now() + SESSION_DURATION);
 
-    // Raw SQL via Prisma — explicit columns only, no missing-column risk
-    // withDbTimeout: prevents hanging when Turso is rate-limiting (429)
-    await withDbTimeout(prisma.$executeRawUnsafe(
-      `UPDATE "SabiUser" SET "sessionToken" = ?, "sessionExpiry" = ? WHERE "id" = ?`,
-      hashedToken, sessionExpiry.toISOString(), userId
-    ));
+  // 1. Set cookies FIRST — the session must exist for the browser regardless of
+  //    whether Turso is reachable. (Previously the Turso write came first and threw
+  //    on timeout, so under DB load the cookies were never set → login loop.)
+  const cookieStore = await cookies();
+  const cookieOpts = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    maxAge: SESSION_DURATION / 1000,
+  };
+  cookieStore.set('sabi_session_token', token, cookieOpts);
+  cookieStore.set('sabi_session_id', userId, cookieOpts);
 
-    // Set cookies
-    const cookieStore = await cookies();
-    cookieStore.set('sabi_session_token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: SESSION_DURATION / 1000,
-    });
+  // 2. Persist the session token to Turso — BEST EFFORT. If Turso is slow/rate-limited
+  //    this must NOT fail the login. The session is validated Redis-first anyway
+  //    (see getSabiSession + prewarmSessionCache), so a slow Turso write is non-fatal.
+  //    We retry once in the background so it eventually persists when Turso recovers.
+  const persist = () => prisma.$executeRawUnsafe(
+    `UPDATE "SabiUser" SET "sessionToken" = ?, "sessionExpiry" = ? WHERE "id" = ?`,
+    hashedToken, sessionExpiry.toISOString(), userId
+  );
+  withDbTimeout(persist())
+    .catch(() => new Promise(r => setTimeout(r, 500)).then(() => withDbTimeout(persist())))
+    .catch(() => { /* Redis is authoritative during the outage; ignore */ });
 
-    cookieStore.set('sabi_session_id', userId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: SESSION_DURATION / 1000,
-    });
-
-    return token;
-  } catch (error) {
-    // Error logging handled by external service
-    throw error;
-  }
+  return token;
 }
 
 // Pre-warm Redis cache immediately after login — avoids first-request Turso hit.
@@ -223,7 +229,7 @@ export async function prewarmSessionCache(
   token: string,
   session: SabiSession
 ): Promise<void> {
-  await trySetCachedSession(token, session, 1800); // 30-minute cache — AWAITED
+  await trySetCachedSession(token, session, 86400); // 24h — survives Turso outages (doctrine §2)
 }
 
 // Get session — Redis-first with DB fallback.
@@ -283,7 +289,7 @@ export async function getSabiSession(): Promise<SabiSession | null> {
     };
 
     // Re-warm cache for 30 min on every DB hit
-    trySetCachedSession(token, session, 1800);
+    trySetCachedSession(token, session, 86400); // 24h — survives Turso outages
     return session;
   } catch {
     return null;

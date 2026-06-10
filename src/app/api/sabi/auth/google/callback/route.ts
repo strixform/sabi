@@ -85,12 +85,16 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Find or create user — explicit select + 8s timeout to prevent 524s
+    // Find or create user — explicit select. Retry the read ONCE on a transient
+    // Turso slowdown so a single slow query doesn't bounce the user back to login.
     const SELECT = { id: true, email: true, name: true, status: true, emailVerified: true, businessName: true };
 
     let user = await withDbTimeout(
       prisma.sabiUser.findUnique({ where: { email }, select: SELECT })
-    );
+    ).catch(async () => {
+      await new Promise(r => setTimeout(r, 400));
+      return withDbTimeout(prisma.sabiUser.findUnique({ where: { email }, select: SELECT }));
+    });
 
     if (!user) {
       const randomPw = await hash(crypto.randomBytes(32).toString('hex'), 10);
@@ -115,8 +119,9 @@ export async function GET(req: NextRequest) {
       ).catch(() => {});
     }
 
-    // Create session and get token
-    const token = await withDbTimeout(createSabiSession(user.id));
+    // Create session — sets cookies + Redis immediately, Turso write is best-effort
+    // inside createSabiSession (never throws), so this resolves fast even if Turso is slow.
+    const token = await createSabiSession(user.id);
 
     // CRITICAL: await prewarm — ensures Redis has the session BEFORE the redirect fires.
     // Without await, browser loads /sabi/dashboard before cache is set → Turso fallback
