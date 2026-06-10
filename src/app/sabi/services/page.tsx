@@ -10,16 +10,21 @@ import {
 import {
   SiInstagram, SiX, SiYoutube, SiTiktok, SiSnapchat, SiSpotify,
   SiWhatsapp, SiPinterest, SiThreads, SiTelegram, SiTwitch,
+  SiFacebook, SiGoogle, SiApple, SiApplepodcasts,
 } from 'react-icons/si';
+import { FaLinkedinIn } from 'react-icons/fa';
+import { FiGlobe } from 'react-icons/fi';
 import { ModernSabiHeader } from '@/components/ModernSabiHeader';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
 import { GradientText } from '@/components/AnimatedText';
 import { SERVICES_CATALOG, computePricing, getPlatformLabel } from '@/lib/servicesCatalog';
 
 const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  instagram: SiInstagram, twitter: SiX, youtube: SiYoutube, tiktok: SiTiktok,
-  snapchat: SiSnapchat, spotify: SiSpotify, whatsapp: SiWhatsapp,
-  pinterest: SiPinterest, threads: SiThreads, telegram: SiTelegram, twitch: SiTwitch,
+  instagram: SiInstagram, twitter: SiX,       youtube:   SiYoutube,  tiktok:    SiTiktok,
+  snapchat:  SiSnapchat,  spotify: SiSpotify, whatsapp:  SiWhatsapp, pinterest: SiPinterest,
+  threads:   SiThreads,   telegram: SiTelegram, twitch:  SiTwitch,
+  facebook:  SiFacebook,  google:  SiGoogle,  linkedin:  FaLinkedinIn,
+  app_store: SiApple,     podcast: SiApplepodcasts, website: FiGlobe,
 };
 
 const PLATFORM_COLORS: Record<string, string> = {
@@ -33,7 +38,13 @@ const PLATFORM_COLORS: Record<string, string> = {
   pinterest: 'from-red-500 to-red-700',
   threads: 'from-slate-600 to-slate-800',
   telegram: 'from-blue-400 to-blue-500',
-  twitch: 'from-purple-600 to-purple-800',
+  twitch:    'from-purple-600 to-purple-800',
+  facebook:  'from-blue-600 to-blue-800',
+  google:    'from-red-500 to-yellow-500',
+  linkedin:  'from-blue-600 to-blue-700',
+  app_store: 'from-gray-700 to-gray-900',
+  podcast:   'from-purple-600 to-violet-800',
+  website:   'from-cyan-500 to-blue-600',
 };
 
 // What real Nigerian engagement uniquely unlocks

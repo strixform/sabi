@@ -12,8 +12,11 @@ import {
 } from 'react-icons/fi';
 import {
   SiInstagram, SiX, SiYoutube, SiTiktok, SiSnapchat, SiSpotify,
-  SiWhatsapp, SiPinterest, SiThreads, SiTelegram, SiTwitch
+  SiWhatsapp, SiPinterest, SiThreads, SiTelegram, SiTwitch,
+  SiFacebook, SiGoogle, SiApple, SiApplepodcasts,
 } from 'react-icons/si';
+import { FaLinkedinIn } from 'react-icons/fa';
+import { FiGlobe } from 'react-icons/fi';
 import { GradientText } from '@/components/AnimatedText';
 import { InteractiveCard } from '@/components/InteractiveCard';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
@@ -23,17 +26,23 @@ import type { Service } from '@/lib/servicesCatalog';
 import { PLATFORMS, computePricing, getServiceById } from '@/lib/servicesCatalog';
 
 const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  instagram: SiInstagram,
-  twitter: SiX,
-  youtube: SiYoutube,
-  tiktok: SiTiktok,
-  snapchat: SiSnapchat,
-  spotify: SiSpotify,
-  whatsapp: SiWhatsapp,
-  pinterest: SiPinterest,
-  threads: SiThreads,
-  telegram: SiTelegram,
-  twitch: SiTwitch,
+  instagram:  SiInstagram,
+  twitter:    SiX,
+  youtube:    SiYoutube,
+  tiktok:     SiTiktok,
+  snapchat:   SiSnapchat,
+  spotify:    SiSpotify,
+  whatsapp:   SiWhatsapp,
+  pinterest:  SiPinterest,
+  threads:    SiThreads,
+  telegram:   SiTelegram,
+  twitch:     SiTwitch,
+  facebook:   SiFacebook,
+  google:     SiGoogle,
+  linkedin:   FaLinkedinIn,
+  app_store:  SiApple,
+  podcast:    SiApplepodcasts,
+  website:    FiGlobe,
 };
 
 // Intelligent URL detection patterns for each platform
@@ -208,16 +217,22 @@ function detectURLType(url: string, platform: string): URLValidation {
 
 const PLATFORM_COLORS: Record<string, string> = {
   instagram: 'from-pink-500 to-purple-600',
-  twitter: 'from-blue-400 to-blue-600',
-  youtube: 'from-red-500 to-red-700',
-  tiktok: 'from-gray-900 to-black',
-  snapchat: 'from-yellow-300 to-yellow-500',
-  spotify: 'from-green-500 to-green-700',
-  whatsapp: 'from-green-500 to-green-600',
+  twitter:   'from-blue-400 to-blue-600',
+  youtube:   'from-red-500 to-red-700',
+  tiktok:    'from-gray-900 to-black',
+  snapchat:  'from-yellow-300 to-yellow-500',
+  spotify:   'from-green-500 to-green-700',
+  whatsapp:  'from-green-500 to-green-600',
   pinterest: 'from-red-600 to-red-700',
-  threads: 'from-gray-800 to-gray-900',
-  telegram: 'from-blue-400 to-blue-500',
-  twitch: 'from-purple-600 to-purple-800',
+  threads:   'from-gray-800 to-gray-900',
+  telegram:  'from-blue-400 to-blue-500',
+  twitch:    'from-purple-600 to-purple-800',
+  facebook:  'from-blue-600 to-blue-800',
+  google:    'from-red-500 to-yellow-500',
+  linkedin:  'from-blue-600 to-blue-700',
+  app_store: 'from-gray-700 to-gray-900',
+  podcast:   'from-purple-600 to-violet-800',
+  website:   'from-cyan-500 to-blue-600',
 };
 
 // Nigerian states (audience targeting — Nigerian audience only for now)

@@ -9,8 +9,10 @@ import {
 import {
   SiInstagram, SiX, SiYoutube, SiTiktok, SiSnapchat, SiSpotify,
   SiWhatsapp, SiPinterest, SiThreads, SiTelegram, SiTwitch,
+  SiFacebook, SiGoogle, SiApple, SiApplepodcasts,
 } from 'react-icons/si';
-import { FiArrowRight, FiArrowUpRight } from 'react-icons/fi';
+import { FaLinkedinIn } from 'react-icons/fa';
+import { FiArrowRight, FiArrowUpRight, FiGlobe } from 'react-icons/fi';
 import { LogoImage } from '@/components/LogoImage';
 
 // ─── Smooth cursor glow ───────────────────────────────────────────────────────
@@ -117,17 +119,23 @@ function Ticker() {
 
 // ─── Horizontal marquee ───────────────────────────────────────────────────────
 const PLATFORMS = [
-  { Icon: SiInstagram, name: 'Instagram', color: '#E1306C' },
-  { Icon: SiTiktok, name: 'TikTok', color: '#ffffff' },
-  { Icon: SiYoutube, name: 'YouTube', color: '#FF0000' },
-  { Icon: SiX, name: 'X', color: '#ffffff' },
-  { Icon: SiSnapchat, name: 'Snapchat', color: '#FFFC00' },
-  { Icon: SiWhatsapp, name: 'WhatsApp', color: '#25D366' },
-  { Icon: SiTelegram, name: 'Telegram', color: '#2CA5E0' },
-  { Icon: SiThreads, name: 'Threads', color: '#ffffff' },
-  { Icon: SiSpotify, name: 'Spotify', color: '#1DB954' },
-  { Icon: SiPinterest, name: 'Pinterest', color: '#E60023' },
-  { Icon: SiTwitch, name: 'Twitch', color: '#9146FF' },
+  { Icon: SiInstagram,    name: 'Instagram',  color: '#E1306C' },
+  { Icon: SiTiktok,       name: 'TikTok',     color: '#ffffff' },
+  { Icon: SiYoutube,      name: 'YouTube',    color: '#FF0000' },
+  { Icon: SiX,            name: 'X',          color: '#ffffff' },
+  { Icon: SiFacebook,     name: 'Facebook',   color: '#1877F2' },
+  { Icon: FaLinkedinIn,   name: 'LinkedIn',   color: '#0A66C2' },
+  { Icon: SiGoogle,       name: 'Google',     color: '#4285F4' },
+  { Icon: SiSnapchat,     name: 'Snapchat',   color: '#FFFC00' },
+  { Icon: SiWhatsapp,     name: 'WhatsApp',   color: '#25D366' },
+  { Icon: SiTelegram,     name: 'Telegram',   color: '#2CA5E0' },
+  { Icon: SiThreads,      name: 'Threads',    color: '#ffffff' },
+  { Icon: SiSpotify,      name: 'Spotify',    color: '#1DB954' },
+  { Icon: SiPinterest,    name: 'Pinterest',  color: '#E60023' },
+  { Icon: SiTwitch,       name: 'Twitch',     color: '#9146FF' },
+  { Icon: SiApple,        name: 'App Store',  color: '#A2AAAD' },
+  { Icon: SiApplepodcasts,name: 'Podcasts',   color: '#872EC4' },
+  { Icon: FiGlobe,        name: 'Website',    color: '#38BDF8' },
 ];
 
 function Marquee() {
