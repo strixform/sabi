@@ -152,17 +152,25 @@ export async function loginSabiUser(
   password: string
 ): Promise<{ success: boolean; error?: string; userId?: string }> {
   try {
-    // Explicit select — only reads columns that exist in prod DB.
-    // Retry the read ONCE on a transient Turso slowdown before giving up, so a
-    // single slow query doesn't show "server busy" when the next attempt would work.
-    const readUser = () => prisma.sabiUser.findUnique({
-      where: { email: email.toLowerCase() },
-      select: { id: true, email: true, name: true, passwordHash: true, status: true, emailVerified: true, businessName: true },
-    });
-    const user = await withDbTimeout(readUser()).catch(async () => {
-      await new Promise(r => setTimeout(r, 400));
-      return withDbTimeout(readUser());
-    });
+    // Read via DIRECT libsql (sabiExecute) — NOT Prisma. Prisma's libsql adapter
+    // has 10-80s cold starts on Vercel; the 6s withDbTimeout fired before Prisma
+    // connected → DB_TIMEOUT → "Server is busy". sabiExecute is raw HTTP (no cold
+    // start) with 429 retry backoff. Same fix as the Google callback.
+    let user: any = null;
+    try {
+      const res = await sabiExecute({
+        sql: `SELECT id, email, name, passwordHash, status, emailVerified, businessName
+              FROM SabiUser WHERE email = ? LIMIT 1`,
+        args: [email.toLowerCase()],
+      }, 6000);
+      user = res.rows[0] ?? null;
+    } catch (e: any) {
+      const m = e?.message || '';
+      if (m.includes('429') || m.toLowerCase().includes('rate') || m.includes('timeout')) {
+        return { success: false, error: 'Server is busy — please try again in a moment' };
+      }
+      return { success: false, error: 'Login failed' };
+    }
 
     if (!user || !user.passwordHash) {
       return { success: false, error: 'Invalid credentials' };

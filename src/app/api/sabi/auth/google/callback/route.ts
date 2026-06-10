@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { hash } from 'bcryptjs';
 import { createSabiSession, prewarmSessionCache } from '@/lib/sabiAuth';
+import { sabiExecute } from '@/lib/tursoClient';
 import crypto from 'crypto';
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
@@ -85,38 +86,54 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Find or create user — explicit select. Retry the read ONCE on a transient
-    // Turso slowdown so a single slow query doesn't bounce the user back to login.
-    const SELECT = { id: true, email: true, name: true, status: true, emailVerified: true, businessName: true };
+    // Find user via DIRECT libsql (sabiExecute) — NOT Prisma.
+    // Prisma's libsql adapter has 10-80s cold starts on Vercel; the 8s withDbTimeout
+    // fired before Prisma even connected → 'db_timeout' → ?error=google_exception&detail=busy.
+    // sabiExecute connects over raw HTTP (no adapter cold start) + has 429 retry backoff.
+    let user: any = null;
+    let readFailed = false;
+    try {
+      const res = await sabiExecute({
+        sql: `SELECT id, email, name, status, emailVerified, businessName
+              FROM SabiUser WHERE email = ? LIMIT 1`,
+        args: [email],
+      }, 6000);
+      user = res.rows[0] ?? null;
+    } catch {
+      readFailed = true;
+    }
 
-    let user = await withDbTimeout(
-      prisma.sabiUser.findUnique({ where: { email }, select: SELECT })
-    ).catch(async () => {
-      await new Promise(r => setTimeout(r, 400));
-      return withDbTimeout(prisma.sabiUser.findUnique({ where: { email }, select: SELECT }));
-    });
+    // Read genuinely failed (Turso unreachable after retries) — bounce with retry msg.
+    // Do NOT fall through to create: that would hit a unique-email constraint.
+    if (readFailed) {
+      return NextResponse.redirect(`${BASE}/sabi/login?error=google_exception&detail=busy`);
+    }
 
     if (!user) {
+      // Genuinely new user — create. This path is rare (most logins are existing users).
       const randomPw = await hash(crypto.randomBytes(32).toString('hex'), 10);
-      user = await withDbTimeout(
-        prisma.sabiUser.create({
-          data: {
-            email,
-            name: name || email.split('@')[0],
-            emailVerified: true,
-            passwordHash: randomPw,
-            wallet: { create: {} },
-          },
-          select: SELECT,
-        })
-      );
+      try {
+        user = await withDbTimeout(
+          prisma.sabiUser.create({
+            data: {
+              email,
+              name: name || email.split('@')[0],
+              emailVerified: true,
+              passwordHash: randomPw,
+              wallet: { create: {} },
+            },
+            select: { id: true, email: true, name: true, status: true, emailVerified: true, businessName: true },
+          })
+        );
+      } catch {
+        return NextResponse.redirect(`${BASE}/sabi/login?error=google_exception&detail=busy`);
+      }
     } else {
-      // Update emailVerified via raw SQL — avoids Prisma reading all columns
-      await withDbTimeout(
-        prisma.$executeRawUnsafe(
-          `UPDATE "SabiUser" SET "emailVerified" = 1 WHERE "id" = ?`, user.id
-        )
-      ).catch(() => {});
+      // Existing user — mark verified via direct libsql (best-effort, never blocks)
+      sabiExecute({
+        sql: `UPDATE SabiUser SET emailVerified = 1 WHERE id = ?`,
+        args: [user.id],
+      }).catch(() => {});
     }
 
     // Create session — sets cookies + Redis immediately, Turso write is best-effort
