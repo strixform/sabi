@@ -207,17 +207,21 @@ export async function createSabiSession(userId: string): Promise<string> {
   cookieStore.set('sabi_session_token', token, cookieOpts);
   cookieStore.set('sabi_session_id', userId, cookieOpts);
 
-  // 2. Persist the session token to Turso — BEST EFFORT. If Turso is slow/rate-limited
-  //    this must NOT fail the login. The session is validated Redis-first anyway
-  //    (see getSabiSession + prewarmSessionCache), so a slow Turso write is non-fatal.
-  //    We retry once in the background so it eventually persists when Turso recovers.
+  // 2. Persist the session token to Turso — AWAITED so the session is findable
+  //    immediately when the dashboard loads after redirect. Without this, the
+  //    dashboard's getSabiSession() Turso fallback returns null → login loop.
+  //    3s timeout — safe since createSabiSession is called from login (maxDuration=30s).
   const persist = () => prisma.$executeRawUnsafe(
     `UPDATE "SabiUser" SET "sessionToken" = ?, "sessionExpiry" = ? WHERE "id" = ?`,
     hashedToken, sessionExpiry.toISOString(), userId
   );
-  withDbTimeout(persist())
-    .catch(() => new Promise(r => setTimeout(r, 500)).then(() => withDbTimeout(persist())))
-    .catch(() => { /* Redis is authoritative during the outage; ignore */ });
+  try {
+    await withDbTimeout(persist(), 3000);
+  } catch {
+    // If first attempt fails, retry once in background — cookies are already set
+    // so login still succeeds; next getSabiSession will retry via Redis or Turso
+    withDbTimeout(persist(), 3000).catch(() => {});
+  }
 
   return token;
 }

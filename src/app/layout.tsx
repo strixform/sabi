@@ -32,6 +32,11 @@ export const metadata: Metadata = {
   },
   robots: { index: true, follow: true },
   metadataBase: new URL('https://sability.io'),
+  icons: {
+    icon: '/sabi-favicon.png',
+    apple: '/sabi-favicon-maskable.png',
+    shortcut: '/sabi-favicon.png',
+  },
 };
 
 export default function RootLayout({
