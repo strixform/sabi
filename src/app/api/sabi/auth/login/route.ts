@@ -51,28 +51,26 @@ export async function POST(req: NextRequest) {
 
     // Pre-warm Redis — next page load reads from Redis, not Turso
     // userId is enough to build a minimal session; getSabiSession will enrich on next miss
-    // Pre-warm Redis with minimal data from login result.
-    // We avoid a second Prisma query — loginSabiUser already validated the user.
-    // This is fire-and-forget but the data is written before the browser can
-    // redirect because the response isn't sent until after this resolves.
-    // The session token is already set in cookies via createSabiSession above.
+    // MUST await prewarm before returning — if we fire-and-forget, the browser
+    // redirects to /sabi/dashboard before Redis has the session. getSabiSession()
+    // misses Redis, falls back to Turso (slow/not-written-yet) → null → login loop.
     if (result.userId) {
-      // Use a short timeout so a slow Prisma call never blocks the login response
-      Promise.race([
-        prisma.sabiUser.findUnique({
-          where: { id: result.userId },
-          select: { id: true, email: true, name: true, businessName: true, status: true, emailVerified: true },
-        }).then(u => {
-          if (u) {
-            return prewarmSessionCache(token, {
-              id: u.id, email: u.email, name: u.name,
-              businessName: u.businessName ?? null,
-              status: u.status, emailVerified: u.emailVerified,
-            });
-          }
-        }),
-        new Promise(r => setTimeout(r, 3000)), // 3s max — never block login
-      ]).catch(() => {});
+      try {
+        const u = await Promise.race([
+          prisma.sabiUser.findUnique({
+            where: { id: result.userId },
+            select: { id: true, email: true, name: true, businessName: true, status: true, emailVerified: true },
+          }),
+          new Promise<null>(resolve => setTimeout(() => resolve(null), 4000)),
+        ]);
+        if (u) {
+          await prewarmSessionCache(token, {
+            id: u.id, email: u.email, name: u.name,
+            businessName: u.businessName ?? null,
+            status: u.status, emailVerified: u.emailVerified,
+          });
+        }
+      } catch { /* non-fatal — login still succeeds, session validated via Turso fallback */ }
     }
 
     const response = NextResponse.json({

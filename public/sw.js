@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sabi-v1';
+const CACHE_NAME = 'sabi-v2';
 const STATIC_ASSETS = [
   '/',
   '/sabi/dashboard',
