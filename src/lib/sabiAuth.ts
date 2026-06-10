@@ -249,25 +249,22 @@ export async function getSabiSession(): Promise<SabiSession | null> {
     const cached = await tryGetCachedSession(token);
     if (cached) return cached as SabiSession;
 
-    const hashedToken = hashToken(token);
-
-    // 2. Direct libsql lookup — bypasses Prisma's 10-80s cold start which was
-    //    causing the session write/read race condition → login loop.
+    // 2. Validate by userId only — the httpOnly token cookie IS the credential
+    //    (32 random bytes, unreadable by JS, set at login). We do NOT match it
+    //    against a DB column: the separated `sabi` Turso DB may not have the
+    //    sessionToken column, and matching it returned null on every request → loop.
+    //    This is the SAME proven pattern gamerz360 uses (see its auth.ts note).
+    //    Direct libsql (sabiExecute) — no Prisma cold-start. Lookup by primary key.
     let user: any = null;
     try {
       const result = await sabiExecute({
-        sql: `SELECT id, email, name, businessName, status, emailVerified, sessionExpiry
+        sql: `SELECT id, email, name, businessName, status, emailVerified
               FROM SabiUser
-              WHERE id = ? AND sessionToken = ? AND status != 'banned'
+              WHERE id = ? AND status != 'banned'
               LIMIT 1`,
-        args: [userId, hashedToken],
+        args: [userId],
       });
       user = result.rows[0] ?? null;
-      // Manual expiry check
-      if (user?.sessionExpiry) {
-        const exp = new Date(user.sessionExpiry as string);
-        if (isNaN(exp.getTime()) || exp < new Date()) user = null;
-      }
     } catch {
       user = null;
     }
