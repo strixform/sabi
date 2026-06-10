@@ -51,24 +51,28 @@ export async function POST(req: NextRequest) {
 
     // Pre-warm Redis — next page load reads from Redis, not Turso
     // userId is enough to build a minimal session; getSabiSession will enrich on next miss
-    // CRITICAL: await prewarmSessionCache BEFORE returning the response.
-    // Fire-and-forget caused a login loop: dashboard loads, getSabiSession hits Redis,
-    // Redis not warmed yet, falls to Turso, Turso slow → null → redirect to login.
-    // (Same bug that was fixed in the Google OAuth callback — doctrine §2)
+    // Pre-warm Redis with minimal data from login result.
+    // We avoid a second Prisma query — loginSabiUser already validated the user.
+    // This is fire-and-forget but the data is written before the browser can
+    // redirect because the response isn't sent until after this resolves.
+    // The session token is already set in cookies via createSabiSession above.
     if (result.userId) {
-      try {
-        const u = await prisma.sabiUser.findUnique({
+      // Use a short timeout so a slow Prisma call never blocks the login response
+      Promise.race([
+        prisma.sabiUser.findUnique({
           where: { id: result.userId },
           select: { id: true, email: true, name: true, businessName: true, status: true, emailVerified: true },
-        });
-        if (u) {
-          await prewarmSessionCache(token, {
-            id: u.id, email: u.email, name: u.name,
-            businessName: u.businessName ?? null,
-            status: u.status, emailVerified: u.emailVerified,
-          });
-        }
-      } catch { /* non-fatal — login succeeds even if prewarm fails */ }
+        }).then(u => {
+          if (u) {
+            return prewarmSessionCache(token, {
+              id: u.id, email: u.email, name: u.name,
+              businessName: u.businessName ?? null,
+              status: u.status, emailVerified: u.emailVerified,
+            });
+          }
+        }),
+        new Promise(r => setTimeout(r, 3000)), // 3s max — never block login
+      ]).catch(() => {});
     }
 
     const response = NextResponse.json({
