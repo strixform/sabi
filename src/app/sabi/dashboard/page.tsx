@@ -41,6 +41,7 @@ export default function DashboardPage() {
   const [analytics, setAnalytics] = useState<any>(null);
   const [referral, setReferral] = useState<any>(null);
   const [copied, setCopied] = useState(false);
+  const [recentOrders, setRecentOrders] = useState<any[]>([]);
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -85,9 +86,11 @@ export default function DashboardPage() {
 
         setSession(authData.user);
 
-        const activeOrders = (ordersData.orders || []).filter(
+        const allOrders = ordersData.orders || [];
+        const activeOrders = allOrders.filter(
           (o: any) => ['pending', 'processing', 'executing'].includes(o.status)
         ).length;
+        setRecentOrders(allOrders.slice(0, 5));
 
         const spent = walletData.totalSpent || 0;
 
@@ -607,27 +610,64 @@ export default function DashboardPage() {
           </div>
 
           <InteractiveCard glowColor="purple">
-            <div className="p-12 text-center">
-              <motion.div
-                className="space-y-3"
-                animate={{ y: [0, -10, 0] }}
-                transition={{ duration: 3, repeat: Infinity }}
-              >
-                <CuteIconAnimation type="spin" duration={3}>
-                  <FiInbox className="w-16 h-16 mx-auto text-slate-500" />
-                </CuteIconAnimation>
-                <p className="text-slate-400 text-lg">
-                  <AnimateInText type="fade" delay={0.2}>
-                    No orders yet
-                  </AnimateInText>
-                </p>
-                <p className="text-slate-500 text-sm">
-                  <AnimateInText type="fade" delay={0.3}>
-                    Your completed orders will appear here
-                  </AnimateInText>
-                </p>
-              </motion.div>
-            </div>
+            {loading ? (
+              <div className="p-8 space-y-3">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-14 rounded-xl bg-white/[0.03] animate-pulse" />
+                ))}
+              </div>
+            ) : recentOrders.length === 0 ? (
+              <div className="p-12 text-center">
+                <motion.div
+                  className="space-y-3"
+                  animate={{ y: [0, -10, 0] }}
+                  transition={{ duration: 3, repeat: Infinity }}
+                >
+                  <CuteIconAnimation type="spin" duration={3}>
+                    <FiInbox className="w-16 h-16 mx-auto text-slate-500" />
+                  </CuteIconAnimation>
+                  <p className="text-slate-400 text-lg">
+                    No orders yet — place your first order
+                  </p>
+                  <Link href="/sabi/order" className="inline-block mt-2 px-5 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-sm font-bold rounded-xl">
+                    Place Order
+                  </Link>
+                </motion.div>
+              </div>
+            ) : (
+              <div className="divide-y divide-white/[0.04]">
+                {recentOrders.map((order: any) => {
+                  const statusColors: Record<string, string> = {
+                    executing:  'bg-blue-500/20 text-blue-300 border-blue-500/30',
+                    processing: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+                    completed:  'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+                    pending:    'bg-amber-500/20 text-amber-300 border-amber-500/30',
+                    failed:     'bg-red-500/20 text-red-300 border-red-500/30',
+                    cancelled:  'bg-red-500/20 text-red-300 border-red-500/30',
+                  };
+                  const badgeClass = statusColors[order.status] || 'bg-slate-500/20 text-slate-300 border-slate-500/30';
+                  const dateStr = order.createdAt
+                    ? new Date(order.createdAt).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })
+                    : '—';
+                  return (
+                    <div key={order.id} className="flex items-center justify-between px-6 py-4 hover:bg-white/[0.02] transition">
+                      <div className="flex-1 min-w-0 mr-4">
+                        <p className="text-sm font-semibold text-white truncate capitalize">{(order.serviceType || 'Order').replace(/_/g, ' ')}</p>
+                        <p className="text-xs text-slate-500 mt-0.5">{dateStr} · Qty {order.quantity?.toLocaleString()}</p>
+                      </div>
+                      <span className={`shrink-0 px-2.5 py-0.5 text-xs font-bold rounded-full border capitalize ${badgeClass}`}>
+                        {order.status}
+                      </span>
+                    </div>
+                  );
+                })}
+                <div className="px-6 py-3">
+                  <Link href="/sabi/orders" className="text-xs text-blue-400 hover:text-blue-300 font-semibold transition">
+                    View all orders →
+                  </Link>
+                </div>
+              </div>
+            )}
           </InteractiveCard>
         </motion.div>
 

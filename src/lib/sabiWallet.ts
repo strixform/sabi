@@ -128,6 +128,19 @@ export async function refundSabiWallet(
   reason: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    // Idempotency check — prevent double-refund for the same order
+    const duplicate = await prisma.sabiTransaction.findFirst({
+      where: {
+        userId,
+        type: 'refund',
+        reference: orderId,
+      },
+    });
+
+    if (duplicate) {
+      return { success: true }; // Already refunded — idempotent return
+    }
+
     await prisma.sabiWallet.update({
       where: { userId },
       data: {
@@ -142,6 +155,7 @@ export async function refundSabiWallet(
         orderId,
         type: 'refund',
         amount: amountInKobo,
+        reference: orderId,
         description: `Order ${orderId} refunded: ${reason}`,
       },
     });

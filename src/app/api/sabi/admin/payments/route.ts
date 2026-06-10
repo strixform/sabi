@@ -32,9 +32,9 @@ export async function GET(req: NextRequest) {
   const limit  = Math.min(parseInt(searchParams.get('limit')  || '50'),  200);
   const offset = parseInt(searchParams.get('offset') || '0');
 
-  // Always filter to deposits only — this page shows money IN (Flutterwave top-ups).
+  // Always filter to fund transactions only — this page shows money IN (Flutterwave top-ups).
   // Order charges, refunds, bonuses are internal movements shown elsewhere.
-  const where: any = { type: 'deposit' };
+  const where: any = { type: 'fund' };
   if (search) {
     where.AND = [{
       OR: [
@@ -58,10 +58,10 @@ export async function GET(req: NextRequest) {
     prisma.sabiTransaction.count({ where }),
   ]);
 
-  // Stats cards — deposits only (this is the incoming money view)
-  const [totalDeposited, depositCount] = await Promise.all([
-    prisma.sabiTransaction.aggregate({ where: { type: 'deposit' }, _sum: { amount: true } }),
-    prisma.sabiTransaction.count({ where: { type: 'deposit' } }),
+  // Stats cards — fund transactions only (this is the incoming money view)
+  const [totalFunded, fundCount] = await Promise.all([
+    prisma.sabiTransaction.aggregate({ where: { type: 'fund' }, _sum: { amount: true } }),
+    prisma.sabiTransaction.count({ where: { type: 'fund' } }),
   ]);
 
   return NextResponse.json({
@@ -79,8 +79,8 @@ export async function GET(req: NextRequest) {
     })),
     total,
     stats: {
-      totalDeposited: totalDeposited._sum.amount ?? 0,
-      totalTransactions: depositCount,
+      totalFunded: totalFunded._sum.amount ?? 0,
+      totalTransactions: fundCount,
     },
     limit,
     offset,

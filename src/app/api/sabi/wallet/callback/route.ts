@@ -2,6 +2,7 @@
 import { getSabiSession } from '@/lib/sabiAuth';
 import { getPrismaClient } from '@/lib/prisma';
 import { verifyFlwTransaction } from '@/lib/sabiFlutterwave';
+import { creditSabiWallet } from '@/lib/sabiWallet';
 export const maxDuration = 15;
 export const preferredRegion = 'sfo1'; // Turso DB in Oregon (sfo1) — keeps latency minimal
 
@@ -77,13 +78,10 @@ export async function POST(req: NextRequest) {
       kobo: amountInKobo,
     });
 
-    // Get or create wallet
-    let wallet = await prisma.sabiWallet.findUnique({
-      where: { userId: session.id },
-    });
-
-    if (!wallet) {
-      wallet = await prisma.sabiWallet.create({
+    // Ensure wallet exists before crediting
+    const existingWallet = await prisma.sabiWallet.findUnique({ where: { userId: session.id } });
+    if (!existingWallet) {
+      await prisma.sabiWallet.create({
         data: {
           userId: session.id,
           balance: 0,
@@ -94,42 +92,28 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Add funds to wallet (stored in Kobo)
-    const newBalance = wallet.balance + amountInKobo;
+    // Use creditSabiWallet — idempotent, checks for duplicate (userId, type='fund', reference)
+    // before crediting, and records the transaction. Prevents double-credit on retry.
+    const txRef = verification.txRef || String(transactionId);
+    const creditResult = await creditSabiWallet(session.id, amountInKobo, txRef);
 
-    console.log('[WALLET CALLBACK] Updating wallet:', {
-      userId: session.id,
-      oldBalance: wallet.balance,
-      amountToAdd: amountInKobo,
-      newBalance,
-    });
+    if (!creditResult.success) {
+      console.error('[WALLET CALLBACK] Credit failed:', creditResult.error);
+      return NextResponse.json(
+        { error: creditResult.error || 'Failed to credit wallet', success: false },
+        { status: 500 }
+      );
+    }
 
-    const updatedWallet = await prisma.sabiWallet.update({
-      where: { id: wallet.id },
-      data: {
-        balance: newBalance,
-        totalFunded: wallet.totalFunded + amountInKobo,
-      },
-    });
-
-    // Log transaction
-    await prisma.sabiTransaction.create({
-      data: {
-        userId: session.id,
-        type: 'fund',
-        amount: amountInKobo,
-        reference: transactionId,
-        description: `Wallet funded via Flutterwave`,
-      },
-    });
+    const updatedWallet = await prisma.sabiWallet.findUnique({ where: { userId: session.id } });
 
     return NextResponse.json({
       success: true,
       message: 'Payment verified and wallet credited',
       amountNaira: amountInNaira,
       amountKobo: amountInKobo,
-      newBalanceKobo: updatedWallet.balance,
-      newBalanceNaira: Math.round(updatedWallet.balance / 100),
+      newBalanceKobo: updatedWallet?.balance ?? amountInKobo,
+      newBalanceNaira: Math.round((updatedWallet?.balance ?? amountInKobo) / 100),
     });
   } catch (error) {
     console.error('[WALLET CALLBACK] Error:', error);

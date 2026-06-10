@@ -25,22 +25,19 @@ export default function AdminLoginPage() {
       setLoading(true);
       setError('');
 
-      // Verify token matches expected format
-      const isValidFormat = token.startsWith('sk_admin_');
+      // Validate token against the server-side API — never compare client-side
+      const res = await fetch('/api/sabi/admin/orders?limit=1', {
+        headers: { 'x-admin-token': token },
+      });
 
-      if (!isValidFormat) {
-        setError('Invalid admin token format');
-        return;
-      }
-
-      // For now, verify by checking if it matches the environment token
-      // In production, you'd validate against the backend
-      if (token === process.env.NEXT_PUBLIC_ADMIN_TOKEN || token === 'sk_admin_1780564071_449271af_b8ad69b3dfe5739d') {
-        // Store token in session/localStorage
+      if (res.ok || res.status === 200) {
+        // Server confirmed token is valid — store and redirect
         sessionStorage.setItem('sabi_admin_token', token);
         router.push('/sabi/admin');
-      } else {
+      } else if (res.status === 403) {
         setError('Invalid admin token');
+      } else {
+        setError('Unable to verify token — please try again');
       }
     } catch (err) {
       setError('An error occurred');

@@ -117,16 +117,26 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
-    if (adminNote) {
-      // Store admin note in a comment-style field (using existing fields)
-      updateData.targetingNote = adminNote;
-    }
-
     const updated = await prisma.sabiOrder.update({
       where: { id: orderId },
       data: updateData,
       include: { user: { select: { id: true, email: true, name: true } } },
     });
+
+    // adminNote: write via raw SQL because targetingNote exists in the Turso DB
+    // column but is not declared in the Prisma schema — Prisma would silently drop it.
+    if (adminNote) {
+      try {
+        await prisma.$executeRawUnsafe(
+          'UPDATE SabiOrder SET targetingNote = ? WHERE id = ?',
+          adminNote,
+          orderId
+        );
+      } catch (noteErr) {
+        // Non-fatal: log but don't fail the whole update if column doesn't exist
+        console.warn('[admin/orders] adminNote write failed (column may not exist):', noteErr);
+      }
+    }
 
     return NextResponse.json({
       success: true,
