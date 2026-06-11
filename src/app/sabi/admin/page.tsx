@@ -35,6 +35,16 @@ interface User {
   id: string; email: string; name: string; status: string;
   emailVerified: boolean; balance: number; totalSpent: number;
   totalFunded: number; lastAuth: string | null; createdAt: string;
+  phone: string | null; businessName: string | null;
+  orderCount: number; completedOrders: number;
+  totalOrderValue: number; lastOrderAt: string | null;
+}
+
+interface UserOrder {
+  id: string; serviceType: string; targetUrl: string; quantity: number;
+  totalPrice: number; platformFee: number; amountPaid: number; status: string;
+  completedQuantity: number; completionPercentage: number; paymentMethod: string;
+  campaignId: string | null; createdAt: string;
 }
 
 interface Payment {
@@ -83,7 +93,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 const fmt = (kobo: number | undefined | null) => `₦${Math.round((kobo ?? 0) / 100).toLocaleString()}`;
 const fmtDate = (d: string) => new Date(d).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' });
-const TABS = ['Orders', 'Users', 'Payments', 'Referrals', 'Requests', 'Settings'] as const;
+const TABS = ['Users', 'Orders', 'Payments', 'Referrals', 'Requests', 'Settings'] as const;
 type Tab = typeof TABS[number];
 
 // ─── Sort state helper ────────────────────────────────────────────────────────
@@ -499,7 +509,11 @@ export default function AdminPage() {
   const router = useRouter();
   const [authorized, setAuthorized]   = useState(false);
   const [adminEmail, setAdminEmail]   = useState('');
-  const [tab, setTab]                 = useState<Tab>('Orders');
+  const [tab, setTab]                 = useState<Tab>('Users');
+  // Per-user order-history drill-down (Users tab)
+  const [expandedUser, setExpandedUser]       = useState<string | null>(null);
+  const [userOrders, setUserOrders]           = useState<Record<string, UserOrder[]>>({});
+  const [loadingUserOrders, setLoadingUserOrders] = useState<string | null>(null);
   const [search, setSearch]           = useState('');
   const [loading, setLoading]         = useState(true);
   const [msg, setMsg]                 = useState('');
@@ -560,6 +574,20 @@ export default function AdminPage() {
       headers: { ...(opts.headers || {}), ...(token ? { 'x-admin-token': token } : {}) },
     });
   }, []);
+
+  // ── Toggle a user's order-history drill-down ───────────────────────────────
+  const toggleUserOrders = useCallback(async (userId: string) => {
+    if (expandedUser === userId) { setExpandedUser(null); return; }
+    setExpandedUser(userId);
+    if (!userOrders[userId]) {
+      setLoadingUserOrders(userId);
+      try {
+        const d = await adminFetch(`/api/sabi/admin/user-orders?userId=${userId}`).then(r => r.json());
+        if (d.success) setUserOrders(prev => ({ ...prev, [userId]: d.orders }));
+      } catch { /* ignore */ }
+      setLoadingUserOrders(null);
+    }
+  }, [expandedUser, userOrders, adminFetch]);
 
   // ── Check auth on mount ────────────────────────────────────────────────────
   useEffect(() => {
@@ -886,49 +914,106 @@ export default function AdminPage() {
                 <table className="w-full text-sm">
                   <thead className="bg-slate-800/50 border-b border-white/[0.06]">
                     <tr>
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 w-10">#</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400">ID</th>
-                      <SortTh label="Name"      col="name"          sort={userSort} setSort={setUserSort} />
-                      <SortTh label="Email"     col="email"         sort={userSort} setSort={setUserSort} />
-                      <SortTh label="Balance"   col="balance"       sort={userSort} setSort={setUserSort} />
-                      <SortTh label="Spent"     col="totalSpent"    sort={userSort} setSort={setUserSort} />
-                      <SortTh label="Status"    col="status"        sort={userSort} setSort={setUserSort} />
-                      <SortTh label="Verified"  col="emailVerified" sort={userSort} setSort={setUserSort} />
-                      <SortTh label="Created"   col="createdAt"     sort={userSort} setSort={setUserSort} />
-                      <SortTh label="Last Auth" col="lastAuth"      sort={userSort} setSort={setUserSort} />
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400">Credit / Debit</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold text-slate-600 w-10">#</th>
+                      <SortTh label="Name"       col="name"            sort={userSort} setSort={setUserSort} />
+                      <SortTh label="Email"      col="email"           sort={userSort} setSort={setUserSort} />
+                      <SortTh label="Balance"    col="balance"         sort={userSort} setSort={setUserSort} />
+                      <SortTh label="Spent"      col="totalSpent"      sort={userSort} setSort={setUserSort} />
+                      <SortTh label="Orders"     col="orderCount"      sort={userSort} setSort={setUserSort} />
+                      <SortTh label="Order Value" col="totalOrderValue" sort={userSort} setSort={setUserSort} />
+                      <SortTh label="Last Order" col="lastOrderAt"     sort={userSort} setSort={setUserSort} />
+                      <SortTh label="Status"     col="status"          sort={userSort} setSort={setUserSort} />
+                      <SortTh label="Joined"     col="createdAt"       sort={userSort} setSort={setUserSort} />
+                      <th className="px-3 py-3 text-left text-xs font-semibold text-slate-400">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loading ? (
-                      <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-600">Loading…</td></tr>
+                      <tr><td colSpan={11} className="px-4 py-8 text-center text-slate-600">Loading…</td></tr>
                     ) : sortedUsers.length === 0 ? (
-                      <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-600">No users found</td></tr>
+                      <tr><td colSpan={11} className="px-4 py-8 text-center text-slate-600">No users found</td></tr>
                     ) : sortedUsers.map((u, i) => (
-                      <tr key={u.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                      <React.Fragment key={u.id}>
+                      <tr className="border-b border-white/[0.04] hover:bg-white/[0.02]">
                         {/* Count DOWN from total so oldest user = #1, newest = #N */}
-                        <td className="px-4 py-3 text-center text-xs text-slate-600 font-mono">{userTotal - (userPage * LIMIT + i)}</td>
-                        <td className="px-4 py-3 font-mono text-xs text-slate-400">{u.id.slice(0, 8)}</td>
-                        <td className="px-4 py-3 text-xs text-white font-medium">{u.name}</td>
-                        <td className="px-4 py-3 text-xs text-slate-400">{u.email}</td>
-                        <td className="px-4 py-3 text-xs text-emerald-400 font-semibold">{fmt(u.balance)}</td>
-                        <td className="px-4 py-3 text-xs text-white">{fmt(u.totalSpent)}</td>
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-3 text-center text-xs text-slate-600 font-mono">{userTotal - (userPage * LIMIT + i)}</td>
+                        <td className="px-3 py-3">
+                          <div className="text-xs text-white font-medium">{u.name}</div>
+                          {u.phone && <div className="text-[10px] text-slate-500">{u.phone}</div>}
+                          {u.businessName && <div className="text-[10px] text-purple-400/70">{u.businessName}</div>}
+                        </td>
+                        <td className="px-3 py-3 text-xs text-slate-400">{u.email}</td>
+                        <td className="px-3 py-3 text-xs text-emerald-400 font-semibold">{fmt(u.balance)}</td>
+                        <td className="px-3 py-3 text-xs text-white">{fmt(u.totalSpent)}</td>
+                        <td className="px-3 py-3 text-xs">
+                          <span className="text-white font-semibold">{u.orderCount}</span>
+                          {u.orderCount > 0 && <span className="text-emerald-400/80 text-[10px] ml-1">{u.completedOrders}✓</span>}
+                        </td>
+                        <td className="px-3 py-3 text-xs text-blue-300">{fmt(u.totalOrderValue)}</td>
+                        <td className="px-3 py-3 text-[11px] text-slate-500">{u.lastOrderAt ? fmtDate(u.lastOrderAt) : '—'}</td>
+                        <td className="px-3 py-3">
                           <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${STATUS_COLORS[u.status] || ''}`}>
                             {u.status}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-xs">
-                          {u.emailVerified
-                            ? <span className="text-emerald-400">✓ Yes</span>
-                            : <span className="text-slate-500">No</span>}
-                        </td>
-                        <td className="px-4 py-3 text-xs text-slate-500">{fmtDate(u.createdAt)}</td>
-                        <td className="px-4 py-3 text-xs text-slate-500">{u.lastAuth ? fmtDate(u.lastAuth) : '—'}</td>
-                        <td className="px-4 py-3">
-                          <WalletAdjustButton userId={u.id} userName={u.name} userEmail={u.email} onDone={() => setUsers([])} />
+                        <td className="px-3 py-3 text-[11px] text-slate-500">{fmtDate(u.createdAt)}</td>
+                        <td className="px-3 py-3">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => toggleUserOrders(u.id)}
+                              disabled={u.orderCount === 0}
+                              className={`text-[11px] px-2 py-1 rounded-md border whitespace-nowrap ${u.orderCount === 0 ? 'border-white/5 text-slate-700 cursor-default' : expandedUser === u.id ? 'border-blue-500/40 bg-blue-500/10 text-blue-300' : 'border-white/10 text-slate-300 hover:bg-white/[0.04]'}`}>
+                              {expandedUser === u.id ? '▲ Hide' : `▾ Orders`}
+                            </button>
+                            <WalletAdjustButton userId={u.id} userName={u.name} userEmail={u.email} onDone={() => setUsers([])} />
+                          </div>
                         </td>
                       </tr>
+                      {expandedUser === u.id && (
+                        <tr className="bg-slate-950/60">
+                          <td colSpan={11} className="px-4 py-3">
+                            {loadingUserOrders === u.id ? (
+                              <div className="text-xs text-slate-500 py-2">Loading {u.name}&apos;s orders…</div>
+                            ) : (userOrders[u.id]?.length ?? 0) === 0 ? (
+                              <div className="text-xs text-slate-600 py-2">No orders for this customer.</div>
+                            ) : (
+                              <div className="rounded-lg border border-white/[0.06] overflow-hidden">
+                                <table className="w-full text-xs">
+                                  <thead className="bg-slate-800/40">
+                                    <tr className="text-slate-500">
+                                      <th className="px-3 py-2 text-left font-medium">Service</th>
+                                      <th className="px-3 py-2 text-left font-medium">Target</th>
+                                      <th className="px-3 py-2 text-right font-medium">Qty</th>
+                                      <th className="px-3 py-2 text-right font-medium">Paid</th>
+                                      <th className="px-3 py-2 text-left font-medium">Progress</th>
+                                      <th className="px-3 py-2 text-left font-medium">Status</th>
+                                      <th className="px-3 py-2 text-left font-medium">Date</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {userOrders[u.id].map(o => (
+                                      <tr key={o.id} className="border-t border-white/[0.04]">
+                                        <td className="px-3 py-2 text-white">{o.serviceType}</td>
+                                        <td className="px-3 py-2 text-slate-400 max-w-[200px] truncate">
+                                          <a href={o.targetUrl} target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">{o.targetUrl}</a>
+                                        </td>
+                                        <td className="px-3 py-2 text-right text-slate-300">{o.quantity.toLocaleString()}</td>
+                                        <td className="px-3 py-2 text-right text-emerald-400">{fmt(o.amountPaid)}</td>
+                                        <td className="px-3 py-2 text-slate-400">{o.completedQuantity.toLocaleString()}/{o.quantity.toLocaleString()} ({o.completionPercentage}%)</td>
+                                        <td className="px-3 py-2">
+                                          <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${STATUS_COLORS[o.status] || ''}`}>{o.status}</span>
+                                        </td>
+                                        <td className="px-3 py-2 text-slate-500">{fmtDate(o.createdAt)}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      )}
+                      </React.Fragment>
                     ))}
                   </tbody>
                 </table>

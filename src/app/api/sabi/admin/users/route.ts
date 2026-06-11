@@ -1,24 +1,33 @@
 /**
- * SABI Admin — Users list
+ * SABI Admin — Users list (comprehensive)
  * GET /api/sabi/admin/users
  *
- * Returns all registered SABI users with their wallet balances, spend,
- * status and last session. Mirrors the Owlet admin Users tab.
+ * Returns SABI users with wallet balances AND per-user order aggregates
+ * (order count, completed, total order value, last order) so admins can
+ * track customers at a glance. Direct libsql (sabiExecute) — NOT Prisma —
+ * to avoid the 10-80s cold-start that made this tab load slowly.
  *
- * Auth: checkSabiAdmin (session cookie OR x-admin-token header)
  * Query params:
- *   search  — filter by username/email
- *   status  — filter by user status (active / banned)
+ *   search  — email / name / phone
+ *   status  — user status (active / banned)
+ *   sort    — created | spent | orders | recent   (default: recent)
  *   limit   — default 50, max 200
  *   offset  — pagination offset
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { checkSabiAdmin } from '@/lib/sabiAdminAuth';
+import { sabiExecute } from '@/lib/tursoClient';
 
 export const preferredRegion = 'sfo1';
 export const maxDuration = 15;
+
+const SORTS: Record<string, string> = {
+  created: 'u.createdAt DESC',
+  spent:   'totalSpent DESC',
+  orders:  'orderCount DESC',
+  recent:  'lastOrderAt IS NULL, lastOrderAt DESC, u.createdAt DESC',
+};
 
 export async function GET(req: NextRequest) {
   if (!await checkSabiAdmin(req)) {
@@ -28,57 +37,80 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const search = searchParams.get('search')?.trim() || '';
   const status = searchParams.get('status') || '';
+  const sort   = SORTS[searchParams.get('sort') || 'recent'] || SORTS.recent;
   const limit  = Math.min(parseInt(searchParams.get('limit')  || '50'),  200);
   const offset = parseInt(searchParams.get('offset') || '0');
 
-  // Build filter — search across email and name
-  const where: any = {};
+  const conds: string[] = [];
+  const args: any[] = [];
   if (search) {
-    where.OR = [
-      { email: { contains: search } },
-      { name:  { contains: search } },
-    ];
+    conds.push('(u.email LIKE ? OR u.name LIKE ? OR u.phone LIKE ?)');
+    const like = `%${search}%`;
+    args.push(like, like, like);
   }
-  if (status) where.status = status;
+  if (status) { conds.push('u.status = ?'); args.push(status); }
+  const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
 
-  const [users, total] = await Promise.all([
-    prisma.sabiUser.findMany({
-      where,
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        status: true,
-        emailVerified: true,
-        createdAt: true,
-        sessionExpiry: true, // last auth proxy — most recent session
-        wallet: {
-          select: { balance: true, totalSpent: true, totalFunded: true },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-      skip: offset,
-      take: limit,
-    }),
-    prisma.sabiUser.count({ where }),
-  ]);
+  try {
+    // Per-user order aggregates joined in one pass (SabiOrder is small / low-volume).
+    const rowsResult = await sabiExecute({
+      sql: `SELECT u.id, u.email, u.name, u.status, u.emailVerified, u.phone,
+                   u.businessName, u.createdAt, u.sessionExpiry,
+                   COALESCE(w.balance, 0)      AS balance,
+                   COALESCE(w.totalSpent, 0)   AS totalSpent,
+                   COALESCE(w.totalFunded, 0)  AS totalFunded,
+                   COALESCE(o.orderCount, 0)      AS orderCount,
+                   COALESCE(o.completedOrders, 0) AS completedOrders,
+                   COALESCE(o.totalOrderValue, 0) AS totalOrderValue,
+                   o.lastOrderAt
+            FROM SabiUser u
+            LEFT JOIN SabiWallet w ON w.userId = u.id
+            LEFT JOIN (
+              SELECT userId,
+                     COUNT(*) AS orderCount,
+                     SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completedOrders,
+                     SUM(totalPrice + platformFee) AS totalOrderValue,
+                     MAX(createdAt) AS lastOrderAt
+              FROM SabiOrder GROUP BY userId
+            ) o ON o.userId = u.id
+            ${where}
+            ORDER BY ${sort}
+            LIMIT ? OFFSET ?`,
+      args: [...args, limit, offset],
+    });
 
-  return NextResponse.json({
-    success: true,
-    users: users.map(u => ({
-      id: u.id,
-      email: u.email,
-      name: u.name,
-      status: u.status,
-      emailVerified: u.emailVerified,
-      balance:      u.wallet?.balance      ?? 0,  // kobo
-      totalSpent:   u.wallet?.totalSpent   ?? 0,  // kobo
-      totalFunded:  u.wallet?.totalFunded  ?? 0,  // kobo
-      lastAuth:     u.sessionExpiry,               // most recent session expiry → proxy for last login
-      createdAt:    u.createdAt,
-    })),
-    total,
-    limit,
-    offset,
-  });
+    const countResult = await sabiExecute({
+      sql: `SELECT COUNT(*) AS total FROM SabiUser u ${where}`,
+      args,
+    });
+    const total = Number((countResult.rows[0] as any)?.total ?? 0);
+
+    return NextResponse.json({
+      success: true,
+      users: (rowsResult.rows as any[]).map(u => ({
+        id: u.id,
+        email: u.email,
+        name: u.name,
+        phone: u.phone || null,
+        businessName: u.businessName || null,
+        status: u.status,
+        emailVerified: !!u.emailVerified,
+        balance:      Number(u.balance),       // kobo
+        totalSpent:   Number(u.totalSpent),    // kobo
+        totalFunded:  Number(u.totalFunded),   // kobo
+        orderCount:      Number(u.orderCount),
+        completedOrders: Number(u.completedOrders),
+        totalOrderValue: Number(u.totalOrderValue), // kobo
+        lastOrderAt:  u.lastOrderAt || null,
+        lastAuth:     u.sessionExpiry || null,
+        createdAt:    u.createdAt,
+      })),
+      total,
+      limit,
+      offset,
+    });
+  } catch (e: any) {
+    console.error('[admin/users]', e?.message);
+    return NextResponse.json({ error: 'Failed to load users', detail: e?.message?.slice(0, 140) }, { status: 500 });
+  }
 }
