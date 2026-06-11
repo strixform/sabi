@@ -1,13 +1,9 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
 import { getSabiSession } from '@/lib/sabiAuth';
-import { getPrismaClient } from '@/lib/prisma';
 import { verifyFlwTransaction } from '@/lib/sabiFlutterwave';
 import { creditSabiWallet } from '@/lib/sabiWallet';
 export const maxDuration = 15;
 export const preferredRegion = 'sfo1'; // Turso DB in Oregon (sfo1) — keeps latency minimal
-
-
-const prisma = getPrismaClient();
 
 export async function POST(req: NextRequest) {
   try {
@@ -78,22 +74,9 @@ export async function POST(req: NextRequest) {
       kobo: amountInKobo,
     });
 
-    // Ensure wallet exists before crediting
-    const existingWallet = await prisma.sabiWallet.findUnique({ where: { userId: session.id } });
-    if (!existingWallet) {
-      await prisma.sabiWallet.create({
-        data: {
-          userId: session.id,
-          balance: 0,
-          totalFunded: 0,
-          totalSpent: 0,
-          totalRefunded: 0,
-        },
-      });
-    }
-
-    // Use creditSabiWallet — idempotent, checks for duplicate (userId, type='fund', reference)
-    // before crediting, and records the transaction. Prevents double-credit on retry.
+    // Credit via creditSabiWallet — now direct libsql (no Prisma cold start). It is
+    // idempotent (skips duplicate reference), ensures the wallet row exists, credits
+    // atomically, records the transaction, and returns the new balance.
     const txRef = verification.txRef || String(transactionId);
     const creditResult = await creditSabiWallet(session.id, amountInKobo, txRef);
 
@@ -105,15 +88,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const updatedWallet = await prisma.sabiWallet.findUnique({ where: { userId: session.id } });
+    const newBalanceKobo = creditResult.balance ?? amountInKobo;
 
     return NextResponse.json({
       success: true,
       message: 'Payment verified and wallet credited',
       amountNaira: amountInNaira,
       amountKobo: amountInKobo,
-      newBalanceKobo: updatedWallet?.balance ?? amountInKobo,
-      newBalanceNaira: Math.round((updatedWallet?.balance ?? amountInKobo) / 100),
+      newBalanceKobo,
+      newBalanceNaira: Math.round(newBalanceKobo / 100),
     });
   } catch (error) {
     console.error('[WALLET CALLBACK] Error:', error);

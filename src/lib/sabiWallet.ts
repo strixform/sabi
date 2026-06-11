@@ -1,4 +1,6 @@
 import { prisma } from './prisma';
+import { sabiExecute } from './tursoClient';
+import crypto from 'crypto';
 
 export interface WalletData {
   balance: number;
@@ -35,44 +37,47 @@ export async function creditSabiWallet(
   userId: string,
   amountInKobo: number,
   reference: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; balance?: number }> {
   try {
-    // Check for duplicate
-    const duplicate = await prisma.sabiTransaction.findFirst({
-      where: {
-        userId,
-        type: 'fund',
-        reference,
-      },
-    });
+    // DIRECT libsql (sabiExecute) — NOT Prisma. Prisma's libsql adapter has 10-80s
+    // cold starts on Vercel; the payment callback (maxDuration 15) timed out before
+    // the credit completed, so paid funds never reflected. sabiExecute is raw HTTP
+    // with 429-retry backoff. Same fix as SABI login.
 
-    if (duplicate) {
-      return { success: true }; // Idempotent
+    // 1. Idempotency — skip if this reference was already credited as a fund.
+    const dup = await sabiExecute({
+      sql: `SELECT id FROM SabiTransaction WHERE userId = ? AND type = 'fund' AND reference = ? LIMIT 1`,
+      args: [userId, reference],
+    });
+    if (dup.rows.length > 0) {
+      const w = await sabiExecute({ sql: `SELECT balance FROM SabiWallet WHERE userId = ? LIMIT 1`, args: [userId] }).catch(() => null);
+      return { success: true, balance: Number((w?.rows[0] as any)?.balance ?? 0) };
     }
 
-    // Update wallet atomically
-    await prisma.sabiWallet.update({
-      where: { userId },
-      data: {
-        balance: { increment: amountInKobo },
-        totalFunded: { increment: amountInKobo },
-      },
+    // 2. Ensure the wallet row exists (updatedAt has no DB default — must supply it).
+    await sabiExecute({
+      sql: `INSERT OR IGNORE INTO SabiWallet (id, userId, balance, totalFunded, totalSpent, totalRefunded, updatedAt)
+            VALUES (?, ?, 0, 0, 0, 0, datetime('now'))`,
+      args: [crypto.randomUUID(), userId],
     });
 
-    // Record transaction
-    await prisma.sabiTransaction.create({
-      data: {
-        userId,
-        type: 'fund',
-        amount: amountInKobo,
-        reference,
-        description: 'Wallet funding via Flutterwave',
-      },
+    // 3. Credit atomically and read back the new balance.
+    const upd = await sabiExecute({
+      sql: `UPDATE SabiWallet SET balance = balance + ?, totalFunded = totalFunded + ?, updatedAt = datetime('now')
+            WHERE userId = ? RETURNING balance`,
+      args: [amountInKobo, amountInKobo, userId],
+    });
+    const newBalance = Number((upd.rows[0] as any)?.balance ?? 0);
+
+    // 4. Record the funding transaction (id + createdAt supplied — no Prisma defaults in raw SQL).
+    await sabiExecute({
+      sql: `INSERT INTO SabiTransaction (id, userId, type, amount, reference, description, createdAt)
+            VALUES (?, ?, 'fund', ?, ?, 'Wallet funding via Flutterwave', datetime('now'))`,
+      args: [crypto.randomUUID(), userId, amountInKobo, reference],
     });
 
-    return { success: true };
+    return { success: true, balance: newBalance };
   } catch (error) {
-    // Error logging handled by external service
     return { success: false, error: 'Failed to credit wallet' };
   }
 }
