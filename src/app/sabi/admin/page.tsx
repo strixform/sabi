@@ -93,7 +93,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 const fmt = (kobo: number | undefined | null) => `₦${Math.round((kobo ?? 0) / 100).toLocaleString()}`;
 const fmtDate = (d: string) => new Date(d).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' });
-const TABS = ['Users', 'Orders', 'Payments', 'Referrals', 'Requests', 'Settings'] as const;
+const TABS = ['Users', 'Orders', 'Payments', 'Reconcile', 'Referrals', 'Requests', 'Settings'] as const;
 type Tab = typeof TABS[number];
 
 // ─── Sort state helper ────────────────────────────────────────────────────────
@@ -502,6 +502,217 @@ function RequestCard({ request: r, expanded, onToggle, adminFetch, onUpdated }: 
 
 const qs = (p: Record<string, string | number>) =>
   '?' + new URLSearchParams(Object.entries(p).map(([k, v]) => [k, String(v)])).toString();
+
+// ─── Reconcile tab: upload Flutterwave success receipts, credit the gaps ────────
+
+type ReconRow = { txRef?: string; flwId?: string; amount?: number; status?: string; email?: string };
+type ReconResult = {
+  txRef: string | null; flwId: string | null; email: string | null;
+  userId: string | null; userEmail: string | null; outcome: string;
+  claimedNaira: number | null; creditedKobo: number | null; newBalanceKobo: number | null; note?: string;
+};
+
+// Minimal RFC-4180-ish CSV parser (handles quoted fields + escaped quotes).
+function parseCsv(text: string): Record<string, string>[] {
+  const rows: string[][] = [];
+  let cur: string[] = [], field = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else inQ = false; }
+      else field += c;
+    } else if (c === '"') inQ = true;
+    else if (c === ',') { cur.push(field); field = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') i++;
+      cur.push(field); field = '';
+      if (cur.some(x => x !== '')) rows.push(cur);
+      cur = [];
+    } else field += c;
+  }
+  cur.push(field);
+  if (cur.some(x => x !== '')) rows.push(cur);
+  if (rows.length < 2) return [];
+  const header = rows[0].map(h => h.trim());
+  return rows.slice(1).map(r => {
+    const o: Record<string, string> = {};
+    header.forEach((h, i) => { o[h] = (r[i] ?? '').trim(); });
+    return o;
+  });
+}
+
+// Map messy Flutterwave headers → our fields. Normalises "Tx Ref"/"tx_ref"/"customer.email" etc.
+function rowsFromCsv(records: Record<string, string>[]): ReconRow[] {
+  if (records.length === 0) return [];
+  const keys = Object.keys(records[0]);
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const find = (preds: ((n: string) => boolean)[]) => {
+    for (const pred of preds) { const k = keys.find(kk => pred(norm(kk))); if (k) return k; }
+    return null;
+  };
+  const kTxRef  = find([n => n === 'txref', n => n === 'merchantreference', n => n === 'reference' || n === 'merchantref']);
+  const kFlwId  = find([n => n === 'id', n => n === 'transactionid' || n === 'txid']);
+  const kAmount = find([n => n === 'amount', n => n === 'amountngn' || n === 'chargedamount']);
+  const kStatus = find([n => n === 'status']);
+  const kEmail  = find([n => n === 'customeremail' || n === 'email' || n === 'customermail']);
+  return records.map(r => ({
+    txRef:  kTxRef  ? r[kTxRef]  || undefined : undefined,
+    flwId:  kFlwId  ? r[kFlwId]  || undefined : undefined,
+    amount: kAmount ? (parseFloat((r[kAmount] || '').replace(/[^0-9.]/g, '')) || undefined) : undefined,
+    status: kStatus ? r[kStatus] || undefined : undefined,
+    email:  kEmail  ? r[kEmail]  || undefined : undefined,
+  })).filter(r => r.txRef || r.flwId);
+}
+
+const OUTCOME_STYLE: Record<string, { label: string; cls: string }> = {
+  already_complete: { label: 'Already credited', cls: 'text-emerald-400' },
+  missing:          { label: 'Missing — will credit', cls: 'text-yellow-400' },
+  completed:        { label: '✓ Credited now', cls: 'text-emerald-300 font-bold' },
+  user_not_found:   { label: 'User not found', cls: 'text-red-400' },
+  ambiguous:        { label: 'Ambiguous (manual)', cls: 'text-orange-400' },
+  not_successful:   { label: 'Not successful', cls: 'text-gray-500' },
+  verify_failed:    { label: 'FLW verify failed', cls: 'text-red-400' },
+  credit_failed:    { label: 'Credit failed', cls: 'text-red-400' },
+  no_reference:     { label: 'No reference', cls: 'text-gray-500' },
+};
+
+function ReconcileTab({ adminFetch }: { adminFetch: (url: string, opts?: RequestInit) => Promise<Response> }) {
+  const [fileName, setFileName] = useState('');
+  const [rows, setRows] = useState<ReconRow[]>([]);
+  const [parseErr, setParseErr] = useState('');
+  const [busy, setBusy] = useState<'' | 'scan' | 'commit'>('');
+  const [summary, setSummary] = useState<any>(null);
+  const [results, setResults] = useState<ReconResult[]>([]);
+  const [committed, setCommitted] = useState(false);
+
+  const onFile = async (file: File | undefined) => {
+    if (!file) return;
+    setParseErr(''); setSummary(null); setResults([]); setCommitted(false);
+    setFileName(file.name);
+    try {
+      const text = await file.text();
+      const parsed = rowsFromCsv(parseCsv(text));
+      if (parsed.length === 0) { setParseErr('No usable rows found. Need a tx_ref or id column.'); setRows([]); return; }
+      setRows(parsed);
+    } catch { setParseErr('Could not read that file.'); setRows([]); }
+  };
+
+  const run = async (commit: boolean) => {
+    setBusy(commit ? 'commit' : 'scan');
+    try {
+      const res = await adminFetch('/api/sabi/admin/reconcile-payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rows, commit }),
+      });
+      const d = await res.json();
+      if (!res.ok || !d.success) { setParseErr(d.error || 'Reconcile failed'); return; }
+      setSummary(d.summary); setResults(d.results || []); setCommitted(commit);
+    } catch { setParseErr('Network error.'); }
+    finally { setBusy(''); }
+  };
+
+  const missingCount = summary?.missing ?? 0;
+
+  return (
+    <div className="max-w-4xl space-y-5">
+      <div className="bg-slate-900 border border-white/[0.06] rounded-xl p-6 space-y-4">
+        <div>
+          <h2 className="text-lg font-bold text-white">Reconcile Flutterwave Payments</h2>
+          <p className="text-slate-400 text-sm mt-1">
+            Upload your Flutterwave transactions export (CSV of successful payments). We match each
+            to a SABI wallet, check whether it was already credited, and credit any that slipped
+            through. Amounts are re-verified live with Flutterwave before crediting — the CSV amount is never trusted.
+          </p>
+        </div>
+
+        <label className="flex items-center gap-3 px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-white/[0.06] rounded-xl cursor-pointer transition w-fit">
+          <FiDollarSign className="w-4 h-4 text-emerald-400" />
+          <span className="text-white text-sm font-semibold">{fileName || 'Choose CSV file…'}</span>
+          <input type="file" accept=".csv,text/csv" className="hidden"
+            onChange={e => onFile(e.target.files?.[0])} />
+        </label>
+
+        {rows.length > 0 && (
+          <div className="text-sm text-slate-300">
+            Parsed <span className="font-bold text-white">{rows.length}</span> transaction row{rows.length !== 1 ? 's' : ''}.
+            {rows.length >= 300 && <span className="text-yellow-400"> (max 300 processed per run — re-upload the rest after.)</span>}
+          </div>
+        )}
+        {parseErr && <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{parseErr}</div>}
+
+        {rows.length > 0 && (
+          <div className="flex gap-3">
+            <button onClick={() => run(false)} disabled={!!busy}
+              className="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-xl transition disabled:opacity-50">
+              {busy === 'scan' ? 'Scanning…' : 'Scan (preview)'}
+            </button>
+            {summary && !committed && missingCount > 0 && (
+              <button onClick={() => run(true)} disabled={!!busy}
+                className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold rounded-xl transition disabled:opacity-50">
+                {busy === 'commit' ? 'Crediting…' : `Credit ${missingCount} missing payment${missingCount !== 1 ? 's' : ''}`}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {summary && (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { l: 'Total rows', v: summary.total, c: 'text-white' },
+              { l: 'Already credited', v: summary.alreadyComplete, c: 'text-emerald-400' },
+              { l: committed ? 'Credited now' : 'Missing', v: committed ? summary.completed : summary.missing, c: 'text-yellow-400' },
+              { l: 'Needs review', v: summary.userNotFound + summary.ambiguous + summary.verifyFailed + summary.creditFailed + summary.noReference, c: 'text-red-400' },
+            ].map(s => (
+              <div key={s.l} className="bg-slate-900 border border-white/[0.06] rounded-xl p-4">
+                <div className={`text-2xl font-bold ${s.c}`}>{s.v}</div>
+                <div className="text-slate-400 text-xs mt-0.5">{s.l}</div>
+              </div>
+            ))}
+          </div>
+          {committed && (
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3 text-emerald-300 text-sm font-semibold">
+              ✓ Credited {fmt(summary.creditedKobo)} across {summary.completed} wallet{summary.completed !== 1 ? 's' : ''}.
+              {summary.missing > 0 && <span className="text-yellow-400"> {summary.missing} still missing (re-run if needed).</span>}
+            </div>
+          )}
+
+          <div className="bg-slate-900 border border-white/[0.06] rounded-xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-slate-400 border-b border-white/[0.06]">
+                    <th className="px-4 py-3 font-semibold">tx_ref</th>
+                    <th className="px-4 py-3 font-semibold">User</th>
+                    <th className="px-4 py-3 font-semibold text-right">Claimed</th>
+                    <th className="px-4 py-3 font-semibold text-right">Credited</th>
+                    <th className="px-4 py-3 font-semibold">Outcome</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {results.map((r, i) => {
+                    const o = OUTCOME_STYLE[r.outcome] || { label: r.outcome, cls: 'text-slate-400' };
+                    return (
+                      <tr key={i} className="border-b border-white/[0.03]">
+                        <td className="px-4 py-2.5 font-mono text-[11px] text-slate-300 max-w-[180px] truncate" title={r.txRef || r.flwId || ''}>{r.txRef || r.flwId || '—'}</td>
+                        <td className="px-4 py-2.5 text-slate-300">{r.userEmail || r.email || <span className="text-slate-600">—</span>}</td>
+                        <td className="px-4 py-2.5 text-right text-slate-400">{r.claimedNaira != null ? `₦${r.claimedNaira.toLocaleString()}` : '—'}</td>
+                        <td className="px-4 py-2.5 text-right text-emerald-300 font-semibold">{r.creditedKobo != null ? fmt(r.creditedKobo) : '—'}</td>
+                        <td className={`px-4 py-2.5 ${o.cls}`}>{o.label}{r.note ? <span className="text-slate-500 text-xs"> · {r.note}</span> : null}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -1207,6 +1418,8 @@ export default function AdminPage() {
         )}
 
         {/* ── SETTINGS tab ───────────────────────────────────────────────── */}
+        {tab === 'Reconcile' && <ReconcileTab adminFetch={adminFetch} />}
+
         {tab === 'Settings' && (
           <div className="max-w-lg">
             <div className="bg-slate-900 border border-white/[0.06] rounded-xl p-6 space-y-4">
