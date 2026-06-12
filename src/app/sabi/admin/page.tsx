@@ -554,7 +554,7 @@ function rowsFromCsv(records: Record<string, string>[]): ReconRow[] {
   const kFlwId  = find([n => n === 'id', n => n === 'transactionid' || n === 'txid']);
   const kAmount = find([n => n === 'amount', n => n === 'amountngn' || n === 'chargedamount']);
   const kStatus = find([n => n === 'status']);
-  const kEmail  = find([n => n === 'customeremail' || n === 'email' || n === 'customermail']);
+  const kEmail  = find([n => n === 'custemail' || n === 'customeremail' || n === 'email' || n === 'customermail']);
   return records.map(r => ({
     txRef:  kTxRef  ? r[kTxRef]  || undefined : undefined,
     flwId:  kFlwId  ? r[kFlwId]  || undefined : undefined,
