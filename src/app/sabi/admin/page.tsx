@@ -564,6 +564,25 @@ function rowsFromCsv(records: Record<string, string>[]): ReconRow[] {
   })).filter(r => r.txRef || r.flwId);
 }
 
+// Recompute the summary from accumulated results — lets us batch requests and
+// still show one correct, live-updating summary.
+function summarizeResults(results: ReconResult[]) {
+  const c = (o: string) => results.filter(r => r.outcome === o).length;
+  return {
+    total: results.length,
+    alreadyComplete: c('already_complete'),
+    missing: c('missing'),
+    completed: c('completed'),
+    userNotFound: c('user_not_found'),
+    ambiguous: c('ambiguous'),
+    notSuccessful: c('not_successful'),
+    verifyFailed: c('verify_failed'),
+    creditFailed: c('credit_failed'),
+    noReference: c('no_reference'),
+    creditedKobo: results.reduce((s, r) => s + (r.creditedKobo || 0), 0),
+  };
+}
+
 const OUTCOME_STYLE: Record<string, { label: string; cls: string }> = {
   already_complete: { label: 'Already credited', cls: 'text-emerald-400' },
   missing:          { label: 'Missing — will credit', cls: 'text-yellow-400' },
@@ -581,6 +600,7 @@ function ReconcileTab({ adminFetch }: { adminFetch: (url: string, opts?: Request
   const [rows, setRows] = useState<ReconRow[]>([]);
   const [parseErr, setParseErr] = useState('');
   const [busy, setBusy] = useState<'' | 'scan' | 'commit'>('');
+  const [progress, setProgress] = useState('');
   const [summary, setSummary] = useState<any>(null);
   const [results, setResults] = useState<ReconResult[]>([]);
   const [committed, setCommitted] = useState(false);
@@ -597,19 +617,64 @@ function ReconcileTab({ adminFetch }: { adminFetch: (url: string, opts?: Request
     } catch { setParseErr('Could not read that file.'); setRows([]); }
   };
 
+  // Each live Flutterwave verify is a network round-trip, so committing all the
+  // missing rows at once overruns the serverless timeout. We chunk the work from
+  // the browser — small batches on commit (verify-heavy), one shot on scan (DB only)
+  // — and merge results as we go. Idempotent, so a failed batch can just be re-run.
   const run = async (commit: boolean) => {
     setBusy(commit ? 'commit' : 'scan');
+    setParseErr(''); setProgress('');
     try {
-      const res = await adminFetch('/api/sabi/admin/reconcile-payments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rows, commit }),
-      });
-      const d = await res.json();
-      if (!res.ok || !d.success) { setParseErr(d.error || 'Reconcile failed'); return; }
-      setSummary(d.summary); setResults(d.results || []); setCommitted(commit);
-    } catch { setParseErr('Network error.'); }
-    finally { setBusy(''); }
+      // On commit, only re-send the rows the scan flagged as missing; keep the rest
+      // of the scan results (already-credited etc.) so the final table stays complete.
+      let work = rows;
+      let acc: ReconResult[] = [];
+      if (commit) {
+        const missingIds = new Set(results.filter(r => r.outcome === 'missing').map(r => r.txRef || r.flwId || ''));
+        work = rows.filter(r => missingIds.has(r.txRef || r.flwId || ''));
+        acc = results.filter(r => r.outcome !== 'missing');
+        if (work.length === 0) { setBusy(''); return; }
+      }
+
+      const chunkSize = commit ? 8 : work.length;
+      for (let i = 0; i < work.length; i += chunkSize) {
+        const chunk = work.slice(i, i + chunkSize);
+        const res = await adminFetch('/api/sabi/admin/reconcile-payments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rows: chunk, commit }),
+        });
+        const d = await res.json().catch(() => null);
+        if (!res.ok || !d?.success) {
+          // Keep any rows not yet processed visible as 'missing' so the user can
+          // click Credit again to finish the rest (idempotent — done ones are skipped).
+          const doneIds = new Set(acc.map(r => r.txRef || r.flwId || ''));
+          const remaining: ReconResult[] = work
+            .filter(r => !doneIds.has(r.txRef || r.flwId || ''))
+            .map(r => ({
+              txRef: r.txRef || null, flwId: r.flwId || null, email: r.email || null,
+              userId: null, userEmail: null, outcome: 'missing',
+              claimedNaira: r.amount ?? null, creditedKobo: null, newBalanceKobo: null,
+            }));
+          const merged = [...acc, ...remaining];
+          setResults(merged); setSummary(summarizeResults(merged)); setCommitted(false);
+          const creditedSoFar = acc.filter(r => r.outcome === 'completed').length;
+          setParseErr(
+            (d?.error || 'Request failed') +
+            (commit ? ` — credited ${creditedSoFar} so far, ${remaining.length} left. Click “Credit” again to continue.` : '')
+          );
+          return;
+        }
+        acc = [...acc, ...(d.results || [])];
+        setResults(acc);
+        setSummary(summarizeResults(acc));
+        setCommitted(commit);
+        if (commit) setProgress(`Credited ${acc.filter(r => r.outcome === 'completed').length}/${work.length}…`);
+      }
+      setProgress('');
+    } catch {
+      setParseErr('Network error.');
+    } finally { setBusy(''); }
   };
 
   const missingCount = summary?.missing ?? 0;
@@ -655,6 +720,7 @@ function ReconcileTab({ adminFetch }: { adminFetch: (url: string, opts?: Request
             )}
           </div>
         )}
+        {progress && <div className="text-sm text-emerald-400 font-semibold animate-pulse">{progress}</div>}
       </div>
 
       {summary && (
