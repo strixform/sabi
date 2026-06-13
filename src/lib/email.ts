@@ -126,6 +126,24 @@ export async function sendAutoTopupEmail(email: string, name: string, amountNair
   } catch {}
 }
 
+export async function sendAutoReorderPausedEmail(email: string, name: string, serviceName: string) {
+  try {
+    const svc = serviceName.replace(/_/g, ' ');
+    await resend.emails.send({
+      from: FROM, to: email,
+      subject: `⏸️ Your auto-reorder was paused`,
+      html: baseHtml('Auto-Reorder Paused', `
+        <p>Hi <b>${name}</b>,</p>
+        <p>We tried to place your scheduled <b>${svc}</b> auto-reorder, but your wallet balance wasn't enough to cover it — so we've <b>paused</b> it to avoid repeated attempts.</p>
+        <p>Top up your wallet and resume the subscription whenever you're ready.</p>
+        <div style="text-align:center;margin-top:24px">
+          <a href="${APP_URL}/sabi/subscriptions" style="background:linear-gradient(135deg,#f59e0b,#ea580c);color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:bold">Manage Auto-Reorders</a>
+        </div>
+      `),
+    });
+  } catch {}
+}
+
 export async function sendReferralRewardEmail(email: string, name: string, rewardNaira: number, type: 'referrer' | 'referee') {
   try {
     const msg = type === 'referrer'

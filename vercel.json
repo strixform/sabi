@@ -1,1 +1,1 @@
-{"version":2,"crons":[{"path":"/api/sabi/cron/process-scheduled","schedule":"*/5 * * * *"}]}
+{"version":2,"crons":[{"path":"/api/sabi/cron/process-scheduled","schedule":"*/5 * * * *"},{"path":"/api/sabi/cron/process-subscriptions","schedule":"0 * * * *"}]}

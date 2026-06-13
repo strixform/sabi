@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { FiArrowLeft, FiLoader, FiCheck, FiTrendingUp, FiBookmark } from 'react-icons/fi';
+import { FiArrowLeft, FiLoader, FiCheck, FiTrendingUp, FiBookmark, FiStar } from 'react-icons/fi';
 import { ModernSabiHeader } from '@/components/ModernSabiHeader';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
 import { GradientText } from '@/components/AnimatedText';
@@ -25,6 +25,70 @@ export default function OrderTrackingPage() {
   const [proofMeta, setProofMeta] = useState<{ total: number; approved: number; withScreenshot: number } | null>(null);
   const [proofsLoading, setProofsLoading] = useState(true);
   const [startShot, setStartShot] = useState<string | null>(null);
+
+  // Order rating & feedback (completed orders only)
+  const [rating, setRating] = useState<number>(0);
+  const [hoverStar, setHoverStar] = useState<number>(0);
+  const [ratingComment, setRatingComment] = useState('');
+  const [ratingSaved, setRatingSaved] = useState(false);
+  const [ratingSubmitting, setRatingSubmitting] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetch(`/api/sabi/orders/${orderId}/rate`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        if (!active || !d?.success) return;
+        if (d.rating) { setRating(d.rating); setRatingSaved(true); }
+        if (d.ratingComment) setRatingComment(d.ratingComment);
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [orderId]);
+
+  // Auto-reorder (subscription)
+  const [subInterval, setSubInterval] = useState<number>(7);
+  const [subSaving, setSubSaving] = useState(false);
+  const [subSaved, setSubSaved] = useState(false);
+
+  const enableAutoReorder = async () => {
+    if (!order || subSaving) return;
+    setSubSaving(true);
+    try {
+      const res = await fetch('/api/sabi/subscriptions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          serviceId: order.serviceType,
+          targetUrl: order.targetUrl,
+          quantity: order.quantity,
+          intervalDays: subInterval,
+          audienceGender: order.audienceGender,
+          audienceLocation: order.audienceLocation,
+          commentGender: order.commentGender,
+          commentInstructions: order.commentInstructions,
+        }),
+      });
+      if (res.ok) setSubSaved(true);
+    } finally {
+      setSubSaving(false);
+    }
+  };
+
+  const submitRating = async () => {
+    if (!rating || ratingSubmitting) return;
+    setRatingSubmitting(true);
+    try {
+      const res = await fetch(`/api/sabi/orders/${orderId}/rate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating, comment: ratingComment }),
+      });
+      if (res.ok) setRatingSaved(true);
+    } finally {
+      setRatingSubmitting(false);
+    }
+  };
 
   // Real receipts the taskers uploaded for this order (polled — they trickle in).
   useEffect(() => {
@@ -453,6 +517,127 @@ export default function OrderTrackingPage() {
             </div>
           </InteractiveCard>
         </motion.div>
+
+        {/* ── AUTO-REORDER — keep this order running on a schedule ─────────────── */}
+        {order.status !== 'cancelled' && order.status !== 'failed' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.48 }}
+            className="mt-8"
+          >
+            <InteractiveCard glowColor="emerald">
+              <div className="p-6 sm:p-8">
+                <h3 className="text-lg font-bold flex items-center gap-2 mb-1">🔁 Auto-reorder</h3>
+                {subSaved ? (
+                  <p className="text-sm text-emerald-300">
+                    Done — we&apos;ll automatically re-place this exact order every <b>{subInterval} days</b> from your wallet. Manage it anytime on your{' '}
+                    <Link href="/sabi/subscriptions" className="underline">subscriptions page</Link>.
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-xs text-slate-400 mb-5">
+                      Set it and forget it — we&apos;ll re-run this same order automatically and charge your wallet each cycle. Pause anytime.
+                    </p>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="text-sm text-slate-300">Repeat every</span>
+                      <select
+                        value={subInterval}
+                        onChange={(e) => setSubInterval(Number(e.target.value))}
+                        className="bg-[#0F1420] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500/40"
+                      >
+                        <option value={3}>3 days</option>
+                        <option value={7}>7 days (weekly)</option>
+                        <option value={14}>14 days</option>
+                        <option value={30}>30 days (monthly)</option>
+                      </select>
+                      <motion.button
+                        whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                        onClick={enableAutoReorder} disabled={subSaving}
+                        className="px-5 py-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold rounded-lg text-sm disabled:opacity-50 transition"
+                      >
+                        {subSaving ? 'Enabling…' : 'Enable auto-reorder'}
+                      </motion.button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </InteractiveCard>
+          </motion.div>
+        )}
+
+        {/* ── RATE THIS ORDER — completed orders only ──────────────────────────── */}
+        {order.status === 'completed' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="mt-8"
+          >
+            <InteractiveCard glowColor="orange">
+              <div className="p-6 sm:p-8">
+                <h3 className="text-lg font-bold flex items-center gap-2 mb-1">
+                  <FiStar className="w-5 h-5 text-amber-400" /> Rate this order
+                </h3>
+                <p className="text-xs text-slate-400 mb-5">
+                  {ratingSaved ? 'Thanks for your feedback — it helps us reward our best contributors.' : 'How happy were you with the delivery? Your rating helps us keep quality high.'}
+                </p>
+
+                <div className="flex items-center gap-2 mb-5" onMouseLeave={() => setHoverStar(0)}>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      disabled={ratingSaved}
+                      onMouseEnter={() => !ratingSaved && setHoverStar(n)}
+                      onClick={() => !ratingSaved && setRating(n)}
+                      className="transition disabled:cursor-default"
+                      aria-label={`${n} star${n > 1 ? 's' : ''}`}
+                    >
+                      <FiStar
+                        className={`w-9 h-9 transition ${
+                          (hoverStar || rating) >= n ? 'text-amber-400 fill-amber-400' : 'text-slate-600'
+                        }`}
+                        style={{ fill: (hoverStar || rating) >= n ? 'currentColor' : 'none' }}
+                      />
+                    </button>
+                  ))}
+                  {rating > 0 && (
+                    <span className="ml-2 text-sm font-bold text-amber-400">{rating}/5</span>
+                  )}
+                </div>
+
+                {!ratingSaved && (
+                  <>
+                    <textarea
+                      value={ratingComment}
+                      onChange={(e) => setRatingComment(e.target.value)}
+                      maxLength={500}
+                      rows={3}
+                      placeholder="Anything you'd like us to know? (optional)"
+                      className="w-full bg-[#0F1420] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500/40 resize-none mb-4"
+                    />
+                    <motion.button
+                      whileHover={{ scale: rating ? 1.03 : 1 }}
+                      whileTap={{ scale: rating ? 0.97 : 1 }}
+                      onClick={submitRating}
+                      disabled={!rating || ratingSubmitting}
+                      className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold rounded-xl text-sm disabled:opacity-40 transition"
+                    >
+                      {ratingSubmitting ? 'Saving…' : 'Submit rating'}
+                    </motion.button>
+                  </>
+                )}
+
+                {ratingSaved && ratingComment && (
+                  <div className="rounded-xl p-4 text-sm text-slate-300" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    “{ratingComment}”
+                  </div>
+                )}
+              </div>
+            </InteractiveCard>
+          </motion.div>
+        )}
       </div>
     </div>
   );
