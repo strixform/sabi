@@ -601,11 +601,16 @@ export default function OrderPage() {
                 <h2 className="text-2xl sm:text-4xl font-black mb-2">
                   <GradientText>Choose Your Platform</GradientText>
                 </h2>
-                <p className="text-slate-400 text-sm sm:text-lg">
+                <p className="text-slate-400 text-sm sm:text-lg mb-3">
                   <AnimateInText type="fade" delay={0.1}>
                     Select where you want to grow your presence
                   </AnimateInText>
                 </p>
+                <Link href="/sabi/order/packs"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-purple-200"
+                  style={{ background: 'rgba(167,139,250,0.12)', border: '1px solid rgba(167,139,250,0.3)' }}>
+                  🎁 Or grab a Power Pack — everything one link needs in one order →
+                </Link>
               </div>
 
               {/* Custom Order banner — shown above platforms */}

@@ -2638,3 +2638,93 @@ export function getPlatformLabel(platform: string): string {
 
   return labels[platform] || platform;
 }
+
+// ─── Bundles / Packs ──────────────────────────────────────────────────────────
+// Curated, single-target multi-action packs. One target URL fans out into one
+// order per item (each becomes its own gamerz360 campaign). One-click "boost
+// everything for this link" — the natural way artistes/creators want to buy.
+export interface Bundle {
+  id: string;
+  name: string;
+  emoji: string;
+  tagline: string;
+  category: string;        // platform key (for icon/colour/label)
+  urlLabel: string;        // what URL the buyer should paste
+  items: { serviceId: string; quantity: number }[];
+}
+
+export const BUNDLES: Bundle[] = [
+  {
+    id: 'audiomack_hit', name: 'Audiomack Hit Pack', emoji: '🎧',
+    tagline: 'Everything your track needs to pop on Audiomack — real plays, favorites, re-ups & comments.',
+    category: PLATFORMS.AUDIOMACK, urlLabel: 'Your Audiomack song link',
+    items: [
+      { serviceId: 'audiomack_plays', quantity: 2000 },
+      { serviceId: 'audiomack_favorites', quantity: 300 },
+      { serviceId: 'audiomack_reups', quantity: 80 },
+      { serviceId: 'audiomack_comments', quantity: 20 },
+    ],
+  },
+  {
+    id: 'boomplay_breakout', name: 'Boomplay Breakout', emoji: '🎵',
+    tagline: 'Chart-ready momentum on Boomplay — real streams, favorites, shares & comments.',
+    category: PLATFORMS.BOOMPLAY, urlLabel: 'Your Boomplay song link',
+    items: [
+      { serviceId: 'boomplay_plays', quantity: 2000 },
+      { serviceId: 'boomplay_favorites', quantity: 300 },
+      { serviceId: 'boomplay_shares', quantity: 80 },
+      { serviceId: 'boomplay_comments', quantity: 20 },
+    ],
+  },
+  {
+    id: 'tiktok_viral', name: 'TikTok Viral Kit', emoji: '🚀',
+    tagline: 'Trigger the algorithm on one video — views, likes, comments & shares.',
+    category: PLATFORMS.TIKTOK, urlLabel: 'Your TikTok video link',
+    items: [
+      { serviceId: 'tiktok_views', quantity: 10000 },
+      { serviceId: 'tiktok_likes', quantity: 1500 },
+      { serviceId: 'tiktok_comments', quantity: 50 },
+      { serviceId: 'tiktok_shares', quantity: 40 },
+    ],
+  },
+  {
+    id: 'instagram_post', name: 'Instagram Post Power', emoji: '📸',
+    tagline: 'Full engagement on one post — likes, comments, saves & shares.',
+    category: PLATFORMS.INSTAGRAM, urlLabel: 'Your Instagram post/Reel link',
+    items: [
+      { serviceId: 'ig_likes', quantity: 1000 },
+      { serviceId: 'ig_comments', quantity: 40 },
+      { serviceId: 'ig_saves', quantity: 200 },
+      { serviceId: 'ig_shares', quantity: 30 },
+    ],
+  },
+  {
+    id: 'nollywood_premiere', name: 'Nollywood Premiere Pack', emoji: '🎬',
+    tagline: 'Launch your trailer or film with real watch-time, views & buzz.',
+    category: PLATFORMS.YOUTUBE, urlLabel: 'Your YouTube trailer/film link',
+    items: [
+      { serviceId: 'youtube_views', quantity: 3000 },
+      { serviceId: 'youtube_watch_time', quantity: 500 },
+      { serviceId: 'youtube_likes', quantity: 300 },
+      { serviceId: 'youtube_comments', quantity: 30 },
+    ],
+  },
+];
+
+export function getBundleById(id: string): Bundle | undefined {
+  return BUNDLES.find(b => b.id === id);
+}
+
+/** Total kobo for a bundle = sum of each item's full pricing (base + fee + VAT). */
+export function computeBundleTotal(bundle: Bundle): { base: number; fee: number; vat: number; total: number; lines: { serviceId: string; name: string; quantity: number; totalKobo: number }[] } {
+  let base = 0, fee = 0, vat = 0;
+  const lines: { serviceId: string; name: string; quantity: number; totalKobo: number }[] = [];
+  for (const it of bundle.items) {
+    const svc = getServiceById(it.serviceId);
+    if (!svc) continue;
+    const p = computePricing(svc.pricePerUnit, it.quantity);
+    base += p.baseKobo; fee += p.platformFeeKobo; vat += p.vatKobo;
+    lines.push({ serviceId: it.serviceId, name: svc.name, quantity: it.quantity, totalKobo: p.totalKobo });
+  }
+  return { base, fee, vat, total: base + fee + vat, lines };
+}
