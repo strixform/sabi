@@ -413,6 +413,14 @@ export default function OrderPage() {
   const [scheduledAt, setScheduledAt] = useState('');
   const [startShot, setStartShot] = useState('');
   const [shotUploading, setShotUploading] = useState(false);
+  const [firstOrderEligible, setFirstOrderEligible] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/sabi/first-order')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (d?.eligible) setFirstOrderEligible(true); })
+      .catch(() => {});
+  }, []);
 
   const uploadStartShot = async (file?: File) => {
     if (!file) return;
@@ -426,7 +434,10 @@ export default function OrderPage() {
     } catch { setError('Screenshot upload failed'); }
     finally { setShotUploading(false); }
   };
-  const discountKobo = promoResult?.savedKobo || 0;
+  const promoKobo = promoResult?.savedKobo || 0;
+  // First-order welcome coupon: 10% off (max ₦2,000), only when no promo applied.
+  const welcomeKobo = (firstOrderEligible && !promoResult && pricing) ? Math.min(Math.round(pricing.baseKobo * 0.10), 200000) : 0;
+  const discountKobo = promoKobo + welcomeKobo;
   const finalTotalKobo = pricing ? Math.max(0, pricing.totalKobo - discountKobo) : 0;
   const totalCost = finalTotalKobo / 100; // naira
 
@@ -1107,8 +1118,16 @@ export default function OrderPage() {
                         </div>
                         <div className="flex justify-between items-center pb-3 border-b border-slate-700/50">
                           <span className="text-slate-400">Subtotal</span>
-                          <span className="font-bold">₦{((pricing?.baseKobo ?? 0) / 100).toFixed(2)}</span>
+                          <span className="font-bold">₦{((pricing?.grossBaseKobo ?? 0) / 100).toFixed(2)}</span>
                         </div>
+                        {pricing && pricing.discountKobo > 0 && (
+                          <div className="flex justify-between items-center pb-3 border-b border-slate-700/50">
+                            <span className="text-emerald-400 flex items-center gap-1.5">
+                              🎉 Volume discount ({Math.round(pricing.discountRate * 100)}%)
+                            </span>
+                            <span className="font-bold text-emerald-400">−₦{(pricing.discountKobo / 100).toFixed(2)}</span>
+                          </div>
+                        )}
                         <div className="flex justify-between items-center pb-3 border-b border-slate-700/50">
                           <span className="text-slate-400">Platform fee (7.5%)</span>
                           <span className="font-bold">₦{((pricing?.platformFeeKobo ?? 0) / 100).toFixed(2)}</span>
@@ -1117,7 +1136,19 @@ export default function OrderPage() {
                           <span className="text-slate-400">VAT (7.5%)</span>
                           <span className="font-bold">₦{((pricing?.vatKobo ?? 0) / 100).toFixed(2)}</span>
                         </div>
+                        {welcomeKobo > 0 && (
+                          <div className="flex justify-between items-center pb-3 border-b border-slate-700/50">
+                            <span className="text-amber-400 flex items-center gap-1.5">🎉 First-order coupon (10%)</span>
+                            <span className="font-bold text-amber-400">−₦{(welcomeKobo / 100).toFixed(2)}</span>
+                          </div>
+                        )}
                       </div>
+
+                      {firstOrderEligible && !promoResult && (
+                        <div className="mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold text-center">
+                          🎁 Welcome! 10% off your first order is applied automatically.
+                        </div>
+                      )}
 
                       {/* Promo code */}
                       <div className="mb-4">
@@ -1150,7 +1181,7 @@ export default function OrderPage() {
                         transition={{ delay: 0.3 }}
                       >
                         <p className="text-sm text-emerald-400 font-bold mb-2">Total Cost</p>
-                        {promoResult && (
+                        {discountKobo > 0 && (
                           <p className="text-sm text-slate-400 line-through mb-0.5">₦{(pricing!.totalKobo / 100).toFixed(2)}</p>
                         )}
                         <p className="text-3xl font-black text-emerald-400">₦{totalCost.toFixed(2)}</p>

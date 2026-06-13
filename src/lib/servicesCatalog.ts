@@ -2603,18 +2603,40 @@ export const PLATFORM_FEE_RATE = 0.075;
 export const VAT_RATE = 0.075;
 
 export interface PricingBreakdown {
-  baseKobo: number;
+  grossBaseKobo: number;   // base before volume discount
+  discountRate: number;    // 0–0.15
+  discountKobo: number;    // amount saved on base
+  baseKobo: number;        // discounted base (what fees are charged on)
   platformFeeKobo: number;
   vatKobo: number;
   totalKobo: number;
 }
 
+/**
+ * Volume / bulk discount on the base price. Bigger orders get a better rate,
+ * which nudges buyers toward larger orders. Applied centrally so the UI and
+ * the order engine always agree.
+ */
+export const VOLUME_TIERS: { min: number; rate: number; label: string }[] = [
+  { min: 20000, rate: 0.15, label: '15% off' },
+  { min: 5000,  rate: 0.10, label: '10% off' },
+  { min: 1000,  rate: 0.05, label: '5% off' },
+];
+
+export function volumeDiscountRate(quantity: number): number {
+  for (const t of VOLUME_TIERS) if (quantity >= t.min) return t.rate;
+  return 0;
+}
+
 /** Compute the full order pricing breakdown (kobo). Shared by UI + backend. */
 export function computePricing(pricePerUnitKobo: number, quantity: number): PricingBreakdown {
-  const baseKobo = pricePerUnitKobo * quantity;
+  const grossBaseKobo = pricePerUnitKobo * quantity;
+  const discountRate = volumeDiscountRate(quantity);
+  const discountKobo = Math.round(grossBaseKobo * discountRate);
+  const baseKobo = grossBaseKobo - discountKobo;
   const platformFeeKobo = Math.ceil(baseKobo * PLATFORM_FEE_RATE);
   const vatKobo = Math.ceil(baseKobo * VAT_RATE);
-  return { baseKobo, platformFeeKobo, vatKobo, totalKobo: baseKobo + platformFeeKobo + vatKobo };
+  return { grossBaseKobo, discountRate, discountKobo, baseKobo, platformFeeKobo, vatKobo, totalKobo: baseKobo + platformFeeKobo + vatKobo };
 }
 
 export function getServicesByCategory(category: string): Service[] {

@@ -53,8 +53,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Cannot cancel — order is already ${order.status}` }, { status: 400 });
     }
 
-    // Full refund amount = totalPrice + platformFee (what was actually deducted)
-    const refundKobo = order.totalPrice + order.platformFee;
+    // Full refund amount = what was actually deducted (base + fee minus discount)
+    const refundKobo = order.totalPrice + order.platformFee - (order.discountAmount || 0);
     const refundNaira = Math.round(refundKobo / 100);
 
     // Cancel order

@@ -203,7 +203,7 @@ export default function OrdersPage() {
                       {/* Meta row */}
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
                         <span className="font-medium text-white/70">{order.quantity.toLocaleString()} units</span>
-                        <span className="text-emerald-400 font-medium">₦{((order.totalPrice + order.platformFee) / 100).toLocaleString()}</span>
+                        <span className="text-emerald-400 font-medium">₦{((order.totalPrice + order.platformFee - (order.discountAmount || 0)) / 100).toLocaleString()}</span>
                         {(order.completedQuantity || 0) > 0 && <span className="text-purple-300 font-medium">📸 {(order.completedQuantity).toLocaleString()} receipts</span>}
                         {order.audienceLocation && <span>📍 {order.audienceLocation}</span>}
                         <span>{new Date(order.createdAt).toLocaleDateString('en-NG', { month: 'short', day: 'numeric', year: 'numeric' })}</span>

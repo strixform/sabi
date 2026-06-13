@@ -1,5 +1,6 @@
 import { prisma } from './prisma';
-import { getService, calculatePrice, validateOrder } from './sabiServices';
+import { getService, validateOrder } from './sabiServices';
+import { computePricing } from './servicesCatalog';
 import { debitSabiWallet, refundSabiWallet } from './sabiWallet';
 
 export interface CreateOrderInput {
@@ -67,13 +68,10 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
       return { success: false, error: 'Service not found' };
     }
 
-    const totalPrice = calculatePrice(input.serviceId, input.quantity);
-    if (!totalPrice) {
-      return { success: false, error: 'Invalid quantity for service' };
-    }
-
-    const basePrice = service.pricePerUnit * input.quantity;
-    const platformFee = totalPrice - basePrice;
+    const pricing = computePricing(service.pricePerUnit, input.quantity);
+    const totalPrice = pricing.totalKobo;           // grand total before promo/welcome (volume discount applied)
+    const basePrice = pricing.baseKobo;             // discounted base
+    const platformFee = pricing.platformFeeKobo + pricing.vatKobo;
 
     const user = await prisma.sabiUser.findUnique({
       where: { id: input.userId },
@@ -83,7 +81,22 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
       return { success: false, error: 'User not found' };
     }
 
-    const debitResult = await debitSabiWallet(input.userId, totalPrice, '');
+    // ── Discounts applied to the wallet charge ──────────────────────────────
+    // Promo discount (from a code the user applied) — capped at the total.
+    const promoDiscountKobo = Math.max(0, Math.min(Math.round(input.discountAmount || 0), totalPrice));
+    // First-order welcome coupon: 10% off (max ₦2,000), only when no promo is
+    // used and this is the user's very first order. Acquisition incentive.
+    let welcomeDiscountKobo = 0;
+    if (!promoDiscountKobo) {
+      const priorOrders = await prisma.sabiOrder.count({ where: { userId: input.userId } });
+      if (priorOrders === 0) {
+        welcomeDiscountKobo = Math.min(Math.round(pricing.baseKobo * 0.10), 200000);
+      }
+    }
+    const totalDiscountKobo = Math.min(promoDiscountKobo + welcomeDiscountKobo, totalPrice);
+    const chargeKobo = totalPrice - totalDiscountKobo;
+
+    const debitResult = await debitSabiWallet(input.userId, chargeKobo, '');
     if (!debitResult.success) {
       return {
         success: false,
@@ -109,7 +122,7 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
         commentGender: input.commentGender || null,
         commentInstructions: input.commentInstructions || null,
         promoCodeId: input.promoCodeId || null,
-        discountAmount: input.discountAmount || 0,
+        discountAmount: totalDiscountKobo,
         scheduledAt: input.scheduledAt || null,
         // Always start as 'pending' — the cron job (process-scheduled) picks
         // it up and submits to gamerz360 asynchronously. This prevents timeouts
@@ -361,7 +374,8 @@ export async function cancelSabiOrder(
       return { success: false, error: 'Cannot cancel order in this status' };
     }
 
-    const totalPrice = order.totalPrice + order.platformFee;
+    // Refund what was actually charged: base + fee minus any discount applied.
+    const totalPrice = order.totalPrice + order.platformFee - (order.discountAmount || 0);
     const refundResult = await refundSabiWallet(userId, totalPrice, orderId, reason);
 
     if (refundResult.success) {

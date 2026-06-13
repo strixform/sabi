@@ -156,7 +156,7 @@ export async function GET(req: NextRequest) {
         // Refund and fail
         await prisma.$transaction([
           prisma.sabiOrder.update({ where: { id: order.id }, data: { status: 'failed' } }),
-          prisma.sabiWallet.update({ where: { userId: order.userId }, data: { balance: { increment: order.totalPrice + order.platformFee }, totalSpent: { decrement: order.totalPrice + order.platformFee } } }),
+          prisma.sabiWallet.update({ where: { userId: order.userId }, data: { balance: { increment: order.totalPrice + order.platformFee - (order.discountAmount || 0) }, totalSpent: { decrement: order.totalPrice + order.platformFee - (order.discountAmount || 0) } } }),
         ]);
         results.push({ id: order.id, success: false, error: `gamerz360 returned ${response.status}` });
       }
