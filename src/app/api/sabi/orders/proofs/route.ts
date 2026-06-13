@@ -30,12 +30,15 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    // The buyer's "before" screenshot (guarded — column may not exist yet in prod).
+    // The buyer's "before" screenshot + starting count (guarded — columns may not exist yet in prod).
     let startScreenshotUrl: string | null = null;
+    let startCount: number | null = null;
     try {
-      const s = await sabiExecute({ sql: `SELECT startScreenshotUrl FROM SabiOrder WHERE id = ? LIMIT 1`, args: [orderId] });
+      const s = await sabiExecute({ sql: `SELECT startScreenshotUrl, startCount FROM SabiOrder WHERE id = ? LIMIT 1`, args: [orderId] });
       startScreenshotUrl = (s.rows[0] as any)?.startScreenshotUrl ?? null;
-    } catch { /* column not added yet */ }
+      const sc = (s.rows[0] as any)?.startCount;
+      startCount = (sc === null || sc === undefined) ? null : Number(sc);
+    } catch { /* columns not added yet */ }
 
     const token = process.env.SABI_INTEGRATION_TOKEN;
     if (!token) return NextResponse.json({ error: 'Integration not configured' }, { status: 503 });
@@ -47,7 +50,7 @@ export async function GET(req: NextRequest) {
       },
     });
     if (!res.ok) {
-      return NextResponse.json({ success: true, total: 0, approved: 0, proofs: [], startScreenshotUrl });
+      return NextResponse.json({ success: true, total: 0, approved: 0, proofs: [], startScreenshotUrl, startCount });
     }
     const data = await res.json();
     return NextResponse.json({
@@ -57,6 +60,7 @@ export async function GET(req: NextRequest) {
       withScreenshot: data.withScreenshot ?? 0,
       proofs: data.proofs ?? [],
       startScreenshotUrl,
+      startCount,
     });
   } catch (e: any) {
     console.error('[sabi/orders/proofs]', e?.message);

@@ -20,6 +20,7 @@ export interface CreateOrderInput {
   discountAmount?: number;
   scheduledAt?: Date;
   startScreenshotUrl?: string; // buyer's "before" screenshot of the target page
+  startCount?: number;         // buyer's count (followers/likes/…) at buying moment — real baseline
   silent?: boolean;            // suppress the placement email (used for drip-feed chunks 2..N)
 }
 
@@ -132,10 +133,13 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
       },
     });
 
-    // Save the buyer's "before" screenshot separately (guarded) — the column may
-    // not exist in prod yet, and this must never break order creation.
+    // Save the buyer's "before" screenshot + starting count separately (guarded)
+    // — these columns may not exist in prod yet, and this must never break order creation.
     if (input.startScreenshotUrl) {
       prisma.$executeRaw`UPDATE "SabiOrder" SET "startScreenshotUrl" = ${input.startScreenshotUrl} WHERE id = ${order.id}`.catch(() => {});
+    }
+    if (typeof input.startCount === 'number' && Number.isFinite(input.startCount)) {
+      prisma.$executeRaw`UPDATE "SabiOrder" SET "startCount" = ${Math.round(input.startCount)} WHERE id = ${order.id}`.catch(() => {});
     }
 
     // Auto top-up check — if wallet fell below threshold, email user a payment link (fire-and-forget)

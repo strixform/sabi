@@ -17,7 +17,7 @@ import { getCardColor } from '@/lib/designSystem';
  * Real cumulative-delivery chart built from tasker proof timestamps.
  * Each completed proof bumps the line — honest "growth over time" proof.
  */
-function DeliveryGrowthChart({ proofs, target }: { proofs: any[]; target: number }) {
+function DeliveryGrowthChart({ proofs, target, baseline = 0 }: { proofs: any[]; target: number; baseline?: number }) {
   const pts = proofs
     .filter(p => p.createdAt)
     .map(p => new Date(p.createdAt).getTime())
@@ -28,21 +28,25 @@ function DeliveryGrowthChart({ proofs, target }: { proofs: any[]; target: number
   const tN = pts[pts.length - 1] || t0 + 1;
   const span = Math.max(tN - t0, 1);
   const W = 600, H = 160, padX = 8, padY = 12;
-  const maxY = Math.max(target, pts.length);
+  // With a real starting count the line climbs from the baseline toward
+  // baseline + target; otherwise it's a plain cumulative delivery count.
+  const top = Math.max(baseline + target, baseline + pts.length, 1);
+  const valAt = (i: number) => baseline + (i + 1);
 
   const coords = pts.map((t, i) => {
     const x = padX + ((t - t0) / span) * (W - padX * 2);
-    const y = H - padY - ((i + 1) / maxY) * (H - padY * 2);
+    const y = H - padY - (valAt(i) / top) * (H - padY * 2);
     return [x, y] as const;
   });
-  // Step line (cumulative)
-  let d = `M ${coords[0][0]} ${H - padY}`;
+  // Step line (cumulative). Starts at the baseline height when we have a real count.
+  const baseY = H - padY - (baseline / top) * (H - padY * 2);
+  let d = `M ${coords[0][0]} ${baseY}`;
   coords.forEach(([x, y], i) => {
-    const prevY = i === 0 ? H - padY : coords[i - 1][1];
+    const prevY = i === 0 ? baseY : coords[i - 1][1];
     d += ` L ${x} ${prevY} L ${x} ${y}`;
   });
   const last = coords[coords.length - 1];
-  const area = `${d} L ${last[0]} ${H - padY} Z`;
+  const area = `${d} L ${last[0]} ${H - padY} L ${coords[0][0]} ${H - padY} Z`;
   const fmt = (t: number) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
   return (
@@ -79,6 +83,7 @@ export default function OrderTrackingPage() {
   const [proofMeta, setProofMeta] = useState<{ total: number; approved: number; withScreenshot: number } | null>(null);
   const [proofsLoading, setProofsLoading] = useState(true);
   const [startShot, setStartShot] = useState<string | null>(null);
+  const [startCount, setStartCount] = useState<number | null>(null);
 
   // Order rating & feedback (completed orders only)
   const [rating, setRating] = useState<number>(0);
@@ -149,7 +154,7 @@ export default function OrderTrackingPage() {
     let active = true;
     const load = () => fetch(`/api/sabi/orders/proofs?orderId=${orderId}`)
       .then(r => (r.ok ? r.json() : null))
-      .then(d => { if (active && d?.success) { setProofs(d.proofs || []); setProofMeta({ total: d.total || 0, approved: d.approved || 0, withScreenshot: d.withScreenshot || 0 }); setStartShot(d.startScreenshotUrl || null); } })
+      .then(d => { if (active && d?.success) { setProofs(d.proofs || []); setProofMeta({ total: d.total || 0, approved: d.approved || 0, withScreenshot: d.withScreenshot || 0 }); setStartShot(d.startScreenshotUrl || null); setStartCount(d.startCount ?? null); } })
       .catch(() => {})
       .finally(() => { if (active) setProofsLoading(false); });
     load();
@@ -511,15 +516,24 @@ export default function OrderTrackingPage() {
                 Every action on this order was done by a <span className="text-purple-300 font-semibold">real Nigerian</span> on our crowd — here&apos;s the proof they uploaded. This is real traffic, not bots.
               </p>
 
-              {startShot && (
+              {(startShot || startCount != null) && (
                 <div className="mb-5 rounded-xl p-3 flex items-center gap-3" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                  <a href={startShot} target="_blank" rel="noopener noreferrer" className="shrink-0">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={startShot} alt="Starting point" className="w-16 h-16 object-cover rounded-lg border border-white/10" />
-                  </a>
+                  {startShot && (
+                    <a href={startShot} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={startShot} alt="Starting point" className="w-16 h-16 object-cover rounded-lg border border-white/10" />
+                    </a>
+                  )}
                   <div>
                     <div className="text-xs font-bold text-white">📸 Starting point (before)</div>
-                    <div className="text-[11px] text-slate-400">The snapshot you uploaded when ordering — your verified baseline count.</div>
+                    {startCount != null ? (
+                      <div className="text-[11px] text-slate-400">
+                        Verified baseline: <span className="text-emerald-300 font-bold">{startCount.toLocaleString()}</span>
+                        {' '}→ target <span className="text-white font-semibold">{(startCount + order.quantity).toLocaleString()}</span> after delivery.
+                      </div>
+                    ) : (
+                      <div className="text-[11px] text-slate-400">The snapshot you uploaded when ordering — your verified baseline.</div>
+                    )}
                   </div>
                 </div>
               )}
@@ -549,7 +563,7 @@ export default function OrderTrackingPage() {
                   {proofs.length >= 2 && (
                     <div className="mb-5">
                       <div className="text-xs font-bold text-slate-300 mb-2">📈 Delivery over time</div>
-                      <DeliveryGrowthChart proofs={proofs} target={order.quantity} />
+                      <DeliveryGrowthChart proofs={proofs} target={order.quantity} baseline={startCount ?? 0} />
                     </div>
                   )}
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">

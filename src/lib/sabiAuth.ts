@@ -94,7 +94,8 @@ export async function registerSabiUser(
   password: string,
   name: string,
   businessName?: string,
-  referralCode?: string
+  referralCode?: string,
+  signupIp?: string,
 ): Promise<{ success: boolean; error?: string; userId?: string }> {
   try {
     // Check if user exists
@@ -133,11 +134,27 @@ export async function registerSabiUser(
       },
     });
 
-    // Create referral record (rewards granted on first paid order)
+    // Record signup IP (guarded — column may not exist in prod) for fraud checks.
+    if (signupIp) {
+      await prisma.$executeRaw`UPDATE "SabiUser" SET "signupIp" = ${signupIp} WHERE id = ${user.id}`.catch(() => {});
+    }
+
+    // Create referral record (rewards granted on first paid order). Block obvious
+    // self-referral: same signup IP as the referrer = almost certainly the same
+    // person farming the bonus → don't create the referral link at all.
     if (referrer) {
-      await prisma.sabiReferral.create({
-        data: { referrerId: referrer.id, refereeId: user.id },
-      }).catch(() => {});
+      let sameIp = false;
+      if (signupIp) {
+        try {
+          const r: any[] = await prisma.$queryRaw`SELECT "signupIp" FROM "SabiUser" WHERE id = ${referrer.id} LIMIT 1`;
+          sameIp = !!r?.[0]?.signupIp && r[0].signupIp === signupIp;
+        } catch { /* column missing — skip IP check */ }
+      }
+      if (!sameIp) {
+        await prisma.sabiReferral.create({
+          data: { referrerId: referrer.id, refereeId: user.id },
+        }).catch(() => {});
+      }
     }
 
     return { success: true, userId: user.id };

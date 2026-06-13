@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   const {
     serviceId, quantity, targetUrl, paymentMethod,
     audienceGender, audienceLocation, commentGender, commentInstructions,
-    startScreenshotUrl,
+    startScreenshotUrl, startCount,
   } = body;
   const dripDays = parseInt(body.dripDays);
   const qty = parseInt(quantity);
@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
       audienceGender, audienceLocation, commentGender, commentInstructions,
       scheduledAt,
       startScreenshotUrl: i === 0 ? (startScreenshotUrl || undefined) : undefined,
+      startCount: i === 0 && startCount !== undefined && startCount !== null && startCount !== '' && Number.isFinite(Number(startCount)) ? Number(startCount) : undefined,
       silent: i > 0,
     });
     if (result.success && result.orderId) {

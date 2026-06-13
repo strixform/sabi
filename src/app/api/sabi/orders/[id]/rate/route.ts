@@ -72,5 +72,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Rating storage not ready yet — please try again shortly.' }, { status: 503 });
   }
 
+  // Feed the rating back to gamerz360 so it can adjust the quality scores of the
+  // taskers who worked this campaign (fire-and-forget — never block the buyer).
+  const token = process.env.SABI_INTEGRATION_TOKEN;
+  if (token) {
+    const g360 = process.env.GAMERZ360_API_URL || 'https://gamerz360.com';
+    fetch(`${g360}/api/admin/sabi/order-rating`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'User-Agent': 'Mozilla/5.0 (compatible; SABI-Integration/1.0)',
+      },
+      body: JSON.stringify({ sabiOrderId: id, rating, comment: comment || null }),
+    }).catch(() => {});
+  }
+
   return NextResponse.json({ success: true, rating, ratingComment: comment || null });
 }

@@ -414,6 +414,7 @@ export default function OrderPage() {
   const [dripDays, setDripDays] = useState(0); // 0 = deliver all at once
   const [startShot, setStartShot] = useState('');
   const [shotUploading, setShotUploading] = useState(false);
+  const [startCount, setStartCount] = useState('');
   const [firstOrderEligible, setFirstOrderEligible] = useState(false);
   const [savedProfiles, setSavedProfiles] = useState<{ id: string; label: string; url: string; platform: string | null }[]>([]);
   const [savedJustNow, setSavedJustNow] = useState(false);
@@ -559,6 +560,7 @@ export default function OrderPage() {
           ? { commentGender, commentInstructions: commentInstructions.trim() || null }
           : {}),
         ...(startShot ? { startScreenshotUrl: startShot } : {}),
+        ...(startCount !== '' && Number.isFinite(Number(startCount)) ? { startCount: Number(startCount) } : {}),
       };
       const res = await fetch(isDrip ? '/api/sabi/orders/drip' : '/api/sabi/orders', {
         method: 'POST',
@@ -895,6 +897,26 @@ export default function OrderPage() {
                         <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" disabled={shotUploading} onChange={e => uploadStartShot(e.target.files?.[0])} />
                       </label>
                     )}
+                    {/* Current count at buying moment — the real numeric baseline */}
+                    <div className="mt-3">
+                      <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                        🔢 Current {selectedService.action.toLowerCase()} count <span className="text-slate-500 font-normal">(optional, recommended)</span>
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        inputMode="numeric"
+                        value={startCount}
+                        onChange={(e) => setStartCount(e.target.value)}
+                        placeholder={`e.g. how many ${selectedService.action.toLowerCase()} the account has right now`}
+                        className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm placeholder-slate-500 focus:border-blue-500/50 focus:outline-none"
+                      />
+                      {startCount !== '' && Number(startCount) >= 0 && (
+                        <p className="text-xs text-emerald-400 mt-1">
+                          📈 Baseline {Number(startCount).toLocaleString()} → target {(Number(startCount) + Number(quantity || 0)).toLocaleString()} after delivery
+                        </p>
+                      )}
+                    </div>
                   </motion.div>
 
                   {/* Quantity */}

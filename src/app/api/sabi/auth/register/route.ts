@@ -27,7 +27,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = await registerSabiUser(email, password, name, businessName, referralCode);
+    const signupIp = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim()
+      || req.headers.get('x-real-ip') || undefined;
+
+    const result = await registerSabiUser(email, password, name, businessName, referralCode, signupIp);
 
     if (!result.success) {
       return NextResponse.json(
