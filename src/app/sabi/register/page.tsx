@@ -98,7 +98,7 @@ export default function RegisterPage() {
           </p>
         </div>
         <div className="relative z-10 space-y-3">
-          {['100% real Nigerian users', 'Orders start in minutes', 'Secure wallet payments', '₦500 referral bonus when you invite friends'].map(t => (
+          {['100% real Nigerian users', 'Orders start in minutes', 'Secure wallet payments', '₦100 referral bonus when you invite friends'].map(t => (
             <div key={t} className="flex items-center gap-3 bg-white/5 border border-white/8 rounded-xl px-5 py-3">
               <div className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center shrink-0">
                 <FiCheck className="w-3 h-3 text-emerald-400" />
@@ -121,7 +121,7 @@ export default function RegisterPage() {
 
           <h2 className="text-3xl font-black text-white mb-1">Create account</h2>
           <p className="text-slate-400 mb-6">
-            {referralCode ? <span className="text-emerald-400 font-semibold">🎁 Referral bonus applied! You'll get ₦500 on your first order.</span> : 'Free to join. Start in seconds.'}
+            {referralCode ? <span className="text-emerald-400 font-semibold">🎁 Referral bonus applied! You'll get ₦100 on your first order.</span> : 'Free to join. Start in seconds.'}
           </p>
 
           <button type="button" onClick={handleGoogle}

@@ -15,7 +15,7 @@ import { checkSabiAdmin } from '@/lib/sabiAdminAuth';
 export const preferredRegion = 'sfo1';
 export const maxDuration = 15;
 
-const REWARD_NAIRA = 500; // ₦500 per qualifying referral
+const REWARD_NAIRA = 100; // ₦100 per qualifying referral (referrer capped at 3)
 
 export async function GET(req: NextRequest) {
   if (!await checkSabiAdmin(req)) {

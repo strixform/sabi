@@ -556,7 +556,7 @@ export default function DashboardPage() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}
             className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6">
             <h3 className="text-white font-bold flex items-center gap-2 mb-4"><FiShare2 className="text-emerald-400" /> Refer & Earn</h3>
-            <p className="text-slate-400 text-sm mb-4">Share your link. Both you and your referral get <span className="text-emerald-400 font-bold">₦500</span> when they place their first order.</p>
+            <p className="text-slate-400 text-sm mb-4">Share your link. Both you and your referral get <span className="text-emerald-400 font-bold">₦100</span> when they place their first order — earn from up to 3 friends.</p>
             {referral ? (
               <>
                 <div className="flex gap-2 mb-4">

@@ -102,8 +102,9 @@ export default function TermsPage() {
 
             <section>
               <h2 className="text-white text-2xl font-bold mb-4">8. Referral Programme</h2>
-              <p>SABI operates a referral programme where both the referrer and the referred user receive a ₦500 wallet credit when the referred user places their first qualifying order. The referral programme is subject to the following conditions:</p>
+              <p>SABI operates a referral programme where both the referrer and the referred user receive a ₦100 wallet credit when the referred user places their first qualifying order. The referral programme is subject to the following conditions:</p>
               <ul className="list-disc pl-6 mt-3 space-y-2">
+                <li>A referrer can earn referral rewards from a maximum of 3 referred users</li>
                 <li>Referral rewards are credited to wallet balance only — they cannot be withdrawn as cash</li>
                 <li>Self-referral (using your own referral code on a second account) is strictly prohibited</li>
                 <li>We reserve the right to modify, suspend, or terminate the referral programme at any time</li>

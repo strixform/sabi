@@ -142,24 +142,43 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
       prisma.sabiPromoUsage.create({ data: { promoId: input.promoCodeId, userId: input.userId, orderId: order.id, savedKobo: input.discountAmount } }).catch(() => {});
     }
 
-    // Trigger referral reward on first paid order (fire-and-forget)
+    // Trigger referral reward on first paid order (fire-and-forget).
+    // Reward is ₦100 (10000 kobo). The referrer earns from at most
+    // REFERRAL_CAP referees — beyond that the referrer stops earning, but
+    // each new referee still gets their ₦100 welcome bonus.
     prisma.sabiReferral.findFirst({ where: { refereeId: input.userId, triggeredAt: null } }).then(async ref => {
       if (!ref) return;
       await prisma.sabiReferral.update({ where: { id: ref.id }, data: { triggeredAt: new Date() } });
-      // Credit referrer ₦500 (50000 kobo)
+
+      const REWARD_KOBO = 10000;   // ₦100
+      const REWARD_NAIRA = 100;
+      const REFERRAL_CAP = 3;      // referrer earns from max 3 referrals
+
+      // How many referrals has this referrer already been paid for?
+      const paidCount = await prisma.sabiReferral.count({
+        where: { referrerId: ref.referrerId, referrerPaid: true },
+      });
+      const referrerEligible = paidCount < REFERRAL_CAP;
+
       const [referrer, referee] = await Promise.all([
         prisma.sabiUser.findUnique({ where: { id: ref.referrerId }, select: { email: true, name: true } }),
         prisma.sabiUser.findUnique({ where: { id: ref.refereeId }, select: { email: true, name: true } }),
       ]);
-      const rewardKobo = 50000;
-      await Promise.all([
-        prisma.sabiWallet.update({ where: { userId: ref.referrerId }, data: { balance: { increment: rewardKobo }, totalFunded: { increment: rewardKobo } } }),
-        prisma.sabiWallet.update({ where: { userId: ref.refereeId }, data: { balance: { increment: rewardKobo }, totalFunded: { increment: rewardKobo } } }),
-        prisma.sabiReferral.update({ where: { id: ref.id }, data: { referrerPaid: true, refereePaid: true } }),
-      ]);
+
+      const ops: any[] = [
+        // Referee always gets their welcome bonus.
+        prisma.sabiWallet.update({ where: { userId: ref.refereeId }, data: { balance: { increment: REWARD_KOBO }, totalFunded: { increment: REWARD_KOBO } } }),
+        prisma.sabiReferral.update({ where: { id: ref.id }, data: { refereePaid: true, referrerPaid: referrerEligible } }),
+      ];
+      // Referrer only earns while under the cap.
+      if (referrerEligible) {
+        ops.push(prisma.sabiWallet.update({ where: { userId: ref.referrerId }, data: { balance: { increment: REWARD_KOBO }, totalFunded: { increment: REWARD_KOBO } } }));
+      }
+      await Promise.all(ops);
+
       const { sendReferralRewardEmail } = await import('./email');
-      if (referrer) sendReferralRewardEmail(referrer.email, referrer.name, 500, 'referrer');
-      if (referee) sendReferralRewardEmail(referee.email, referee.name, 500, 'referee');
+      if (referrer && referrerEligible) sendReferralRewardEmail(referrer.email, referrer.name, REWARD_NAIRA, 'referrer');
+      if (referee) sendReferralRewardEmail(referee.email, referee.name, REWARD_NAIRA, 'referee');
     }).catch(() => {});
 
     // ── PLACEMENT EMAIL ─────────────────────────────────────────────────────

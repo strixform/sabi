@@ -12,6 +12,8 @@ interface ReferralStats {
   totalEarned: number;
   pendingEarnings: number;
   rewardPerReferral: number;
+  cap?: number;
+  capReached?: boolean;
 }
 
 interface Referral {
@@ -51,7 +53,7 @@ export default function ReferralPage() {
 
   const share = () => {
     if (!data) return;
-    const text = `Join SABI and grow your social media presence! Use my referral code ${data.referralCode} to get started — we both earn ₦500. Sign up here: ${data.referralLink}`;
+    const text = `Join SABI and grow your social media presence! Use my referral code ${data.referralCode} to get started — we both earn ₦100. Sign up here: ${data.referralLink}`;
     if (navigator.share) {
       navigator.share({ title: 'Join SABI', text, url: data.referralLink }).catch(() => {});
     } else {
@@ -86,8 +88,11 @@ export default function ReferralPage() {
           </div>
           <h1 className="text-2xl font-black text-white">Refer & Earn</h1>
           <p className="text-slate-400 text-sm mt-2 max-w-sm mx-auto">
-            Invite friends to SABI. When they place their first order, you both earn <span className="text-white font-semibold">₦500</span>.
+            Invite friends to SABI. When they place their first order, you both earn <span className="text-white font-semibold">₦100</span> — earn from up to <span className="text-white font-semibold">{stats.cap ?? 3} friends</span>.
           </p>
+          {stats.capReached && (
+            <p className="text-amber-400/90 text-xs mt-2">You&apos;ve reached the {stats.cap ?? 3}-referral reward limit — thanks for spreading the word!</p>
+          )}
         </div>
 
         {/* Stats grid */}
@@ -164,7 +169,7 @@ export default function ReferralPage() {
               { step: '1', text: 'Share your code or link with a friend', color: 'text-blue-400 bg-blue-500/10' },
               { step: '2', text: 'They sign up using your referral code', color: 'text-purple-400 bg-purple-500/10' },
               { step: '3', text: 'They place their first order on SABI', color: 'text-pink-400 bg-pink-500/10' },
-              { step: '4', text: 'You both get ₦500 credited instantly', color: 'text-emerald-400 bg-emerald-500/10' },
+              { step: '4', text: 'You both get ₦100 credited instantly', color: 'text-emerald-400 bg-emerald-500/10' },
             ].map(({ step, text, color }) => (
               <div key={step} className="flex items-center gap-3">
                 <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shrink-0 ${color}`}>{step}</div>
