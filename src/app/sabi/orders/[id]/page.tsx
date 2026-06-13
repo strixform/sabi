@@ -21,6 +21,25 @@ export default function OrderTrackingPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedTemplate, setSavedTemplate] = useState(false);
+  const [proofs, setProofs] = useState<any[]>([]);
+  const [proofMeta, setProofMeta] = useState<{ total: number; approved: number; withScreenshot: number } | null>(null);
+  const [proofsLoading, setProofsLoading] = useState(true);
+
+  // Real receipts the taskers uploaded for this order (polled — they trickle in).
+  useEffect(() => {
+    let active = true;
+    const load = () => fetch(`/api/sabi/orders/proofs?orderId=${orderId}`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (active && d?.success) { setProofs(d.proofs || []); setProofMeta({ total: d.total || 0, approved: d.approved || 0, withScreenshot: d.withScreenshot || 0 }); } })
+      .catch(() => {})
+      .finally(() => { if (active) setProofsLoading(false); });
+    load();
+    const t = setInterval(load, 20000);
+    return () => { active = false; clearInterval(t); };
+  }, [orderId]);
+
+  const isProofImage = (u?: string | null) =>
+    !!u && (/\.(png|jpe?g|webp|gif)(\?|$)/i.test(u) || /\.public\.blob\.vercel-storage\.com/i.test(u) || u.startsWith('data:image'));
 
   const saveTemplate = async () => {
     if (!order) return;
@@ -350,6 +369,68 @@ export default function OrderTrackingPage() {
             </InteractiveCard>
           </motion.div>
         )}
+
+        {/* ── PROOF OF DELIVERY — real receipts from the taskers ───────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45 }}
+          className="mt-8"
+        >
+          <InteractiveCard glowColor="purple">
+            <div className="p-6 sm:p-8">
+              <h3 className="text-lg font-bold mb-1 flex items-center gap-2">🧾 Proof of Delivery</h3>
+              <p className="text-xs text-slate-400 mb-5">
+                Every action on this order was done by a <span className="text-purple-300 font-semibold">real Nigerian</span> on our crowd — here&apos;s the proof they uploaded. This is real traffic, not bots.
+              </p>
+
+              {proofsLoading ? (
+                <div className="flex items-center gap-2 text-slate-400 text-sm py-6"><FiLoader className="w-4 h-4 animate-spin" /> Gathering receipts…</div>
+              ) : proofs.length === 0 ? (
+                <div className="text-sm text-slate-500 py-6 text-center border border-dashed border-white/[0.08] rounded-xl">
+                  No proof uploaded yet. As the crowd completes your order, their receipts will appear here automatically.
+                </div>
+              ) : (
+                <>
+                  {proofMeta && (
+                    <div className="grid grid-cols-3 gap-3 mb-5">
+                      {[
+                        { l: 'Completions', v: proofMeta.total, c: 'text-white' },
+                        { l: 'Verified', v: proofMeta.approved, c: 'text-emerald-400' },
+                        { l: 'Screenshots', v: proofMeta.withScreenshot, c: 'text-purple-300' },
+                      ].map(s => (
+                        <div key={s.l} className="rounded-xl p-3 text-center" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                          <div className={`text-xl font-black ${s.c}`}>{s.v.toLocaleString()}</div>
+                          <div className="text-[10px] text-slate-500 uppercase tracking-wider mt-0.5">{s.l}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {proofs.map((p) => (
+                      <div key={p.id} className="rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                        {isProofImage(p.proofUrl) ? (
+                          <a href={p.proofUrl} target="_blank" rel="noopener noreferrer">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={p.proofUrl} alt="Proof" loading="lazy" className="w-full h-28 object-cover hover:opacity-90 transition" />
+                          </a>
+                        ) : p.proofUrl ? (
+                          <a href={p.proofUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center h-28 text-xs text-blue-400 hover:underline px-2 text-center break-all">View proof ↗</a>
+                        ) : (
+                          <div className="flex items-center justify-center h-28 text-2xl">✅</div>
+                        )}
+                        <div className="px-2.5 py-2 flex items-center justify-between gap-1">
+                          <span className="text-[10px] text-slate-400 truncate">{p.proofText || 'Completed'}</span>
+                          <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded shrink-0 ${p.status === 'approved' ? 'bg-emerald-500/20 text-emerald-300' : p.status === 'rejected' ? 'bg-red-500/20 text-red-300' : 'bg-yellow-500/15 text-yellow-300'}`}>{p.status}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </InteractiveCard>
+        </motion.div>
       </div>
     </div>
   );
