@@ -2553,12 +2553,21 @@ export const ACTION_PRICE_KOBO: Record<string, number> = {
 const GLOBAL_MIN_QTY = 10;
 const GLOBAL_MAX_QTY = 10000;
 
+// Per-action minimum overrides — premium "per-piece" services are bought in small
+// counts (a few videos), so a min of 10 would force a ₦100k+ floor. These let buyers
+// order at the natural size.
+const MIN_QTY_OVERRIDE: Record<string, number> = {
+  'Sound Use': 1,   // a single creator video
+  'UGC Video': 1,   // a single reaction/review video
+  'Watch Time': 100, // volume metric — small floor is fine
+};
+
 (() => {
   for (const service of SERVICES_CATALOG) {
     const price = ACTION_PRICE_KOBO[service.action];
     if (price !== undefined) service.pricePerUnit = price;
-    // Enforce global quantity limits across all services
-    service.minQuantity = GLOBAL_MIN_QTY;           // min = 10 for all
+    // Enforce quantity limits — per-action min override, else the global min.
+    service.minQuantity = MIN_QTY_OVERRIDE[service.action] ?? GLOBAL_MIN_QTY;
     service.maxQuantity = Math.min(GLOBAL_MAX_QTY, service.maxQuantity); // cap at 10,000
   }
 })();
