@@ -411,6 +411,21 @@ export default function OrderPage() {
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoError, setPromoError] = useState('');
   const [scheduledAt, setScheduledAt] = useState('');
+  const [startShot, setStartShot] = useState('');
+  const [shotUploading, setShotUploading] = useState(false);
+
+  const uploadStartShot = async (file?: File) => {
+    if (!file) return;
+    setShotUploading(true); setError('');
+    try {
+      const fd = new FormData(); fd.append('file', file);
+      const res = await fetch('/api/sabi/upload', { method: 'POST', body: fd });
+      const d = await res.json().catch(() => null);
+      if (res.ok && d?.url) setStartShot(d.url);
+      else setError(d?.detail || d?.error || "Couldn't upload screenshot");
+    } catch { setError('Screenshot upload failed'); }
+    finally { setShotUploading(false); }
+  };
   const discountKobo = promoResult?.savedKobo || 0;
   const finalTotalKobo = pricing ? Math.max(0, pricing.totalKobo - discountKobo) : 0;
   const totalCost = finalTotalKobo / 100; // naira
@@ -513,6 +528,7 @@ export default function OrderPage() {
             : {}),
           ...(promoResult ? { promoCodeId: promoResult.promoId, discountAmount: promoResult.savedKobo } : {}),
           ...(scheduledAt ? { scheduledAt } : {}),
+          ...(startShot ? { startScreenshotUrl: startShot } : {}),
         }),
       });
 
@@ -800,6 +816,24 @@ export default function OrderPage() {
                           {getUrlExample(selectedPlatform, selectedService.action)}
                         </span>
                       </p>
+                    )}
+                  </motion.div>
+
+                  {/* Start screenshot (optional but recommended) */}
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}>
+                    <label className="block text-sm font-semibold text-slate-300 mb-1.5">📸 Current screenshot <span className="text-slate-500 font-normal">(optional, recommended)</span></label>
+                    <p className="text-xs text-slate-500 mb-2">Snap your page now — your current follower/view/play count. We keep it on record as the verified <span className="text-slate-300">starting point</span>, so growth is always clear and disputes are impossible.</p>
+                    {startShot ? (
+                      <div className="flex items-center gap-3">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={startShot} alt="Starting point" className="w-20 h-20 object-cover rounded-lg border border-white/10" />
+                        <button type="button" onClick={() => setStartShot('')} className="text-xs text-red-400 hover:underline">Remove</button>
+                      </div>
+                    ) : (
+                      <label className="flex items-center justify-center gap-2 py-3 rounded-lg border border-dashed border-slate-600 text-slate-400 text-sm cursor-pointer hover:border-blue-500/50 transition">
+                        {shotUploading ? '⏳ Uploading…' : '📷 Upload current screenshot'}
+                        <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" disabled={shotUploading} onChange={e => uploadStartShot(e.target.files?.[0])} />
+                      </label>
                     )}
                   </motion.div>
 

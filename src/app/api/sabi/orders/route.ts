@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     const {
       serviceId, quantity, targetUrl, paymentMethod,
       audienceGender, audienceLocation, commentGender, commentInstructions,
-      promoCodeId, discountAmount, scheduledAt,
+      promoCodeId, discountAmount, scheduledAt, startScreenshotUrl,
     } = body;
 
     if (!serviceId || !quantity || !targetUrl) {
@@ -66,6 +66,7 @@ export async function POST(req: NextRequest) {
       promoCodeId: promoCodeId || undefined,
       discountAmount: discountAmount ? Number(discountAmount) : undefined,
       scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
+      startScreenshotUrl: startScreenshotUrl || undefined,
     });
 
     return NextResponse.json(result);

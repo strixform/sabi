@@ -24,13 +24,14 @@ export default function OrderTrackingPage() {
   const [proofs, setProofs] = useState<any[]>([]);
   const [proofMeta, setProofMeta] = useState<{ total: number; approved: number; withScreenshot: number } | null>(null);
   const [proofsLoading, setProofsLoading] = useState(true);
+  const [startShot, setStartShot] = useState<string | null>(null);
 
   // Real receipts the taskers uploaded for this order (polled — they trickle in).
   useEffect(() => {
     let active = true;
     const load = () => fetch(`/api/sabi/orders/proofs?orderId=${orderId}`)
       .then(r => (r.ok ? r.json() : null))
-      .then(d => { if (active && d?.success) { setProofs(d.proofs || []); setProofMeta({ total: d.total || 0, approved: d.approved || 0, withScreenshot: d.withScreenshot || 0 }); } })
+      .then(d => { if (active && d?.success) { setProofs(d.proofs || []); setProofMeta({ total: d.total || 0, approved: d.approved || 0, withScreenshot: d.withScreenshot || 0 }); setStartShot(d.startScreenshotUrl || null); } })
       .catch(() => {})
       .finally(() => { if (active) setProofsLoading(false); });
     load();
@@ -391,6 +392,19 @@ export default function OrderTrackingPage() {
               <p className="text-xs text-slate-400 mb-5">
                 Every action on this order was done by a <span className="text-purple-300 font-semibold">real Nigerian</span> on our crowd — here&apos;s the proof they uploaded. This is real traffic, not bots.
               </p>
+
+              {startShot && (
+                <div className="mb-5 rounded-xl p-3 flex items-center gap-3" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  <a href={startShot} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={startShot} alt="Starting point" className="w-16 h-16 object-cover rounded-lg border border-white/10" />
+                  </a>
+                  <div>
+                    <div className="text-xs font-bold text-white">📸 Starting point (before)</div>
+                    <div className="text-[11px] text-slate-400">The snapshot you uploaded when ordering — your verified baseline count.</div>
+                  </div>
+                </div>
+              )}
 
               {proofsLoading ? (
                 <div className="flex items-center gap-2 text-slate-400 text-sm py-6"><FiLoader className="w-4 h-4 animate-spin" /> Gathering receipts…</div>

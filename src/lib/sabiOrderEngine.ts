@@ -18,6 +18,7 @@ export interface CreateOrderInput {
   promoCodeId?: string;
   discountAmount?: number;
   scheduledAt?: Date;
+  startScreenshotUrl?: string; // buyer's "before" screenshot of the target page
 }
 
 export interface OrderResponse {
@@ -116,6 +117,12 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
         status: 'pending',
       },
     });
+
+    // Save the buyer's "before" screenshot separately (guarded) — the column may
+    // not exist in prod yet, and this must never break order creation.
+    if (input.startScreenshotUrl) {
+      prisma.$executeRaw`UPDATE "SabiOrder" SET "startScreenshotUrl" = ${input.startScreenshotUrl} WHERE id = ${order.id}`.catch(() => {});
+    }
 
     // Auto top-up check — if wallet fell below threshold, email user a payment link (fire-and-forget)
     prisma.sabiWallet.findUnique({ where: { userId: input.userId }, select: { balance: true, autoTopupEnabled: true, autoTopupThreshold: true, autoTopupAmount: true } })
