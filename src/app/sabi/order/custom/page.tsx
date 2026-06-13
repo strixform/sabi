@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 import {
   FiArrowLeft, FiArrowRight, FiCheck, FiSend, FiLoader,
   FiUsers, FiMessageCircle, FiPhone, FiMail, FiAlignLeft,
-  FiLink, FiHash, FiClock, FiDollarSign, FiStar, FiZap,
+  FiLink, FiHash, FiClock, FiDollarSign, FiStar, FiZap, FiMusic, FiFilm,
 } from 'react-icons/fi';
 import {
   SiInstagram, SiYoutube, SiTiktok, SiTelegram, SiWhatsapp,
@@ -95,6 +95,32 @@ const CATEGORIES: Category[] = [
       { title: 'Comment campaigns', desc: '500 comments mentioning your brand under a competitor\'s viral post' },
       { title: 'LinkedIn thought leadership', desc: 'Boost a post to 50,000 impressions with shares + comments' },
       { title: 'Spotify streams', desc: 'Push your new music release to 100,000 streams in the first week' },
+    ],
+  },
+  {
+    id: 'music_artistes',
+    label: 'Music & Artistes',
+    icon: FiMusic,
+    color: 'from-fuchsia-500 to-pink-600',
+    glow: 'shadow-fuchsia-500/20',
+    examples: [
+      { title: 'Real streams', desc: 'Boomplay, Audiomack, Spotify & Apple Music plays from real paid Nigerian fans — never bots' },
+      { title: 'TikTok sound promotion', desc: 'Real creators film videos using your sound to trigger a viral trend' },
+      { title: 'Shazam + chart push', desc: 'Genuine Shazam tags and playlist placements to climb the charts' },
+      { title: 'Award & chart voting', desc: 'Mobilise real voters for the Headies, awards and music polls' },
+    ],
+  },
+  {
+    id: 'film_nollywood',
+    label: 'Film & Nollywood',
+    icon: FiFilm,
+    color: 'from-indigo-500 to-violet-700',
+    glow: 'shadow-indigo-500/20',
+    examples: [
+      { title: 'Trailer & premiere push', desc: 'Real watch-time and views on your trailer or YouTube film from genuine viewers' },
+      { title: 'WhatsApp Status premiere promo', desc: 'Real people post your poster/clip to their Status — seen by their actual contacts' },
+      { title: 'UGC reactions & reviews', desc: 'Creators make real reaction and review videos about your film' },
+      { title: 'IMDb / blog reviews & voting', desc: 'Authentic written reviews and votes for film awards (AMVCA, festivals)' },
     ],
   },
   {

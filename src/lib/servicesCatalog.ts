@@ -20,6 +20,9 @@ export const PLATFORMS = {
   FACEBOOK: 'facebook',
   SNAPCHAT: 'snapchat',
   SPOTIFY: 'spotify',
+  AUDIOMACK: 'audiomack',
+  BOOMPLAY: 'boomplay',
+  APPLE_MUSIC: 'apple_music',
   WHATSAPP: 'whatsapp',
   PINTEREST: 'pinterest',
   THREADS: 'threads',
@@ -2356,6 +2359,129 @@ Snapchat Spotlight is Snapchat's answer to TikTok — and it pays creators. Get 
     speed: 'fast',
     refillable: false,
   },
+
+  // ============ AUDIOMACK (artistes) ============
+  {
+    id: 'audiomack_plays', name: 'Audiomack Plays',
+    description: `🎧 **Real streams from real Nigerian music fans — never bots.**
+
+Every play comes from an actual person on our crowd who gets **paid by the platform to listen to your song**. That's why these streams stick, count toward your ranking, and build momentum the honest way.
+
+**WHAT YOU GET:**
+✓ 100% real, paid human listeners (Nigerian music audience)
+✓ Naturally paced so it looks exactly like organic discovery
+✓ Counts toward Audiomack trending & charts
+✓ Listeners who can also favorite, comment and re-up
+
+**WHY IT MATTERS:** Bot plays get wiped and can flag your account. Real paid listeners create genuine momentum the algorithm trusts — and some become actual fans.`,
+    category: PLATFORMS.AUDIOMACK, action: 'Plays', pricePerUnit: 1000, minQuantity: 100, maxQuantity: 100000, speed: 'medium', refillable: false,
+  },
+  {
+    id: 'audiomack_favorites', name: 'Audiomack Favorites',
+    description: `⭐ **Real fans favoriting your track.** Actual people on our platform, paid to engage — each favorite is a genuine human signal that boosts your song's standing and keeps it in rotation. No bots, ever.`,
+    category: PLATFORMS.AUDIOMACK, action: 'Favorites', pricePerUnit: 3000, minQuantity: 50, maxQuantity: 50000, speed: 'medium', refillable: true,
+  },
+  {
+    id: 'audiomack_reups', name: 'Audiomack Re-ups',
+    description: `🔁 **Real re-ups that spread your song.** Paid Nigerian music fans re-up your track to their own Audiomack profile, exposing it to their followers — authentic word-of-mouth reach, not bot inflation.`,
+    category: PLATFORMS.AUDIOMACK, action: 'Reposts', pricePerUnit: 4000, minQuantity: 20, maxQuantity: 20000, speed: 'slow', refillable: true,
+  },
+  {
+    id: 'audiomack_followers', name: 'Audiomack Followers',
+    description: `👥 **Real followers for your artist profile.** Genuine, paid Nigerian listeners follow you so your next release lands in real people's feeds. Permanent, human, algorithm-safe.`,
+    category: PLATFORMS.AUDIOMACK, action: 'Followers', pricePerUnit: 5000, minQuantity: 50, maxQuantity: 50000, speed: 'medium', refillable: true,
+  },
+  {
+    id: 'audiomack_comments', name: 'Audiomack Comments',
+    description: `💬 **Real, written comments on your track.** Actual humans (paid by the platform) leave relevant comments — the kind of authentic engagement that makes a song look alive and bots can never fake.`,
+    category: PLATFORMS.AUDIOMACK, action: 'Comments', pricePerUnit: 5000, minQuantity: 10, maxQuantity: 5000, speed: 'medium', refillable: false,
+  },
+
+  // ============ BOOMPLAY (artistes) ============
+  {
+    id: 'boomplay_plays', name: 'Boomplay Plays',
+    description: `🎵 **Real Boomplay streams from paid Nigerian fans.** Boomplay is huge across Africa and these are genuine human listens — people on our crowd paid to play your song fully. Counts toward charts, sticks, and never flags your account like bots do.`,
+    category: PLATFORMS.BOOMPLAY, action: 'Plays', pricePerUnit: 1000, minQuantity: 100, maxQuantity: 100000, speed: 'medium', refillable: false,
+  },
+  {
+    id: 'boomplay_favorites', name: 'Boomplay Favorites',
+    description: `⭐ **Real favorites from real listeners.** Each one is a paid human telling Boomplay your song matters — genuine signal that pushes your track up the rankings.`,
+    category: PLATFORMS.BOOMPLAY, action: 'Favorites', pricePerUnit: 3000, minQuantity: 50, maxQuantity: 50000, speed: 'medium', refillable: true,
+  },
+  {
+    id: 'boomplay_shares', name: 'Boomplay Shares',
+    description: `↗️ **Real shares that spread your song.** Paid Nigerian fans share your track to their networks — authentic reach that turns into real new listeners, not empty numbers.`,
+    category: PLATFORMS.BOOMPLAY, action: 'Shares', pricePerUnit: 4000, minQuantity: 20, maxQuantity: 20000, speed: 'slow', refillable: true,
+  },
+  {
+    id: 'boomplay_followers', name: 'Boomplay Followers',
+    description: `👥 **Real followers for your Boomplay artist page.** Genuine, paid listeners who'll see your next drop. Human, permanent, safe.`,
+    category: PLATFORMS.BOOMPLAY, action: 'Followers', pricePerUnit: 5000, minQuantity: 50, maxQuantity: 50000, speed: 'medium', refillable: true,
+  },
+  {
+    id: 'boomplay_comments', name: 'Boomplay Comments',
+    description: `💬 **Real written comments on your song.** Actual people, paid to engage, leaving authentic reactions that make your track look hot.`,
+    category: PLATFORMS.BOOMPLAY, action: 'Comments', pricePerUnit: 5000, minQuantity: 10, maxQuantity: 5000, speed: 'medium', refillable: false,
+  },
+
+  // ============ APPLE MUSIC + SHAZAM (artistes) ============
+  {
+    id: 'apple_music_plays', name: 'Apple Music Plays',
+    description: `🍎 **Real Apple Music streams from paid human listeners.** Genuine Nigerian fans on our crowd play your song — counts toward your streams and looks completely organic. Never bots.`,
+    category: PLATFORMS.APPLE_MUSIC, action: 'Plays', pricePerUnit: 1000, minQuantity: 100, maxQuantity: 100000, speed: 'medium', refillable: false,
+  },
+  {
+    id: 'apple_music_playlist_adds', name: 'Apple Music Playlist Adds',
+    description: `📃 **Real listeners add your song to their library/playlists.** Paid humans save your track — a strong "this is worth keeping" signal that drives repeat plays for weeks.`,
+    category: PLATFORMS.APPLE_MUSIC, action: 'Playlist Adds', pricePerUnit: 6000, minQuantity: 20, maxQuantity: 20000, speed: 'slow', refillable: true,
+  },
+  {
+    id: 'apple_shazam_tags', name: 'Shazam Tags',
+    description: `🔵 **Real Shazam tags to push your song up the charts.** Paid Nigerian fans Shazam your track from real devices — Shazam charts are a key A&R discovery signal, and these are genuine human tags.`,
+    category: PLATFORMS.APPLE_MUSIC, action: 'Shazam Tags', pricePerUnit: 5000, minQuantity: 50, maxQuantity: 50000, speed: 'medium', refillable: false,
+  },
+
+  // ============ TIKTOK SOUND & UGC (artistes / filmmakers) ============
+  {
+    id: 'tiktok_sound_use', name: 'TikTok Sound Promotion (Creators Use Your Sound)',
+    description: `🎶 **This is how songs actually go viral now.** Real Nigerian TikTok creators — paid by the platform — film original videos **using your sound**. Every video exposes your song to their followers and feeds TikTok's sound-trend engine.
+
+**WHAT YOU GET:**
+✓ Genuine creators making real videos with your audio
+✓ Each video credits your sound (drives "use this sound" discovery)
+✓ Authentic UGC — not a bot view, an actual human creation
+✓ The exact mechanic behind every TikTok hit
+
+**WHY IT MATTERS:** TikTok pushes sounds that real people use. One wave of creators using your sound can trigger an organic trend money can't otherwise buy.`,
+    category: PLATFORMS.TIKTOK, action: 'Sound Use', pricePerUnit: 30000, minQuantity: 10, maxQuantity: 5000, speed: 'slow', refillable: false,
+  },
+  {
+    id: 'tiktok_ugc_video', name: 'UGC Reaction / Review Video',
+    description: `🎬 **Real creators make a full reaction, review or cover about your song or film.** Paid Nigerian content creators produce genuine UGC — the authentic buzz that sells music and movies. Perfect for releases, trailers and Nollywood premieres.`,
+    category: PLATFORMS.TIKTOK, action: 'UGC Video', pricePerUnit: 50000, minQuantity: 10, maxQuantity: 2000, speed: 'slow', refillable: false,
+  },
+
+  // ============ WHATSAPP STATUS PROMO (the Nigerian power move) ============
+  {
+    id: 'whatsapp_status_promo', name: 'WhatsApp Status Promo',
+    description: `📲 **The most powerful organic channel in Nigeria — and no bot panel offers it.** Real people on our crowd, paid by the platform, post your **poster, song link, or trailer clip to their personal WhatsApp Status**, seen by all their real contacts for 24 hours.
+
+**WHAT YOU GET:**
+✓ Your promo on real Nigerians' WhatsApp Status
+✓ Seen by genuine, engaged contacts (the highest-trust audience there is)
+✓ Drives real clicks, streams, ticket sales and pre-saves
+✓ 100% human — this literally cannot be botted
+
+**WHY IT MATTERS:** This is how things actually spread here. A status post from a real person carries trust no ad or bot can match.`,
+    category: PLATFORMS.WHATSAPP, action: 'Status Post', pricePerUnit: 15000, minQuantity: 10, maxQuantity: 5000, speed: 'medium', refillable: false,
+  },
+
+  // ============ YOUTUBE — FILMMAKERS (real retention) ============
+  {
+    id: 'youtube_watch_time', name: 'YouTube Real Watch-Time (Retention)',
+    description: `⏱️ **Real humans actually watching your video — not 3-second bot skips.** Paid Nigerian viewers watch meaningful portions of your trailer, music video or film, building the **watch-time and retention** YouTube rewards most. The single most valuable signal for filmmakers and music videos.`,
+    category: PLATFORMS.YOUTUBE, action: 'Watch Time', pricePerUnit: 1500, minQuantity: 100, maxQuantity: 100000, speed: 'medium', refillable: false,
+  },
 ];
 
 // ── Central pricing (in kobo) by action type — single source of truth ──
@@ -2409,6 +2535,17 @@ export const ACTION_PRICE_KOBO: Record<string, number> = {
   'Survey':              20000,  // Full form completion
   'Podcast Follow':       5000,
   'Podcast Listen':       3000,
+  // ── Artiste / filmmaker actions (real human crowd) ──
+  'Favorites':            3000,   // Audiomack/Boomplay "favorite" = a like
+  'Reposts':              4000,   // re-up / repost to a fan's profile
+  'Playlist Adds':        6000,   // listener adds your song to their playlist
+  'Playlist Placement':  40000,   // PREMIUM: real curated playlist feature
+  'Sound Use':           30000,   // PREMIUM: a creator films a video using your sound
+  'Status Post':         15000,   // WhatsApp Status promo — posted to a real fan's status
+  'Vote':                 8000,   // award / chart / competition vote
+  'Shazam Tags':          5000,   // real Shazam tags to push charts
+  'Watch Time':           1500,   // real retained watch-minutes (not a skip)
+  'UGC Video':           50000,   // PREMIUM: a full reaction / review / cover video
 };
 
 // Apply central pricing + quantity limits to every service at module load time.
@@ -2474,6 +2611,9 @@ export function getPlatformLabel(platform: string): string {
     [PLATFORMS.TIKTOK]: 'TikTok',
     [PLATFORMS.SNAPCHAT]: 'Snapchat',
     [PLATFORMS.SPOTIFY]: 'Spotify',
+    [PLATFORMS.AUDIOMACK]: 'Audiomack',
+    [PLATFORMS.BOOMPLAY]: 'Boomplay',
+    [PLATFORMS.APPLE_MUSIC]: 'Apple Music',
     [PLATFORMS.WHATSAPP]: 'WhatsApp',
     [PLATFORMS.PINTEREST]: 'Pinterest',
     [PLATFORMS.THREADS]: 'Threads',
