@@ -23,6 +23,7 @@ export const PLATFORMS = {
   AUDIOMACK: 'audiomack',
   BOOMPLAY: 'boomplay',
   APPLE_MUSIC: 'apple_music',
+  VOTING: 'voting',
   WHATSAPP: 'whatsapp',
   PINTEREST: 'pinterest',
   THREADS: 'threads',
@@ -2482,6 +2483,31 @@ Every play comes from an actual person on our crowd who gets **paid by the platf
     description: `⏱️ **Real humans actually watching your video — not 3-second bot skips.** Paid Nigerian viewers watch meaningful portions of your trailer, music video or film, building the **watch-time and retention** YouTube rewards most. The single most valuable signal for filmmakers and music videos.`,
     category: PLATFORMS.YOUTUBE, action: 'Watch Time', pricePerUnit: 1500, minQuantity: 100, maxQuantity: 100000, speed: 'medium', refillable: false,
   },
+
+  // ============ VOTING & POLLS (real human voters) ============
+  {
+    id: 'voting_award', name: 'Award & Chart Votes',
+    description: `🏆 **Real Nigerians voting you up — for the Headies, AMVCA, and any online award.**
+
+Each vote is cast by a genuine person on our crowd, **paid by the platform**, from a real device. Award and poll systems flag and wipe bot votes — these are real humans, so they count.
+
+**WHAT YOU GET:**
+✓ Real, paid Nigerian voters (one vote per real person/device)
+✓ Naturally paced so it never looks like a bot rush
+✓ Works for awards, chart polls, and "vote for me" campaigns
+✓ The honest way to win a public vote at scale`,
+    category: PLATFORMS.VOTING, action: 'Vote', pricePerUnit: 8000, minQuantity: 50, maxQuantity: 100000, speed: 'medium', refillable: false,
+  },
+  {
+    id: 'voting_poll', name: 'Online Poll Votes',
+    description: `📊 **Win any public online poll with real votes.** Genuine Nigerian voters (paid by the platform) cast their vote on your poll link — real people, real devices, not bots. Perfect for brand polls, fan polls and "best of" lists.`,
+    category: PLATFORMS.VOTING, action: 'Vote', pricePerUnit: 8000, minQuantity: 50, maxQuantity: 100000, speed: 'medium', refillable: false,
+  },
+  {
+    id: 'voting_competition', name: 'Competition Votes',
+    description: `🥇 **Push your entry to the top of a public competition.** Real, paid Nigerian voters back your entry — authentic votes that survive anti-fraud checks bots can't pass.`,
+    category: PLATFORMS.VOTING, action: 'Vote', pricePerUnit: 8000, minQuantity: 50, maxQuantity: 100000, speed: 'medium', refillable: false,
+  },
 ];
 
 // ── Central pricing (in kobo) by action type — single source of truth ──
@@ -2623,6 +2649,7 @@ export function getPlatformLabel(platform: string): string {
     [PLATFORMS.AUDIOMACK]: 'Audiomack',
     [PLATFORMS.BOOMPLAY]: 'Boomplay',
     [PLATFORMS.APPLE_MUSIC]: 'Apple Music',
+    [PLATFORMS.VOTING]: 'Voting & Polls',
     [PLATFORMS.WHATSAPP]: 'WhatsApp',
     [PLATFORMS.PINTEREST]: 'Pinterest',
     [PLATFORMS.THREADS]: 'Threads',

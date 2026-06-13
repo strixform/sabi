@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   FiArrowRight, FiArrowLeft, FiCheck, FiShoppingCart, FiLoader,
-  FiAlertCircle, FiDollarSign, FiTrendingUp, FiStar, FiMusic
+  FiAlertCircle, FiDollarSign, FiTrendingUp, FiStar, FiMusic, FiAward
 } from 'react-icons/fi';
 import {
   SiInstagram, SiX, SiYoutube, SiTiktok, SiSnapchat, SiSpotify,
@@ -35,6 +35,7 @@ const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string }>
   audiomack:  SiAudiomack,
   boomplay:   FiMusic,
   apple_music: SiApplemusic,
+  voting:     FiAward,
   whatsapp:   SiWhatsapp,
   pinterest:  SiPinterest,
   threads:    SiThreads,

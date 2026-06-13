@@ -13,7 +13,7 @@ import {
   SiFacebook, SiGoogle, SiApple, SiApplepodcasts, SiAudiomack, SiApplemusic,
 } from 'react-icons/si';
 import { FaLinkedinIn } from 'react-icons/fa';
-import { FiGlobe, FiMusic } from 'react-icons/fi';
+import { FiGlobe, FiMusic, FiAward } from 'react-icons/fi';
 import { ModernSabiHeader } from '@/components/ModernSabiHeader';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
 import { GradientText } from '@/components/AnimatedText';
@@ -22,7 +22,7 @@ import { SERVICES_CATALOG, computePricing, getPlatformLabel } from '@/lib/servic
 const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   instagram: SiInstagram, twitter: SiX,       youtube:   SiYoutube,  tiktok:    SiTiktok,
   snapchat:  SiSnapchat,  spotify: SiSpotify, whatsapp:  SiWhatsapp, pinterest: SiPinterest,
-  audiomack: SiAudiomack, boomplay: FiMusic, apple_music: SiApplemusic,
+  audiomack: SiAudiomack, boomplay: FiMusic, apple_music: SiApplemusic, voting: FiAward,
   threads:   SiThreads,   telegram: SiTelegram, twitch:  SiTwitch,
   facebook:  SiFacebook,  google:  SiGoogle,  linkedin:  FaLinkedinIn,
   app_store: SiApple,     podcast: SiApplepodcasts, website: FiGlobe,
@@ -38,6 +38,7 @@ const PLATFORM_COLORS: Record<string, string> = {
   audiomack: 'from-orange-500 to-amber-600',
   boomplay: 'from-orange-500 to-red-600',
   apple_music: 'from-pink-500 to-rose-600',
+  voting: 'from-violet-500 to-purple-700',
   whatsapp: 'from-green-500 to-green-600',
   pinterest: 'from-red-500 to-red-700',
   threads: 'from-slate-600 to-slate-800',

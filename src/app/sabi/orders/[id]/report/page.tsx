@@ -16,6 +16,19 @@ export default function OrderReportPage() {
   const [proofs, setProofs] = useState<any[]>([]);
   const [meta, setMeta] = useState<{ total: number; approved: number; withScreenshot: number } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [shareState, setShareState] = useState<'' | 'copied'>('');
+
+  const copyShareLink = async () => {
+    try {
+      const r = await fetch(`/api/sabi/orders/share-token?orderId=${orderId}`);
+      const d = await r.json();
+      if (d?.url) {
+        await navigator.clipboard.writeText(d.url);
+        setShareState('copied');
+        setTimeout(() => setShareState(''), 2500);
+      }
+    } catch { /* ignore */ }
+  };
 
   useEffect(() => {
     (async () => {
@@ -47,9 +60,14 @@ export default function OrderReportPage() {
       {/* Toolbar (hidden in print) */}
       <div className="no-print" style={{ position: 'sticky', top: 0, background: '#0A0D14', padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <a href={`/sabi/orders/${orderId}`} style={{ color: '#94a3b8', fontSize: 13, textDecoration: 'none' }}>← Back to order</a>
-        <button onClick={() => window.print()} style={{ background: 'linear-gradient(135deg,#6d28d9,#9333ea)', color: '#fff', border: 0, padding: '10px 18px', borderRadius: 10, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>
-          🖨️ Print / Save as PDF
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={copyShareLink} style={{ background: 'rgba(167,139,250,0.18)', color: '#c4b5fd', border: '1px solid rgba(167,139,250,0.35)', padding: '10px 16px', borderRadius: 10, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>
+            {shareState === 'copied' ? '✓ Link copied!' : '🔗 Copy public link'}
+          </button>
+          <button onClick={() => window.print()} style={{ background: 'linear-gradient(135deg,#6d28d9,#9333ea)', color: '#fff', border: 0, padding: '10px 18px', borderRadius: 10, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>
+            🖨️ Print / Save as PDF
+          </button>
+        </div>
       </div>
 
       <div style={{ maxWidth: 820, margin: '0 auto', padding: '32px 28px' }}>
