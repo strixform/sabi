@@ -13,6 +13,60 @@ import { GradientText } from '@/components/AnimatedText';
 import { InteractiveCard } from '@/components/InteractiveCard';
 import { getCardColor } from '@/lib/designSystem';
 
+/**
+ * Real cumulative-delivery chart built from tasker proof timestamps.
+ * Each completed proof bumps the line — honest "growth over time" proof.
+ */
+function DeliveryGrowthChart({ proofs, target }: { proofs: any[]; target: number }) {
+  const pts = proofs
+    .filter(p => p.createdAt)
+    .map(p => new Date(p.createdAt).getTime())
+    .sort((a, b) => a - b);
+  if (pts.length < 2) return null;
+
+  const t0 = pts[0];
+  const tN = pts[pts.length - 1] || t0 + 1;
+  const span = Math.max(tN - t0, 1);
+  const W = 600, H = 160, padX = 8, padY = 12;
+  const maxY = Math.max(target, pts.length);
+
+  const coords = pts.map((t, i) => {
+    const x = padX + ((t - t0) / span) * (W - padX * 2);
+    const y = H - padY - ((i + 1) / maxY) * (H - padY * 2);
+    return [x, y] as const;
+  });
+  // Step line (cumulative)
+  let d = `M ${coords[0][0]} ${H - padY}`;
+  coords.forEach(([x, y], i) => {
+    const prevY = i === 0 ? H - padY : coords[i - 1][1];
+    d += ` L ${x} ${prevY} L ${x} ${y}`;
+  });
+  const last = coords[coords.length - 1];
+  const area = `${d} L ${last[0]} ${H - padY} Z`;
+  const fmt = (t: number) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
+  return (
+    <div className="rounded-xl p-4" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.06)' }}>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" preserveAspectRatio="none" style={{ height: 160 }}>
+        <defs>
+          <linearGradient id="growthFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="rgba(168,85,247,0.45)" />
+            <stop offset="100%" stopColor="rgba(168,85,247,0.02)" />
+          </linearGradient>
+        </defs>
+        <path d={area} fill="url(#growthFill)" />
+        <path d={d} fill="none" stroke="rgb(192,132,252)" strokeWidth={2.5} strokeLinejoin="round" />
+        {last && <circle cx={last[0]} cy={last[1]} r={4} fill="rgb(216,180,254)" />}
+      </svg>
+      <div className="flex justify-between text-[10px] text-slate-500 mt-1">
+        <span>{fmt(t0)}</span>
+        <span>{pts.length.toLocaleString()} delivered{target ? ` of ${target.toLocaleString()}` : ''}</span>
+        <span>{fmt(tN)}</span>
+      </div>
+    </div>
+  );
+}
+
 export default function OrderTrackingPage() {
   const params = useParams();
   const router = useRouter();
@@ -490,6 +544,12 @@ export default function OrderTrackingPage() {
                           <div className="text-[10px] text-slate-500 uppercase tracking-wider mt-0.5">{s.l}</div>
                         </div>
                       ))}
+                    </div>
+                  )}
+                  {proofs.length >= 2 && (
+                    <div className="mb-5">
+                      <div className="text-xs font-bold text-slate-300 mb-2">📈 Delivery over time</div>
+                      <DeliveryGrowthChart proofs={proofs} target={order.quantity} />
                     </div>
                   )}
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">

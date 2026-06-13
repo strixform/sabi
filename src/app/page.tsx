@@ -184,12 +184,19 @@ function CapCard({ number, title, body, accent, wide = false, tall = false }: an
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function Home() {
   const [mounted, setMounted] = useState(false);
+  const [liveActions, setLiveActions] = useState(0);
   const heroRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
   const heroY = useTransform(scrollYProgress, [0, 1], [0, 120]);
   const heroO = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
 
   useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    fetch('/api/sabi/stats/public')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (d?.actionsDelivered > 0) setLiveActions(d.actionsDelivered); })
+      .catch(() => {});
+  }, []);
   if (!mounted) return (
     <div className="min-h-screen bg-[#030507] flex items-center justify-center">
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
@@ -321,7 +328,9 @@ export default function Home() {
               { n: 300000, s: '+', l: 'Active Nigerians' },
               { n: 50, s: '+', l: 'Services available' },
               { n: 11, s: '', l: 'Platforms covered' },
-              { n: 99, s: '%', l: 'Orders delivered' },
+              liveActions > 0
+                ? { n: liveActions, s: '+', l: 'Real actions delivered' }
+                : { n: 99, s: '%', l: 'Orders delivered' },
             ].map((st, i) => (
               <FadeIn key={st.l} delay={i * 0.1}
                 className={`py-16 px-8 text-center ${i < 3 ? 'border-r border-white/[0.05]' : ''}`}>
