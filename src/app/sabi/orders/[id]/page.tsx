@@ -379,7 +379,15 @@ export default function OrderTrackingPage() {
         >
           <InteractiveCard glowColor="purple">
             <div className="p-6 sm:p-8">
-              <h3 className="text-lg font-bold mb-1 flex items-center gap-2">🧾 Proof of Delivery</h3>
+              <div className="flex items-center justify-between gap-3 mb-1">
+                <h3 className="text-lg font-bold flex items-center gap-2">🧾 Proof of Delivery</h3>
+                {proofs.length > 0 && (
+                  <Link href={`/sabi/orders/${orderId}/report`}
+                    className="px-3 py-1.5 bg-purple-500/15 text-purple-300 border border-purple-500/30 rounded-lg text-xs font-bold hover:bg-purple-500/25 transition shrink-0">
+                    🖨️ Download report
+                  </Link>
+                )}
+              </div>
               <p className="text-xs text-slate-400 mb-5">
                 Every action on this order was done by a <span className="text-purple-300 font-semibold">real Nigerian</span> on our crowd — here&apos;s the proof they uploaded. This is real traffic, not bots.
               </p>
