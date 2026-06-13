@@ -8,12 +8,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   FiArrowRight, FiArrowLeft, FiCheck, FiShoppingCart, FiLoader,
-  FiAlertCircle, FiDollarSign, FiTrendingUp, FiStar
+  FiAlertCircle, FiDollarSign, FiTrendingUp, FiStar, FiMusic
 } from 'react-icons/fi';
 import {
   SiInstagram, SiX, SiYoutube, SiTiktok, SiSnapchat, SiSpotify,
   SiWhatsapp, SiPinterest, SiThreads, SiTelegram, SiTwitch,
-  SiFacebook, SiGoogle, SiApple, SiApplepodcasts,
+  SiFacebook, SiGoogle, SiApple, SiApplepodcasts, SiAudiomack, SiApplemusic,
 } from 'react-icons/si';
 import { FaLinkedinIn } from 'react-icons/fa';
 import { FiGlobe } from 'react-icons/fi';
@@ -32,6 +32,9 @@ const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string }>
   tiktok:     SiTiktok,
   snapchat:   SiSnapchat,
   spotify:    SiSpotify,
+  audiomack:  SiAudiomack,
+  boomplay:   FiMusic,
+  apple_music: SiApplemusic,
   whatsapp:   SiWhatsapp,
   pinterest:  SiPinterest,
   threads:    SiThreads,
