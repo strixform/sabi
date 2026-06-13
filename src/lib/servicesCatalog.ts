@@ -2540,12 +2540,12 @@ export const ACTION_PRICE_KOBO: Record<string, number> = {
   'Reposts':              4000,   // re-up / repost to a fan's profile
   'Playlist Adds':        6000,   // listener adds your song to their playlist
   'Playlist Placement':  40000,   // PREMIUM: real curated playlist feature
-  'Sound Use':           30000,   // PREMIUM: a creator films a video using your sound
+  'Sound Use':         1000000,   // PREMIUM ₦10,000: a creator films a video using your sound
   'Status Post':         15000,   // WhatsApp Status promo — posted to a real fan's status
   'Vote':                 8000,   // award / chart / competition vote
   'Shazam Tags':          5000,   // real Shazam tags to push charts
-  'Watch Time':           1500,   // real retained watch-minutes (not a skip)
-  'UGC Video':           50000,   // PREMIUM: a full reaction / review / cover video
+  'Watch Time':         300000,   // PREMIUM ₦3,000: a real, fully-retained viewer (not a skip)
+  'UGC Video':         1000000,   // PREMIUM ₦10,000: a full reaction / review / cover video
 };
 
 // Apply central pricing + quantity limits to every service at module load time.
