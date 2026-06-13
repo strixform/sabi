@@ -107,6 +107,25 @@ export async function POST(req: NextRequest) {
     // Bust the Redis order cache so the user's next page load shows live count
     await invalidateOrdersCache(order.userId).catch(() => {});
 
+    // Loyalty cashback — credit 2% (max ₦500) of what was paid, once, on completion.
+    if (isComplete) {
+      const chargedKobo = order.totalPrice + order.platformFee - (order.discountAmount || 0);
+      import('@/lib/sabiCashback').then(async ({ creditOrderCashback }) => {
+        const credited = await creditOrderCashback(order.id, order.userId, chargedKobo);
+        if (credited > 0) {
+          await invalidateOrdersCache(order.userId).catch(() => {});
+          try {
+            const { sendPushToUser } = await import('@/lib/pushNotifications');
+            sendPushToUser(order.userId, {
+              title: `🎁 ₦${Math.round(credited / 100)} cashback earned`,
+              body: `We added ₦${Math.round(credited / 100)} loyalty cashback to your wallet for your completed order.`,
+              url: 'https://sability.io/sabi/wallet',
+            }).catch(() => {});
+          } catch {}
+        }
+      }).catch(() => {});
+    }
+
     // Send push + email notifications at key milestones — not every single tick
     const milestones = [25, 50, 75, 100];
     const pct = completionPercentage ?? 0;

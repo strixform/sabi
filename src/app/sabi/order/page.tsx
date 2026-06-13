@@ -414,13 +414,35 @@ export default function OrderPage() {
   const [startShot, setStartShot] = useState('');
   const [shotUploading, setShotUploading] = useState(false);
   const [firstOrderEligible, setFirstOrderEligible] = useState(false);
+  const [savedProfiles, setSavedProfiles] = useState<{ id: string; label: string; url: string; platform: string | null }[]>([]);
+  const [savedJustNow, setSavedJustNow] = useState(false);
 
   useEffect(() => {
     fetch('/api/sabi/first-order')
       .then(r => (r.ok ? r.json() : null))
       .then(d => { if (d?.eligible) setFirstOrderEligible(true); })
       .catch(() => {});
+    fetch('/api/sabi/saved-profiles')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (d?.profiles) setSavedProfiles(d.profiles); })
+      .catch(() => {});
   }, []);
+
+  const saveCurrentTarget = async (urlVal: string, platform?: string) => {
+    if (!urlVal) return;
+    try {
+      const label = (() => { try { return new URL(urlVal).pathname.split('/').filter(Boolean).pop() || urlVal; } catch { return urlVal; } })();
+      const res = await fetch('/api/sabi/saved-profiles', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: urlVal, label, platform: platform || null }),
+      });
+      const d = await res.json().catch(() => null);
+      if (d?.profile) {
+        setSavedProfiles(prev => [d.profile, ...prev.filter(p => p.url !== d.profile.url)]);
+        setSavedJustNow(true); setTimeout(() => setSavedJustNow(false), 2000);
+      }
+    } catch {}
+  };
 
   const uploadStartShot = async (file?: File) => {
     if (!file) return;
@@ -790,9 +812,27 @@ export default function OrderPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
                   >
-                    <label className="block text-sm font-semibold text-slate-300 mb-2">
-                      Target URL
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-semibold text-slate-300">
+                        Target URL
+                      </label>
+                      {targetUrl && !validateTargetUrl() && (
+                        <button type="button" onClick={() => saveCurrentTarget(targetUrl, selectedPlatform)}
+                          className="text-xs font-bold text-blue-300 hover:text-blue-200 transition">
+                          {savedJustNow ? '✓ Saved' : '＋ Save this target'}
+                        </button>
+                      )}
+                    </div>
+                    {savedProfiles.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {savedProfiles.slice(0, 8).map(p => (
+                          <button key={p.id} type="button" onClick={() => setTargetUrl(p.url)}
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition truncate max-w-[180px] ${targetUrl === p.url ? 'bg-blue-500/20 border-blue-500/50 text-blue-200' : 'bg-slate-800/50 border-slate-700/50 text-slate-300 hover:border-slate-600'}`}>
+                            📌 {p.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     <motion.input
                       type="url"
                       value={targetUrl}
@@ -1185,6 +1225,7 @@ export default function OrderPage() {
                           <p className="text-sm text-slate-400 line-through mb-0.5">₦{(pricing!.totalKobo / 100).toFixed(2)}</p>
                         )}
                         <p className="text-3xl font-black text-emerald-400">₦{totalCost.toFixed(2)}</p>
+                        <p className="text-[11px] text-emerald-300/80 mt-2">🎁 Earn 2% cashback (up to ₦500) back to your wallet when this order completes.</p>
                       </motion.div>
 
                       {/* Scheduled order */}
