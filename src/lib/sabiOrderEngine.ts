@@ -20,6 +20,7 @@ export interface CreateOrderInput {
   discountAmount?: number;
   scheduledAt?: Date;
   startScreenshotUrl?: string; // buyer's "before" screenshot of the target page
+  silent?: boolean;            // suppress the placement email (used for drip-feed chunks 2..N)
 }
 
 export interface OrderResponse {
@@ -197,13 +198,15 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
     // ── PLACEMENT EMAIL ─────────────────────────────────────────────────────
     // Fire-and-forget — never block the order response for email delivery.
     // Sets expectations: real people, 5min–24hr, refund guarantee.
-    import('./email').then(({ sendOrderPlacedEmail }) => {
-      sendOrderPlacedEmail(
-        user.email, user.name, order.id,
-        service.name, input.quantity,
-        Math.round(totalPrice / 100), // kobo → naira
-      );
-    }).catch(() => {});
+    if (!input.silent) {
+      import('./email').then(({ sendOrderPlacedEmail }) => {
+        sendOrderPlacedEmail(
+          user.email, user.name, order.id,
+          service.name, input.quantity,
+          Math.round(totalPrice / 100), // kobo → naira
+        );
+      }).catch(() => {});
+    }
 
     // ── ASYNC ORDER SUBMISSION ──────────────────────────────────────────────
     // Instead of calling gamerz360 synchronously (which times out due to

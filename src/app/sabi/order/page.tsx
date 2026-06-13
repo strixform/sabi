@@ -411,6 +411,7 @@ export default function OrderPage() {
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoError, setPromoError] = useState('');
   const [scheduledAt, setScheduledAt] = useState('');
+  const [dripDays, setDripDays] = useState(0); // 0 = deliver all at once
   const [startShot, setStartShot] = useState('');
   const [shotUploading, setShotUploading] = useState(false);
   const [firstOrderEligible, setFirstOrderEligible] = useState(false);
@@ -546,29 +547,37 @@ export default function OrderPage() {
 
     try {
       setLoading(true);
-      const res = await fetch('/api/sabi/orders', {
+      const isDrip = dripDays >= 2;
+      const commonFields = {
+        serviceId: selectedService.id,
+        targetUrl,
+        quantity,
+        paymentMethod: 'wallet',
+        audienceGender,
+        audienceLocation,
+        ...(COMMENT_ACTIONS.includes(selectedService.action)
+          ? { commentGender, commentInstructions: commentInstructions.trim() || null }
+          : {}),
+        ...(startShot ? { startScreenshotUrl: startShot } : {}),
+      };
+      const res = await fetch(isDrip ? '/api/sabi/orders/drip' : '/api/sabi/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          serviceId: selectedService.id,
-          targetUrl,
-          quantity,
-          paymentMethod: 'wallet',
-          audienceGender,
-          audienceLocation,
-          ...(COMMENT_ACTIONS.includes(selectedService.action)
-            ? { commentGender, commentInstructions: commentInstructions.trim() || null }
-            : {}),
-          ...(promoResult ? { promoCodeId: promoResult.promoId, discountAmount: promoResult.savedKobo } : {}),
-          ...(scheduledAt ? { scheduledAt } : {}),
-          ...(startShot ? { startScreenshotUrl: startShot } : {}),
-        }),
+        body: JSON.stringify(
+          isDrip
+            ? { ...commonFields, dripDays }
+            : {
+                ...commonFields,
+                ...(promoResult ? { promoCodeId: promoResult.promoId, discountAmount: promoResult.savedKobo } : {}),
+                ...(scheduledAt ? { scheduledAt } : {}),
+              }
+        ),
       });
 
       const data = await res.json();
       if (data.success) {
-        // API returns orderId (not order.id) — redirect to order detail page
-        const oid = data.orderId || data.order?.id;
+        // Normal order returns orderId; drip returns orderIds[] — go to first.
+        const oid = data.orderId || data.order?.id || data.orderIds?.[0];
         router.push(oid ? `/sabi/orders/${oid}` : '/sabi/orders');
       } else {
         setError(String(data.error || 'Failed to place order'));
@@ -1239,6 +1248,28 @@ export default function OrderPage() {
                           className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:border-blue-500/50 outline-none [color-scheme:dark]"
                         />
                         {scheduledAt && <p className="text-blue-400 text-xs mt-1">⏰ Will start at {new Date(scheduledAt).toLocaleString()}</p>}
+                      </div>
+
+                      {/* Drip-feed delivery */}
+                      <div className="mb-4">
+                        <label className="block text-xs text-slate-400 mb-1">Drip-feed delivery (optional)</label>
+                        <select
+                          value={dripDays}
+                          onChange={e => { const v = Number(e.target.value); setDripDays(v); if (v) setScheduledAt(''); }}
+                          className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:border-blue-500/50 outline-none [color-scheme:dark]"
+                        >
+                          <option value={0}>Deliver all at once</option>
+                          <option value={3}>Spread over 3 days</option>
+                          <option value={5}>Spread over 5 days</option>
+                          <option value={7}>Spread over 7 days</option>
+                          <option value={14}>Spread over 14 days</option>
+                          <option value={30}>Spread over 30 days</option>
+                        </select>
+                        {dripDays >= 2 && (
+                          <p className="text-blue-400 text-xs mt-1">
+                            🌱 ~{Math.floor(quantity / dripDays).toLocaleString()}/day for {dripDays} days — looks natural, charged once now. (Promo codes &amp; scheduling don&apos;t apply to drip.)
+                          </p>
+                        )}
                       </div>
 
                       {wallet.balance < totalCost * 100 ? (
