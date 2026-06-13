@@ -2,6 +2,7 @@ import { prisma } from './prisma';
 import { getService, validateOrder } from './sabiServices';
 import { computePricing } from './servicesCatalog';
 import { debitSabiWallet, refundSabiWallet } from './sabiWallet';
+import { sabiExecute } from './tursoClient';
 
 export interface CreateOrderInput {
   userId: string;
@@ -333,29 +334,31 @@ async function createGamesz360Campaign(
   }
 }
 
+// NOTE: reads use a raw `SELECT *` rather than prisma.findMany/findFirst.
+// Prisma selects EVERY column in the SabiOrder model, so a single column that
+// exists in schema.prisma but not in prod Turso (schema lag) makes the whole
+// read throw — which silently emptied users' order lists. A raw SELECT returns
+// whatever columns actually exist, so it can never break on a missing column.
 export async function getSabiOrder(orderId: string, userId: string) {
   try {
-    return await prisma.sabiOrder.findFirst({
-      where: {
-        id: orderId,
-        userId,
-      },
+    const r = await sabiExecute({
+      sql: `SELECT * FROM SabiOrder WHERE id = ? AND userId = ? LIMIT 1`,
+      args: [orderId, userId],
     });
+    return (r.rows[0] as any) ?? null;
   } catch (error) {
-    // Error logging handled by external service
     return null;
   }
 }
 
 export async function getSabiOrders(userId: string, limit: number = 50) {
   try {
-    return await prisma.sabiOrder.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
+    const r = await sabiExecute({
+      sql: `SELECT * FROM SabiOrder WHERE userId = ? ORDER BY createdAt DESC LIMIT ?`,
+      args: [userId, limit],
     });
+    return r.rows as any[];
   } catch (error) {
-    // Error logging handled by external service
     return [];
   }
 }

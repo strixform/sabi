@@ -1,6 +1,6 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
 import { getSabiSession } from '@/lib/sabiAuth';
-import { createSabiOrder, getSabiOrders } from '@/lib/sabiOrderEngine';
+import { createSabiOrder, getSabiOrders, getSabiOrder } from '@/lib/sabiOrderEngine';
 import { getCachedOrders, setCachedOrders } from '@/lib/redis';
 import { getRateLimitKey, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit';
 
@@ -12,20 +12,25 @@ export async function GET(req: NextRequest) {
     const session = await getSabiSession();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // Try cache first (5 minute TTL)
-    let cachedData = await getCachedOrders(session.id);
-    if (cachedData) {
-      return NextResponse.json({
-        success: true,
-        orders: cachedData,
-        cached: true,
-      });
+    // Single-order fetch (?id=…) — used by the order detail page. Must return the
+    // requested order, not the most recent one. Bypasses the list cache.
+    const id = req.nextUrl.searchParams.get('id');
+    if (id) {
+      const order = await getSabiOrder(id, session.id);
+      return NextResponse.json({ success: true, orders: order ? [order] : [] });
+    }
+
+    // Try cache first (5 minute TTL) — but never serve a cached EMPTY list, so a
+    // transient miss can't hide a user's orders for 5 minutes.
+    const cachedData = await getCachedOrders(session.id);
+    if (cachedData && cachedData.length > 0) {
+      return NextResponse.json({ success: true, orders: cachedData, cached: true });
     }
 
     const orders = await getSabiOrders(session.id);
 
-    // Cache for 5 minutes
-    await setCachedOrders(session.id, orders, 300);
+    // Only cache non-empty results.
+    if (orders.length > 0) await setCachedOrders(session.id, orders, 300);
 
     return NextResponse.json({ success: true, orders });
   } catch (error) {
