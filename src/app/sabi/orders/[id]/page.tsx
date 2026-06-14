@@ -12,6 +12,7 @@ import { AnimatedBackground } from '@/components/AnimatedBackground';
 import { GradientText } from '@/components/AnimatedText';
 import { InteractiveCard } from '@/components/InteractiveCard';
 import { getCardColor } from '@/lib/designSystem';
+import { NigerianReach } from '@/components/NigerianReach';
 
 /**
  * Real cumulative-delivery chart built from tasker proof timestamps.
@@ -618,6 +619,7 @@ export default function OrderTrackingPage() {
                       <DeliveryGrowthChart proofs={proofs} target={order.quantity} baseline={startCount ?? 0} />
                     </div>
                   )}
+                  <div className="mb-5"><NigerianReach compact /></div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {proofs.map((p) => (
                       <div key={p.id} className="rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)' }}>

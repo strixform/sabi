@@ -153,12 +153,20 @@ export default function ReferralPage() {
             </button>
           </div>
 
-          {/* Share button */}
-          <button onClick={share}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold rounded-xl transition">
-            <FiShare2 className="w-4 h-4" />
-            Share with friends
-          </button>
+          {/* Share buttons */}
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={share}
+              className="flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold rounded-xl transition">
+              <FiShare2 className="w-4 h-4" />
+              Share
+            </button>
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(`Join SABI and grow your social media with real Nigerian engagement! Use my code ${referralCode} — we both earn ₦100. ${referralLink}`)}`}
+              target="_blank" rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 py-3 bg-[#25D366] hover:bg-[#1ebe5b] text-white font-bold rounded-xl transition">
+              💬 WhatsApp
+            </a>
+          </div>
         </div>
 
         {/* How it works */}
