@@ -289,6 +289,10 @@ const STATE_CITIES: Record<string, string[]> = {
 };
 
 const COMMENT_ACTIONS = ['Comments', 'Replies', 'Chat Comments'];
+
+// Smart link-type validation is enforced only for these platforms; all others
+// accept any valid URL but show a "double-check your link" warning.
+const STRICT_LINK_PLATFORMS = ['instagram', 'twitter', 'facebook', 'tiktok'];
 const COMMENT_MAX = 300;
 
 type Step = 'platform' | 'service' | 'details' | 'review';
@@ -516,6 +520,11 @@ export default function OrderPage() {
     } catch {
       return 'Invalid URL format';
     }
+
+    // Smart link-type checking is enforced only for the big 4 platforms. For
+    // every other platform we accept any valid URL (and show a "double-check"
+    // warning instead), since their link formats vary too much to auto-verify.
+    if (!STRICT_LINK_PLATFORMS.includes(selectedPlatform)) return null;
 
     // Detect URL type using intelligent pattern matching
     const detection = detectURLType(targetUrl, selectedPlatform);
@@ -875,10 +884,16 @@ export default function OrderPage() {
                         {validateTargetUrl()}
                       </motion.p>
                     )}
-                    {targetUrl && !validateTargetUrl() && (
+                    {targetUrl && !validateTargetUrl() && selectedPlatform && STRICT_LINK_PLATFORMS.includes(selectedPlatform) && (
                       <motion.p className="text-xs text-emerald-400 mt-2 flex items-center gap-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                         <FiCheck className="w-4 h-4" />
                         URL is valid for {platformLabel}
+                      </motion.p>
+                    )}
+                    {targetUrl && !validateTargetUrl() && selectedPlatform && !STRICT_LINK_PLATFORMS.includes(selectedPlatform) && (
+                      <motion.p className="text-xs text-yellow-400 mt-2 flex items-start gap-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                        <FiAlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                        We can&apos;t auto-verify this link type — please double-check it&apos;s the correct link for your order before paying.
                       </motion.p>
                     )}
                     {!targetUrl && (
