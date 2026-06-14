@@ -11,18 +11,25 @@
  */
 
 import { NextRequest } from 'next/server';
+import crypto from 'crypto';
 import { getSabiSession } from './sabiAuth';
 
 const ADMIN_EMAIL = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'olusehinde09@gmail.com').toLowerCase();
 
+// Constant-time string compare (avoids timing attacks on the admin secret).
+function safeEqual(a: string, b: string): boolean {
+  const ba = Buffer.from(a);
+  const bb = Buffer.from(b);
+  if (ba.length !== bb.length) return false;
+  return crypto.timingSafeEqual(ba, bb);
+}
+
 export async function checkSabiAdmin(req: NextRequest): Promise<boolean> {
   // 1. Check X-Admin-Token header (sent by the token-based admin login)
   const adminSecret = process.env.SABI_ADMIN_SECRET;
-  if (!adminSecret) {
-    // SABI_ADMIN_SECRET env var not configured — deny token-based access
-  } else {
+  if (adminSecret) {
     const headerToken = req.headers.get('x-admin-token') || req.headers.get('authorization')?.replace('Bearer ', '');
-    if (headerToken && headerToken === adminSecret) {
+    if (headerToken && safeEqual(headerToken, adminSecret)) {
       return true;
     }
   }
