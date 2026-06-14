@@ -154,12 +154,14 @@ export async function GET(req: NextRequest) {
       `${process.env.NEXT_PUBLIC_APP_URL || 'https://sability.io'}/sabi/dashboard`
     );
 
-    // Set cookies on the redirect response
+    // Set cookies on the redirect response. path '/' so the cookie reaches
+    // every route, not just /api/sabi/auth.
     response.cookies.set('sabi_session_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 30 * 24 * 60 * 60, // 30 days
+      path: '/',
     });
 
     response.cookies.set('sabi_session_id', user.id, {
@@ -167,6 +169,7 @@ export async function GET(req: NextRequest) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 30 * 24 * 60 * 60, // 30 days
+      path: '/',
     });
 
     return response;

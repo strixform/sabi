@@ -53,12 +53,14 @@ export async function POST(req: NextRequest) {
       message: 'Registration successful. Check your email to verify.',
     });
 
-    // Ensure cookies are set on the response
+    // Ensure cookies are set on the response. path '/' so the cookie reaches
+    // every route, not just /api/sabi/auth.
     response.cookies.set('sabi_session_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 30 * 24 * 60 * 60, // 30 days
+      path: '/',
     });
 
     response.cookies.set('sabi_session_id', result.userId!, {
@@ -66,6 +68,7 @@ export async function POST(req: NextRequest) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 30 * 24 * 60 * 60, // 30 days
+      path: '/',
     });
 
     return response;

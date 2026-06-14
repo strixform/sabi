@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { loginSabiUser, createSabiSession, prewarmSessionCache } from '@/lib/sabiAuth';
 import { getRateLimitKey, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit';
-import { prisma } from '@/lib/prisma';
 
 export const preferredRegion = 'sfo1';
 export const maxDuration = 30; // Turso wake-up can take 15-20s on first cold request
@@ -49,27 +48,17 @@ export async function POST(req: NextRequest) {
       ),
     ]);
 
-    // Pre-warm Redis — next page load reads from Redis, not Turso
-    // userId is enough to build a minimal session; getSabiSession will enrich on next miss
-    // MUST await prewarm before returning — if we fire-and-forget, the browser
-    // redirects to /sabi/dashboard before Redis has the session. getSabiSession()
-    // misses Redis, falls back to Turso (slow/not-written-yet) → null → login loop.
-    if (result.userId) {
+    // Pre-warm Redis so the next page load reads from Redis, not (cold) Turso.
+    // MUST await before returning — if we fire-and-forget, the browser redirects
+    // to /sabi/dashboard before Redis has the session, getSabiSession() misses
+    // Redis, falls back to Turso (slow/not-written-yet) → null → login loop.
+    //
+    // We prewarm from the profile loginSabiUser ALREADY fetched — no extra DB
+    // lookup. The old code did a second prisma.findUnique here that timed out on
+    // a cold Turso, so Redis often wasn't warmed → the "refresh & login again" bug.
+    if (result.user) {
       try {
-        const u = await Promise.race([
-          prisma.sabiUser.findUnique({
-            where: { id: result.userId },
-            select: { id: true, email: true, name: true, businessName: true, status: true, emailVerified: true },
-          }),
-          new Promise<null>(resolve => setTimeout(() => resolve(null), 4000)),
-        ]);
-        if (u) {
-          await prewarmSessionCache(token, {
-            id: u.id, email: u.email, name: u.name,
-            businessName: u.businessName ?? null,
-            status: u.status, emailVerified: u.emailVerified,
-          });
-        }
+        await prewarmSessionCache(token, result.user);
       } catch { /* non-fatal — login still succeeds, session validated via Turso fallback */ }
     }
 
@@ -79,12 +68,14 @@ export async function POST(req: NextRequest) {
       message: 'Login successful',
     });
 
-    // Ensure cookies are set on the response
+    // Ensure cookies are set on the response. path '/' is REQUIRED so the cookie
+    // is sent to /sabi/dashboard and all /api routes — not just /api/sabi/auth.
     response.cookies.set('sabi_session_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 30 * 24 * 60 * 60, // 30 days
+      path: '/',
     });
 
     response.cookies.set('sabi_session_id', result.userId!, {
@@ -92,6 +83,7 @@ export async function POST(req: NextRequest) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 30 * 24 * 60 * 60, // 30 days
+      path: '/',
     });
 
     return response;

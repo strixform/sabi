@@ -201,7 +201,7 @@ export async function registerSabiUser(
 export async function loginSabiUser(
   email: string,
   password: string
-): Promise<{ success: boolean; error?: string; userId?: string }> {
+): Promise<{ success: boolean; error?: string; userId?: string; user?: SabiSession }> {
   try {
     // Read via DIRECT libsql (sabiExecute) — NOT Prisma. Prisma's libsql adapter
     // has 10-80s cold starts on Vercel; the 6s withDbTimeout fired before Prisma
@@ -236,7 +236,22 @@ export async function loginSabiUser(
       return { success: false, error: 'Account suspended' };
     }
 
-    return { success: true, userId: user.id };
+    // Return the full profile (already fetched above) so the login route can
+    // prewarm Redis WITHOUT a second DB lookup. The old prewarm did a separate
+    // prisma.findUnique that timed out on a cold Turso → Redis never warmed →
+    // dashboard hit cold Turso again → null session → "refresh & login again".
+    return {
+      success: true,
+      userId: user.id,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        businessName: user.businessName ?? null,
+        status: user.status,
+        emailVerified: !!user.emailVerified,
+      },
+    };
   } catch (error) {
     const msg = (error as Error)?.message || '';
     console.error('[loginSabiUser]', msg.slice(0, 200));
@@ -263,6 +278,9 @@ export async function createSabiSession(userId: string): Promise<string> {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax' as const,
     maxAge: SESSION_DURATION / 1000,
+    // path '/' is REQUIRED — without it the cookie defaults to the /api/sabi/auth
+    // request directory and isn't sent to /sabi/dashboard or other API routes.
+    path: '/',
   };
   cookieStore.set('sabi_session_token', token, cookieOpts);
   cookieStore.set('sabi_session_id', userId, cookieOpts);
@@ -384,8 +402,9 @@ export async function verifySabiEmail(userId: string, code: string): Promise<{ s
 // Clear session
 export async function clearSabiSession(): Promise<void> {
   const cookieStore = await cookies();
-  cookieStore.delete('sabi_session_token');
-  cookieStore.delete('sabi_session_id');
+  // Must match the path the cookies were set with ('/'), else delete is a no-op.
+  cookieStore.delete({ name: 'sabi_session_token', path: '/' });
+  cookieStore.delete({ name: 'sabi_session_id', path: '/' });
 }
 
 // Request password reset
