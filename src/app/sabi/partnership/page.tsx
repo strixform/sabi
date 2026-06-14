@@ -66,8 +66,8 @@ export default function PartnershipPage() {
 
         <div className="text-center mb-8">
           <span className="text-xs font-bold text-purple-300 uppercase tracking-widest">SABI Partnership</span>
-          <h1 className="text-4xl sm:text-5xl font-black mt-2 mb-3"><GradientText>Run your own SMM panel</GradientText></h1>
-          <p className="text-slate-400 max-w-xl mx-auto">We build you a branded reseller website with our API embedded — resell all of SABI&apos;s real-engagement services under your own brand. One-time <b className="text-white">₦{feeNaira.toLocaleString()}</b>.</p>
+          <h1 className="text-4xl sm:text-5xl font-black mt-2 mb-3"><GradientText>Your own growth engine website</GradientText></h1>
+          <p className="text-slate-400 max-w-xl mx-auto">We build you a branded growth engine website with our API embedded — resell all of SABI&apos;s real-engagement services under your own brand. One-time <b className="text-white">₦{feeNaira.toLocaleString()}</b>.</p>
         </div>
 
         {loading ? (

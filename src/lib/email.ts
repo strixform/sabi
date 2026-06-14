@@ -17,6 +17,34 @@ function baseHtml(title: string, body: string) {
   </div>`;
 }
 
+export async function sendGrowthDigestEmail(email: string, name: string, d: { orders: number; delivered: number; topService: string }) {
+  try {
+    await resend.emails.send({
+      from: FROM, to: email,
+      subject: `📈 Your weekly growth on SABI`,
+      html: baseHtml('Your Week on SABI', `
+        <p>Hi <b>${name}</b>,</p>
+        <p>Here's what real Nigerians delivered for you this week:</p>
+        <div style="display:flex;gap:12px;margin:20px 0">
+          <div style="flex:1;background:#1e293b;border-radius:12px;padding:18px;text-align:center">
+            <div style="font-size:28px;font-weight:800;color:#34d399">${d.delivered.toLocaleString()}</div>
+            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase">actions delivered</div>
+          </div>
+          <div style="flex:1;background:#1e293b;border-radius:12px;padding:18px;text-align:center">
+            <div style="font-size:28px;font-weight:800;color:#60a5fa">${d.orders}</div>
+            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase">orders completed</div>
+          </div>
+        </div>
+        ${d.topService ? `<p style="color:#94a3b8;font-size:13px">Most-ordered this week: <b style="color:#e2e8f0">${d.topService.replace(/_/g, ' ')}</b></p>` : ''}
+        <p>Keep the momentum going 👇</p>
+        <div style="text-align:center;margin-top:20px">
+          <a href="${APP_URL}/sabi/order" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:bold">Order again</a>
+        </div>
+      `),
+    });
+  } catch {}
+}
+
 export async function sendPartnershipAdminEmail(brandName: string, domain: string, phone: string, notes: string) {
   const adminEmail = process.env.SABI_ADMIN_EMAIL;
   if (!adminEmail) return;

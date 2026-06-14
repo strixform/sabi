@@ -15,7 +15,7 @@ const playfair = Playfair_Display({ weight: ['400', '500', '600', '700', '800', 
 export const metadata: Metadata = {
   title: 'SABI — Nigeria\'s Social Media Engine',
   description: 'The only social media growth platform powered by 300,000 real Nigerians. Real followers, likes, views and comments across 11 platforms. Target by state, city and gender. Orders start within minutes.',
-  keywords: 'Nigerian followers, real engagement, Instagram followers Nigeria, TikTok followers Nigeria, YouTube subscribers Nigeria, Lagos followers, Abuja audience, real Nigerian users, SMM Nigeria',
+  keywords: 'Nigerian followers, real engagement, Instagram followers Nigeria, TikTok followers Nigeria, YouTube subscribers Nigeria, Lagos followers, Abuja audience, real Nigerian users, social growth Nigeria',
   openGraph: {
     title: 'SABI — Powered by 300,000 Real Nigerians',
     description: 'Real followers. Real comments. Real engagement — from verified Nigerians across every state. 11 platforms. 50+ services. Orders start within minutes.',
@@ -53,7 +53,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="SABI" />
         <meta name="application-name" content="SABI" />
-        <meta name="description" content="Place SMM orders with verified Nigerian gamers" />
+        <meta name="description" content="Grow your social media with verified real Nigerian users" />
         <link rel="icon" href="/sabi-favicon.png?v=2024060502" type="image/png" />
         <link rel="apple-touch-icon" href="/sabi-favicon.png?v=2024060502" />
         <link rel="shortcut icon" href="/sabi-favicon.png?v=2024060502" type="image/png" />
