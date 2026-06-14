@@ -59,10 +59,23 @@ async function withTimeout<T>(op: () => Promise<T>): Promise<T | null> {
 export async function consumePromoBudget(amountKobo: number, budgetKobo: number): Promise<boolean> {
   const client = await getRedisClient();
   if (!client) return true; // fail open
+  const day = new Date().toISOString().slice(0, 10);
   const res = await withTimeout(async () => {
-    const key = `sabi_promo:${new Date().toISOString().slice(0, 10)}`;
+    const key = `sabi_promo:${day}`;
     const cur = Number((await client.get(key)) || 0);
-    if (cur >= budgetKobo) return false; // budget exhausted for today
+    if (cur >= budgetKobo) {
+      // First time we hit the cap today → alert admin once.
+      const alertKey = `sabi_promo_alerted:${day}`;
+      const already = await client.get(alertKey);
+      if (!already) {
+        await client.setEx(alertKey, 172800, "1");
+        import("./email").then(({ sendAdminAlertEmail }) =>
+          sendAdminAlertEmail("Daily promo budget exhausted",
+            `<p>Today's giveaway budget (cashback + top-up bonuses + referrals) of <b>₦${Math.round(budgetKobo / 100).toLocaleString()}</b> has been reached. Further giveaways are paused until tomorrow.</p>`)
+        ).catch(() => {});
+      }
+      return false; // budget exhausted for today
+    }
     await client.incrBy(key, amountKobo);
     await client.expire(key, 172800); // 2 days
     return true;

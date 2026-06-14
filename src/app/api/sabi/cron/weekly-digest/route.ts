@@ -67,5 +67,23 @@ export async function GET(req: NextRequest) {
     }));
   }
 
+  // Weekly margin health check — alert admin if the last 7 days sold below cost.
+  try {
+    const m = await sabiExecute({
+      sql: `SELECT COALESCE(SUM(totalPrice + platformFee - COALESCE(discountAmount,0)),0) AS revenue,
+                   COALESCE(SUM(totalPrice),0) AS cost
+            FROM SabiOrder WHERE createdAt >= datetime('now','-7 days')`,
+      args: [],
+    });
+    const revenue = Number((m.rows[0] as any)?.revenue || 0);
+    const cost = Number((m.rows[0] as any)?.cost || 0);
+    const margin = revenue - cost;
+    if (revenue > 0 && margin < 0) {
+      const { sendAdminAlertEmail } = await import('@/lib/email');
+      await sendAdminAlertEmail('Negative margin this week',
+        `<p>Over the last 7 days, revenue was <b>₦${Math.round(revenue / 100).toLocaleString()}</b> but tasker cost was <b>₦${Math.round(cost / 100).toLocaleString()}</b> — a <b style="color:#ef4444">loss of ₦${Math.round(-margin / 100).toLocaleString()}</b>. Consider raising the discount floor or lowering the promo budget.</p>`);
+    }
+  } catch { /* non-fatal */ }
+
   return NextResponse.json({ sent, eligible: rows.length });
 }

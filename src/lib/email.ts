@@ -17,6 +17,18 @@ function baseHtml(title: string, body: string) {
   </div>`;
 }
 
+export async function sendAdminAlertEmail(subject: string, bodyHtml: string) {
+  const adminEmail = process.env.SABI_ADMIN_EMAIL;
+  if (!adminEmail) return;
+  try {
+    await resend.emails.send({
+      from: FROM, to: adminEmail,
+      subject: `🚨 SABI alert — ${subject}`,
+      html: baseHtml(subject, `${bodyHtml}<div style="text-align:center;margin-top:24px"><a href="${APP_URL}/sabi/admin/economics" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:bold">Open Economics</a></div>`),
+    });
+  } catch {}
+}
+
 export async function sendGrowthDigestEmail(email: string, name: string, d: { orders: number; delivered: number; topService: string }) {
   try {
     await resend.emails.send({
