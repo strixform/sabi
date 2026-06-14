@@ -94,9 +94,13 @@ export async function POST(req: NextRequest) {
     // Reward larger top-ups with a bonus credit (idempotent via a distinct ref).
     let bonusKobo = 0;
     try {
-      const { topupBonusKobo } = await import('@/lib/sabiPerks');
+      const { topupBonusKobo, DAILY_PROMO_BUDGET_KOBO } = await import('@/lib/sabiPerks');
       bonusKobo = topupBonusKobo(amountInKobo);
       if (bonusKobo > 0) {
+        // Respect the daily promo budget (fail-open).
+        const { consumePromoBudget } = await import('@/lib/redis');
+        const within = await consumePromoBudget(bonusKobo, DAILY_PROMO_BUDGET_KOBO);
+        if (!within) { bonusKobo = 0; throw new Error('promo budget exhausted'); }
         const bonusResult = await creditSabiWallet(session.id, bonusKobo, `${txRef}_bonus`);
         if (bonusResult.success) newBalanceKobo = bonusResult.balance ?? (newBalanceKobo + bonusKobo);
         else bonusKobo = 0;

@@ -37,6 +37,14 @@ export async function creditOrderCashback(orderId: string, userId: string, charg
   const amountKobo = Math.min(Math.round(chargedKobo * CASHBACK_RATE), CASHBACK_CAP_KOBO);
   if (amountKobo <= 0) return 0;
 
+  // Respect the daily promo budget (fail-open).
+  try {
+    const { consumePromoBudget } = await import('./redis');
+    const { DAILY_PROMO_BUDGET_KOBO } = await import('./sabiPerks');
+    const ok = await consumePromoBudget(amountKobo, DAILY_PROMO_BUDGET_KOBO);
+    if (!ok) return 0; // budget exhausted today — skip cashback
+  } catch { /* if the check fails, fall through (fail open) */ }
+
   await ensureTable();
 
   // Claim the ledger row first — if it already exists this throws and we stop.

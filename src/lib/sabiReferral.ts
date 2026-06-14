@@ -21,6 +21,15 @@ export async function triggerReferralOnFunding(userId: string): Promise<void> {
     const wallet = await prisma.sabiWallet.findUnique({ where: { userId }, select: { totalFunded: true } });
     if (!wallet || (wallet.totalFunded || 0) < REFERRAL_FUNDING_THRESHOLD_KOBO) return;
 
+    // Respect the daily promo budget (₦100 × 2 sides). Fail-open. If exhausted,
+    // leave untriggered so it can fire on the referee's next funding event.
+    try {
+      const { consumePromoBudget } = await import('./redis');
+      const { DAILY_PROMO_BUDGET_KOBO } = await import('./sabiPerks');
+      const ok = await consumePromoBudget(REWARD_KOBO * 2, DAILY_PROMO_BUDGET_KOBO);
+      if (!ok) return;
+    } catch { /* fail open */ }
+
     // Claim the trigger first to avoid double-payout on concurrent credits.
     await prisma.sabiReferral.update({ where: { id: ref.id }, data: { triggeredAt: new Date() } });
 

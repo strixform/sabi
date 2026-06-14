@@ -51,6 +51,33 @@ async function withTimeout<T>(op: () => Promise<T>): Promise<T | null> {
   }
 }
 
+/**
+ * Daily promo-budget gate. Returns true if `amountKobo` of giveaway can be
+ * spent today within `budgetKobo`, and records it. Fail-OPEN: if Redis is
+ * unavailable we allow the credit (never block a legit payout on a cache outage).
+ */
+export async function consumePromoBudget(amountKobo: number, budgetKobo: number): Promise<boolean> {
+  const client = await getRedisClient();
+  if (!client) return true; // fail open
+  const res = await withTimeout(async () => {
+    const key = `sabi_promo:${new Date().toISOString().slice(0, 10)}`;
+    const cur = Number((await client.get(key)) || 0);
+    if (cur >= budgetKobo) return false; // budget exhausted for today
+    await client.incrBy(key, amountKobo);
+    await client.expire(key, 172800); // 2 days
+    return true;
+  });
+  return res === null ? true : res; // timeout/error → fail open
+}
+
+/** Today's promo spend so far (kobo) — for the economics dashboard. */
+export async function getPromoSpendToday(): Promise<number> {
+  const client = await getRedisClient();
+  if (!client) return 0;
+  const res = await withTimeout(async () => Number((await client.get(`sabi_promo:${new Date().toISOString().slice(0, 10)}`)) || 0));
+  return res || 0;
+}
+
 export async function getCachedWallet(userId: string) {
   const client = await getRedisClient();
   if (!client) return null;
