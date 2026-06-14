@@ -17,6 +17,48 @@ function baseHtml(title: string, body: string) {
   </div>`;
 }
 
+export async function sendAdminRefillRequestEmail(orderId: string, serviceName: string, quantity: number, reason: string) {
+  const adminEmail = process.env.SABI_ADMIN_EMAIL;
+  if (!adminEmail) return;
+  try {
+    await resend.emails.send({
+      from: FROM, to: adminEmail,
+      subject: `🔁 Refill request — ${serviceName} ×${quantity}`,
+      html: baseHtml('Refill Request', `
+        <p>A buyer requested a refill that needs your review:</p>
+        <ul>
+          <li><b>Order:</b> ${orderId}</li>
+          <li><b>Service:</b> ${serviceName.replace(/_/g, ' ')}</li>
+          <li><b>Refill quantity:</b> ${quantity.toLocaleString()}</li>
+          <li><b>Reason:</b> ${reason || '—'}</li>
+        </ul>
+        <div style="text-align:center;margin-top:24px">
+          <a href="${APP_URL}/sabi/admin/refills" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:bold">Review Refill</a>
+        </div>
+      `),
+    });
+  } catch {}
+}
+
+export async function sendRefillResolvedEmail(email: string, name: string, orderId: string, approved: boolean, quantity: number, note: string) {
+  try {
+    await resend.emails.send({
+      from: FROM, to: email,
+      subject: approved ? `✅ Refill approved — ${quantity} on the way` : `Refill request update`,
+      html: baseHtml(approved ? 'Refill Approved' : 'Refill Reviewed', `
+        <p>Hi <b>${name}</b>,</p>
+        <p>${approved
+          ? `Your refill of <b>${quantity.toLocaleString()}</b> has been approved and is now being delivered by our crowd — no charge.`
+          : `We reviewed your refill request and couldn't approve it this time.`}</p>
+        ${note ? `<p style="color:#94a3b8;font-size:13px">Note: ${note}</p>` : ''}
+        <div style="text-align:center;margin-top:24px">
+          <a href="${APP_URL}/sabi/orders/${orderId}" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:bold">View Order</a>
+        </div>
+      `),
+    });
+  } catch {}
+}
+
 export async function sendOrderStartedEmail(email: string, name: string, orderId: string, serviceName: string, quantity: number) {
   try {
     await resend.emails.send({

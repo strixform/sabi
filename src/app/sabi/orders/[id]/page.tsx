@@ -92,6 +92,37 @@ export default function OrderTrackingPage() {
   const [ratingSaved, setRatingSaved] = useState(false);
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
 
+  // Refill / drop-protection (admin-moderated)
+  const [refillReq, setRefillReq] = useState<any>(null);
+  const [refillQty, setRefillQty] = useState('');
+  const [refillReason, setRefillReason] = useState('');
+  const [refillOpen, setRefillOpen] = useState(false);
+  const [refillSubmitting, setRefillSubmitting] = useState(false);
+  const [refillError, setRefillError] = useState('');
+
+  useEffect(() => {
+    fetch(`/api/sabi/orders/${orderId}/refill`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (d?.success) setRefillReq(d.request || null); })
+      .catch(() => {});
+  }, [orderId]);
+
+  const submitRefill = async () => {
+    setRefillError('');
+    const q = parseInt(refillQty);
+    if (!q || q < 1) { setRefillError('Enter how many you need refilled.'); return; }
+    setRefillSubmitting(true);
+    try {
+      const res = await fetch(`/api/sabi/orders/${orderId}/refill`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: q, reason: refillReason }),
+      });
+      const d = await res.json().catch(() => null);
+      if (res.ok && d?.success) { setRefillReq(d.request); setRefillOpen(false); }
+      else setRefillError(d?.error || 'Could not submit refill request');
+    } finally { setRefillSubmitting(false); }
+  };
+
   useEffect(() => {
     let active = true;
     fetch(`/api/sabi/orders/${orderId}/rate`)
@@ -634,6 +665,62 @@ export default function OrderTrackingPage() {
                       </motion.button>
                     </div>
                   </>
+                )}
+              </div>
+            </InteractiveCard>
+          </motion.div>
+        )}
+
+        {/* ── REFILL / DROP PROTECTION — admin-moderated ───────────────────────── */}
+        {(order.status === 'completed' || order.status === 'executing') && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.49 }} className="mt-8">
+            <InteractiveCard glowColor="cyan">
+              <div className="p-6 sm:p-8">
+                <h3 className="text-lg font-bold flex items-center gap-2 mb-1">🔁 Refill / drop protection</h3>
+                {refillReq ? (
+                  <div className="mt-2">
+                    <span className={`text-xs font-bold px-3 py-1 rounded-full ${
+                      refillReq.status === 'approved' ? 'bg-emerald-500/20 text-emerald-300'
+                      : refillReq.status === 'rejected' ? 'bg-red-500/20 text-red-300'
+                      : 'bg-yellow-500/15 text-yellow-300'}`}>
+                      Refill {refillReq.status}
+                    </span>
+                    <p className="text-sm text-slate-400 mt-3">
+                      {refillReq.status === 'pending' && `Your request to refill ${Number(refillReq.refillQuantity).toLocaleString()} is under review. We verify every refill before delivering it.`}
+                      {refillReq.status === 'approved' && `Approved — ${Number(refillReq.refillQuantity).toLocaleString()} is being delivered, free of charge.`}
+                      {refillReq.status === 'rejected' && `This refill request wasn't approved.${refillReq.adminNote ? ` (${refillReq.adminNote})` : ''}`}
+                    </p>
+                  </div>
+                ) : !refillOpen ? (
+                  <>
+                    <p className="text-xs text-slate-400 mb-4">Lost some of what you ordered (e.g. followers dropped)? Request a refill — we review each one before re-delivering, free.</p>
+                    <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => setRefillOpen(true)}
+                      className="px-5 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-lg text-sm">
+                      Request a refill
+                    </motion.button>
+                  </>
+                ) : (
+                  <div className="mt-2 space-y-3">
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">How many to refill? (max {order.quantity.toLocaleString()})</label>
+                      <input type="number" min={1} max={order.quantity} value={refillQty} onChange={e => setRefillQty(e.target.value)}
+                        placeholder="e.g. 120" className="w-full bg-[#0F1420] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500/40" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">What happened? (helps us verify)</label>
+                      <textarea rows={2} value={refillReason} onChange={e => setRefillReason(e.target.value)} maxLength={300}
+                        placeholder="e.g. ~120 followers dropped over the weekend"
+                        className="w-full bg-[#0F1420] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500/40 resize-none" />
+                    </div>
+                    {refillError && <p className="text-red-400 text-xs">{refillError}</p>}
+                    <div className="flex gap-2">
+                      <motion.button whileTap={{ scale: 0.97 }} onClick={submitRefill} disabled={refillSubmitting}
+                        className="px-5 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-lg text-sm disabled:opacity-50">
+                        {refillSubmitting ? 'Submitting…' : 'Submit for review'}
+                      </motion.button>
+                      <button onClick={() => setRefillOpen(false)} className="px-4 py-2 text-slate-400 text-sm hover:text-slate-200">Cancel</button>
+                    </div>
+                  </div>
                 )}
               </div>
             </InteractiveCard>
