@@ -88,6 +88,40 @@ function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
+// ─── Stateless signed session tokens ───────────────────────────────────────
+// SECURITY: the session token must cryptographically bind to the userId so it
+// cannot be forged or swapped. Token = `${userId}.${exp}.${HMAC(userId.exp)}`.
+// The userId is taken FROM the verified token (not a separate cookie), which
+// closes the previous "set sabi_session_id to anyone" auth-bypass. Stateless,
+// so it needs no DB column (the Turso sessionToken write is best-effort).
+function getSessionSecret(): string {
+  const s = process.env.SABI_SESSION_SECRET || process.env.SABI_INTEGRATION_TOKEN || process.env.SABI_ADMIN_SECRET || '';
+  if (!s) console.error('[sabiAuth] No session secret env set — sessions are insecure. Set SABI_SESSION_SECRET.');
+  return s;
+}
+function signSession(userId: string, exp: string | number): string {
+  return crypto.createHmac('sha256', getSessionSecret()).update(`${userId}.${exp}`).digest('base64url');
+}
+function makeSessionToken(userId: string): string {
+  const exp = Date.now() + SESSION_DURATION;
+  return `${userId}.${exp}.${signSession(userId, exp)}`;
+}
+/** Returns the userId iff the token's signature + expiry are valid, else null. */
+function verifySessionToken(token: string): string | null {
+  const secret = getSessionSecret();
+  if (!secret) return null; // fail closed when misconfigured
+  const parts = token.split('.');
+  if (parts.length !== 3) return null; // old-format / malformed → reject (forces re-login)
+  const [userId, expStr, sig] = parts;
+  if (!userId || !expStr || !sig) return null;
+  if (!/^\d+$/.test(expStr) || Number(expStr) < Date.now()) return null;
+  const expected = signSession(userId, expStr);
+  const a = Buffer.from(sig);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  return userId;
+}
+
 // Register user
 export async function registerSabiUser(
   email: string,
@@ -216,7 +250,7 @@ export async function loginSabiUser(
 
 // Create session
 export async function createSabiSession(userId: string): Promise<string> {
-  const token = crypto.randomBytes(32).toString('hex');
+  const token = makeSessionToken(userId); // signed: `${userId}.${exp}.${hmac}`
   const hashedToken = hashToken(token);
   const sessionExpiry = new Date(Date.now() + SESSION_DURATION);
 
@@ -266,20 +300,20 @@ export async function getSabiSession(): Promise<SabiSession | null> {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get('sabi_session_token')?.value;
-    const userId = cookieStore.get('sabi_session_id')?.value;
+    if (!token) return null;
 
-    if (!token || !userId) return null;
+    // 1. SECURITY: verify the token's HMAC signature + expiry. The userId is taken
+    //    from inside the signed token — NOT from a separate (forgeable) cookie.
+    const userId = verifySessionToken(token);
+    if (!userId) return null;
 
-    // 1. Check Redis cache — avoids DB query on 90%+ of requests
+    // 2. Check Redis cache — avoids DB query on 90%+ of requests. The cache key is
+    //    the signed token, which is now unforgeable, so a cache hit is trustworthy.
     const cached = await tryGetCachedSession(token);
     if (cached) return cached as SabiSession;
 
-    // 2. Validate by userId only — the httpOnly token cookie IS the credential
-    //    (32 random bytes, unreadable by JS, set at login). We do NOT match it
-    //    against a DB column: the separated `sabi` Turso DB may not have the
-    //    sessionToken column, and matching it returned null on every request → loop.
-    //    This is the SAME proven pattern gamerz360 uses (see its auth.ts note).
-    //    Direct libsql (sabiExecute) — no Prisma cold-start. Lookup by primary key.
+    // 3. Load the user profile by the VERIFIED userId. Direct libsql (no Prisma
+    //    cold-start). Lookup by primary key.
     let user: any = null;
     try {
       const result = await sabiExecute({
