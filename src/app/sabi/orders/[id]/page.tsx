@@ -100,6 +100,27 @@ export default function OrderTrackingPage() {
   const [refillSubmitting, setRefillSubmitting] = useState(false);
   const [refillError, setRefillError] = useState('');
 
+  // Shortfall refund
+  const [shortfall, setShortfall] = useState<any>(null);
+  const [shortfallBusy, setShortfallBusy] = useState(false);
+  const [shortfallDone, setShortfallDone] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/sabi/orders/${orderId}/shortfall`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (d?.success) setShortfall(d); })
+      .catch(() => {});
+  }, [orderId]);
+
+  const claimShortfall = async () => {
+    setShortfallBusy(true);
+    try {
+      const res = await fetch(`/api/sabi/orders/${orderId}/shortfall`, { method: 'POST' });
+      const d = await res.json().catch(() => null);
+      if (res.ok && d?.success) { setShortfallDone(d.refundedKobo); setShortfall((s: any) => ({ ...s, eligible: false, claimed: true })); }
+    } finally { setShortfallBusy(false); }
+  };
+
   useEffect(() => {
     fetch(`/api/sabi/orders/${orderId}/refill`)
       .then(r => (r.ok ? r.json() : null))
@@ -721,6 +742,31 @@ export default function OrderTrackingPage() {
                       <button onClick={() => setRefillOpen(false)} className="px-4 py-2 text-slate-400 text-sm hover:text-slate-200">Cancel</button>
                     </div>
                   </div>
+                )}
+              </div>
+            </InteractiveCard>
+          </motion.div>
+        )}
+
+        {/* ── SHORTFALL REFUND — under-delivered orders ────────────────────────── */}
+        {(shortfallDone !== null || shortfall?.eligible) && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.495 }} className="mt-8">
+            <InteractiveCard glowColor="orange">
+              <div className="p-6 sm:p-8">
+                <h3 className="text-lg font-bold flex items-center gap-2 mb-1">💸 Under-delivery refund</h3>
+                {shortfallDone !== null ? (
+                  <p className="text-sm text-emerald-300 mt-2">Refunded <b>₦{(shortfallDone / 100).toLocaleString()}</b> to your wallet for the undelivered portion. Thanks for your patience!</p>
+                ) : (
+                  <>
+                    <p className="text-xs text-slate-400 mb-4">
+                      This order delivered {order.completedQuantity?.toLocaleString() || 0} of {order.quantity.toLocaleString()}.
+                      You can claim a refund of <b className="text-orange-300">₦{((shortfall.refundKobo || 0) / 100).toLocaleString()}</b> for the {shortfall.shortfallQty?.toLocaleString()} not delivered — or request a refill instead (above).
+                    </p>
+                    <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={claimShortfall} disabled={shortfallBusy}
+                      className="px-5 py-2 bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold rounded-lg text-sm disabled:opacity-50">
+                      {shortfallBusy ? 'Processing…' : `Claim ₦${((shortfall.refundKobo || 0) / 100).toLocaleString()} refund`}
+                    </motion.button>
+                  </>
                 )}
               </div>
             </InteractiveCard>

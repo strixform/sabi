@@ -44,6 +44,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (order.status !== 'completed' && order.status !== 'executing') {
     return NextResponse.json({ error: 'You can only request a refill on a delivered order.' }, { status: 400 });
   }
+  // Mutually exclusive with a shortfall refund.
+  try {
+    const claimed = await sabiExecute({ sql: `SELECT orderId FROM SabiShortfallClaim WHERE orderId = ? LIMIT 1`, args: [id] });
+    if (claimed.rows.length > 0) {
+      return NextResponse.json({ error: 'You already claimed an under-delivery refund for this order.' }, { status: 400 });
+    }
+  } catch { /* ledger table may not exist yet — no claim possible */ }
   if (!Number.isFinite(quantity) || quantity < 1) {
     return NextResponse.json({ error: 'Enter how many you need refilled.' }, { status: 400 });
   }
