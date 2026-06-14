@@ -34,11 +34,19 @@ export async function GET(req: NextRequest) {
         sql: `SELECT id, serviceType, quantity, status, createdAt FROM SabiOrder WHERE userId = ? ORDER BY createdAt DESC LIMIT 5`,
         args: [u.id],
       });
+      // Wallet — did money move without orders?
+      let wallet: any = null;
+      try {
+        const w = await sabiExecute({ sql: `SELECT balance, totalFunded, totalSpent, totalRefunded FROM SabiWallet WHERE userId = ? LIMIT 1`, args: [u.id] });
+        const row = w.rows[0] as any;
+        if (row) wallet = { balanceNaira: Math.round(Number(row.balance || 0) / 100), totalFundedNaira: Math.round(Number(row.totalFunded || 0) / 100), totalSpentNaira: Math.round(Number(row.totalSpent || 0) / 100), totalRefundedNaira: Math.round(Number(row.totalRefunded || 0) / 100) };
+      } catch {}
       report.push({
         userId: u.id,
         email: u.email,
         name: u.name,
         orderCount: Number((cnt.rows[0] as any)?.c || 0),
+        wallet,
         recentOrders: (sample.rows as any[]).map(o => ({ id: o.id, serviceType: o.serviceType, quantity: o.quantity, status: o.status, createdAt: o.createdAt })),
       });
     }
