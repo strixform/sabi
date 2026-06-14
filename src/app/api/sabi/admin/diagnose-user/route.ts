@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkSabiAdmin } from '@/lib/sabiAdminAuth';
 import { sabiExecute } from '@/lib/tursoClient';
+import { creditSabiWallet } from '@/lib/sabiWallet';
 
 export const maxDuration = 20;
 export const preferredRegion = 'sfo1';
@@ -15,6 +16,7 @@ export const preferredRegion = 'sfo1';
 export async function GET(req: NextRequest) {
   if (!await checkSabiAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   const email = (req.nextUrl.searchParams.get('email') || '').trim().toLowerCase();
+  const doRefund = req.nextUrl.searchParams.get('refund') === 'YES';
   if (!email) return NextResponse.json({ error: 'email query param required' }, { status: 400 });
 
   try {
@@ -41,12 +43,33 @@ export async function GET(req: NextRequest) {
         const row = w.rows[0] as any;
         if (row) wallet = { balanceNaira: Math.round(Number(row.balance || 0) / 100), totalFundedNaira: Math.round(Number(row.totalFunded || 0) / 100), totalSpentNaira: Math.round(Number(row.totalSpent || 0) / 100), totalRefundedNaira: Math.round(Number(row.totalRefunded || 0) / 100) };
       } catch {}
+      // "Unaccounted spend" = money debited that has no matching order
+      // (the charged-without-order bug). accounted = sum of charges across their
+      // actual orders; anything spent beyond that was taken without an order.
+      let unaccountedKobo = 0;
+      try {
+        const acc = await sabiExecute({ sql: `SELECT COALESCE(SUM(totalPrice + platformFee - COALESCE(discountAmount,0)),0) AS a FROM SabiOrder WHERE userId = ?`, args: [u.id] });
+        const w2 = await sabiExecute({ sql: `SELECT totalSpent FROM SabiWallet WHERE userId = ? LIMIT 1`, args: [u.id] });
+        const accountedKobo = Number((acc.rows[0] as any)?.a || 0);
+        const spentKobo = Number((w2.rows[0] as any)?.totalSpent || 0);
+        unaccountedKobo = Math.max(0, spentKobo - accountedKobo);
+      } catch {}
+
+      // Optional one-time refund of the unaccounted spend (idempotent: fixed ref).
+      let refunded: number | null = null;
+      if (doRefund && unaccountedKobo > 0) {
+        const credit = await creditSabiWallet(u.id, unaccountedKobo, `engine-refund:${u.id}`).catch(() => ({ success: false } as any));
+        if (credit.success) refunded = Math.round(unaccountedKobo / 100);
+      }
+
       report.push({
         userId: u.id,
         email: u.email,
         name: u.name,
         orderCount: Number((cnt.rows[0] as any)?.c || 0),
         wallet,
+        unaccountedSpendNaira: Math.round(unaccountedKobo / 100),
+        refundedNaira: refunded,
         recentOrders: (sample.rows as any[]).map(o => ({ id: o.id, serviceType: o.serviceType, quantity: o.quantity, status: o.status, createdAt: o.createdAt })),
       });
     }

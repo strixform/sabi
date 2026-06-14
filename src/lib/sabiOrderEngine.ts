@@ -116,32 +116,42 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
       };
     }
 
-    const order = await prisma.sabiOrder.create({
-      data: {
-        userId: input.userId,
-        serviceType: input.serviceId,
-        targetUrl: input.targetUrl,
-        quantity: input.quantity,
-        pricePerUnit: service.pricePerUnit,
-        totalPrice: basePrice,
-        platformFee: platformFee,
-        paymentMethod: input.paymentMethod,
-        orderedVia: 'web',
-        clientId: input.clientId,
-        customRef: input.customRef,
-        audienceGender: input.audienceGender || null,
-        audienceLocation: input.audienceLocation || null,
-        commentGender: input.commentGender || null,
-        commentInstructions: input.commentInstructions || null,
-        promoCodeId: input.promoCodeId || null,
-        discountAmount: totalDiscountKobo,
-        scheduledAt: input.scheduledAt || null,
-        // Always start as 'pending' — the cron job (process-scheduled) picks
-        // it up and submits to gamerz360 asynchronously. This prevents timeouts
-        // caused by Cloudflare blocking Vercel's IPs on synchronous calls.
-        status: 'pending',
-      },
-    });
+    // CRITICAL: the wallet was already debited above. If the order row fails to
+    // create, we MUST refund — otherwise the buyer is charged with no order
+    // (the "spent but 0 orders" money-safety bug).
+    let order;
+    try {
+      order = await prisma.sabiOrder.create({
+        data: {
+          userId: input.userId,
+          serviceType: input.serviceId,
+          targetUrl: input.targetUrl,
+          quantity: input.quantity,
+          pricePerUnit: service.pricePerUnit,
+          totalPrice: basePrice,
+          platformFee: platformFee,
+          paymentMethod: input.paymentMethod,
+          orderedVia: 'web',
+          clientId: input.clientId,
+          customRef: input.customRef,
+          audienceGender: input.audienceGender || null,
+          audienceLocation: input.audienceLocation || null,
+          commentGender: input.commentGender || null,
+          commentInstructions: input.commentInstructions || null,
+          promoCodeId: input.promoCodeId || null,
+          discountAmount: totalDiscountKobo,
+          scheduledAt: input.scheduledAt || null,
+          // Always start as 'pending' — the cron job (process-scheduled) picks
+          // it up and submits to gamerz360 asynchronously. This prevents timeouts
+          // caused by Cloudflare blocking Vercel's IPs on synchronous calls.
+          status: 'pending',
+        },
+      });
+    } catch (createErr: any) {
+      console.error('[createSabiOrder] order create FAILED after debit — refunding:', createErr?.message);
+      await refundSabiWallet(input.userId, chargeKobo, `failed-create-${Date.now()}`, 'Order creation failed — auto refund').catch(() => {});
+      return { success: false, error: 'Order creation failed. Your wallet was not charged.' };
+    }
 
     // Save the buyer's "before" screenshot + starting count separately (guarded)
     // — these columns may not exist in prod yet, and this must never break order creation.
