@@ -39,14 +39,12 @@ export async function GET() {
   }
 
   const REWARD_NAIRA = 100;
-  const REFERRAL_CAP = 3; // referrer earns from max 3 referrals
   const paid = referrals.filter(r => r.referrerPaid);
   const pending = referrals.filter(r => r.triggeredAt && !r.referrerPaid);
 
   const totalEarned = paid.length * REWARD_NAIRA;
   const totalReferred = referrals.length;
   const pendingRewards = pending.length;
-  const capReached = paid.length >= REFERRAL_CAP;
 
   return NextResponse.json({
     success: true,
@@ -63,8 +61,6 @@ export async function GET() {
       totalEarned,
       pendingEarnings: pending.length * REWARD_NAIRA,
       rewardPerReferral: REWARD_NAIRA,
-      cap: REFERRAL_CAP,
-      capReached,
     },
     referrals: referrals.map(r => {
       const referee = refereeMap.get(r.refereeId);

@@ -103,6 +103,9 @@ export async function POST(req: NextRequest) {
       }
     } catch { bonusKobo = 0; }
 
+    // Referral reward fires once the referred user has funded ≥ ₦200 (fire-and-forget).
+    import('@/lib/sabiReferral').then(({ triggerReferralOnFunding }) => triggerReferralOnFunding(session.id)).catch(() => {});
+
     return NextResponse.json({
       success: true,
       message: 'Payment verified and wallet credited',
