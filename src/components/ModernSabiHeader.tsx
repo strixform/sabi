@@ -93,6 +93,7 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
     { href: '/sabi/orders', label: 'Orders', icon: FiInbox, badge: null },
     { href: '/sabi/subscriptions', label: 'Auto-Reorders', icon: FiRefreshCw, badge: null },
     { href: '/sabi/profiles', label: 'My Profiles', icon: FiBookmark, badge: null },
+    { href: '/sabi/partnership', label: 'Partnership', icon: FiKey, badge: 'Resell' },
     { href: '/sabi/referral', label: 'Refer & Earn', icon: FiGift, badge: '₦100' },
     { href: '/sabi/profile', label: 'Profile', icon: FiUser, badge: null },
     { href: '/sabi/api-keys', label: 'API Keys', icon: FiKey, badge: null },

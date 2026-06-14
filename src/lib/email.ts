@@ -17,6 +17,29 @@ function baseHtml(title: string, body: string) {
   </div>`;
 }
 
+export async function sendPartnershipAdminEmail(brandName: string, domain: string, phone: string, notes: string) {
+  const adminEmail = process.env.SABI_ADMIN_EMAIL;
+  if (!adminEmail) return;
+  try {
+    await resend.emails.send({
+      from: FROM, to: adminEmail,
+      subject: `🤝 New Partnership — ${brandName} (₦100,000 paid)`,
+      html: baseHtml('New Partnership', `
+        <p>A partner paid for a done-for-you reseller website. Time to build:</p>
+        <ul>
+          <li><b>Brand:</b> ${brandName}</li>
+          <li><b>Domain:</b> ${domain || '—'}</li>
+          <li><b>Phone:</b> ${phone || '—'}</li>
+          <li><b>Notes:</b> ${notes || '—'}</li>
+        </ul>
+        <div style="text-align:center;margin-top:24px">
+          <a href="${APP_URL}/sabi/admin/partnerships" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:bold">Manage Partnerships</a>
+        </div>
+      `),
+    });
+  } catch {}
+}
+
 export async function sendAdminRefillRequestEmail(orderId: string, serviceName: string, quantity: number, reason: string) {
   const adminEmail = process.env.SABI_ADMIN_EMAIL;
   if (!adminEmail) return;
