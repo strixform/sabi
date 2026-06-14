@@ -416,6 +416,7 @@ export default function OrderPage() {
   const [shotUploading, setShotUploading] = useState(false);
   const [startCount, setStartCount] = useState('');
   const [firstOrderEligible, setFirstOrderEligible] = useState(false);
+  const [loyalty, setLoyalty] = useState<{ tier: string; icon: string; discountRate: number } | null>(null);
   const [savedProfiles, setSavedProfiles] = useState<{ id: string; label: string; url: string; platform: string | null }[]>([]);
   const [savedJustNow, setSavedJustNow] = useState(false);
 
@@ -423,6 +424,10 @@ export default function OrderPage() {
     fetch('/api/sabi/first-order')
       .then(r => (r.ok ? r.json() : null))
       .then(d => { if (d?.eligible) setFirstOrderEligible(true); })
+      .catch(() => {});
+    fetch('/api/sabi/loyalty')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (d?.success && d.discountRate > 0) setLoyalty({ tier: d.tier, icon: d.icon, discountRate: d.discountRate }); })
       .catch(() => {});
     fetch('/api/sabi/saved-profiles')
       .then(r => (r.ok ? r.json() : null))
@@ -461,7 +466,9 @@ export default function OrderPage() {
   const promoKobo = promoResult?.savedKobo || 0;
   // First-order welcome coupon: 10% off (max ₦2,000), only when no promo applied.
   const welcomeKobo = (firstOrderEligible && !promoResult && pricing) ? Math.min(Math.round(pricing.baseKobo * 0.10), 200000) : 0;
-  const discountKobo = promoKobo + welcomeKobo;
+  // Loyalty/VIP discount — permanent, stacks (matches the engine).
+  const loyaltyKobo = (loyalty && pricing) ? Math.round(pricing.baseKobo * loyalty.discountRate) : 0;
+  const discountKobo = promoKobo + welcomeKobo + loyaltyKobo;
   const finalTotalKobo = pricing ? Math.max(0, pricing.totalKobo - discountKobo) : 0;
   const totalCost = finalTotalKobo / 100; // naira
 
@@ -1211,6 +1218,12 @@ export default function OrderPage() {
                           <div className="flex justify-between items-center pb-3 border-b border-slate-700/50">
                             <span className="text-amber-400 flex items-center gap-1.5">🎉 First-order coupon (10%)</span>
                             <span className="font-bold text-amber-400">−₦{(welcomeKobo / 100).toFixed(2)}</span>
+                          </div>
+                        )}
+                        {loyaltyKobo > 0 && loyalty && (
+                          <div className="flex justify-between items-center pb-3 border-b border-slate-700/50">
+                            <span className="text-purple-300 flex items-center gap-1.5">{loyalty.icon} {loyalty.tier} VIP ({Math.round(loyalty.discountRate * 100)}%)</span>
+                            <span className="font-bold text-purple-300">−₦{(loyaltyKobo / 100).toFixed(2)}</span>
                           </div>
                         )}
                       </div>

@@ -88,11 +88,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const newBalanceKobo = creditResult.balance ?? amountInKobo;
+    let newBalanceKobo = creditResult.balance ?? amountInKobo;
+
+    // ── Top-up funding bonus ─────────────────────────────────────────────────
+    // Reward larger top-ups with a bonus credit (idempotent via a distinct ref).
+    let bonusKobo = 0;
+    try {
+      const { topupBonusKobo } = await import('@/lib/sabiPerks');
+      bonusKobo = topupBonusKobo(amountInKobo);
+      if (bonusKobo > 0) {
+        const bonusResult = await creditSabiWallet(session.id, bonusKobo, `${txRef}_bonus`);
+        if (bonusResult.success) newBalanceKobo = bonusResult.balance ?? (newBalanceKobo + bonusKobo);
+        else bonusKobo = 0;
+      }
+    } catch { bonusKobo = 0; }
 
     return NextResponse.json({
       success: true,
       message: 'Payment verified and wallet credited',
+      bonusKobo,
       amountNaira: amountInNaira,
       amountKobo: amountInKobo,
       newBalanceKobo,

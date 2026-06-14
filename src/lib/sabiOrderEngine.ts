@@ -96,7 +96,16 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
         welcomeDiscountKobo = Math.min(Math.round(pricing.baseKobo * 0.10), 200000);
       }
     }
-    const totalDiscountKobo = Math.min(promoDiscountKobo + welcomeDiscountKobo, totalPrice);
+    // Loyalty/VIP discount — permanent, based on lifetime spend (stacks with promo).
+    let loyaltyDiscountKobo = 0;
+    try {
+      const w = await prisma.sabiWallet.findUnique({ where: { userId: input.userId }, select: { totalSpent: true } });
+      const { loyaltyTier } = await import('./sabiPerks');
+      const rate = loyaltyTier(w?.totalSpent || 0).tier.rate;
+      if (rate > 0) loyaltyDiscountKobo = Math.round(pricing.baseKobo * rate);
+    } catch { /* loyalty is best-effort */ }
+
+    const totalDiscountKobo = Math.min(promoDiscountKobo + welcomeDiscountKobo + loyaltyDiscountKobo, totalPrice);
     const chargeKobo = totalPrice - totalDiscountKobo;
 
     const debitResult = await debitSabiWallet(input.userId, chargeKobo, '');

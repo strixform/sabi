@@ -145,6 +145,14 @@ export default function WalletPage() {
                     </button>
                   ))}
                 </div>
+                {(() => {
+                  const amt = parseInt(fundAmount) || 0;
+                  const rate = amt >= 100000 ? 0.08 : amt >= 50000 ? 0.05 : amt >= 20000 ? 0.03 : 0;
+                  const bonus = Math.round(amt * rate);
+                  return bonus > 0
+                    ? <p className="text-xs text-emerald-400 font-bold">🎁 +₦{bonus.toLocaleString()} bonus credited on this top-up ({Math.round(rate * 100)}%)!</p>
+                    : <p className="text-[11px] text-slate-500">🎁 Top-up bonus: fund ₦20k+ for +3%, ₦50k+ for +5%, ₦100k+ for +8%.</p>;
+                })()}
                 <input type="number" value={fundAmount} onChange={e => setFundAmount(e.target.value)}
                   placeholder="Custom amount (₦)"
                   className="w-full px-4 py-2.5 bg-[#0A0D14] border border-white/[0.06] rounded-lg text-white text-sm focus:border-emerald-500/60 outline-none" />
