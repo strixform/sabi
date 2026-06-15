@@ -49,6 +49,16 @@ export default function StaffConsole() {
 
   useEffect(() => { checkRole(); }, [checkRole]);
 
+  // Live "re-uploads waiting for re-review" count — refreshed on load + every 60s.
+  const [resub, setResub] = useState(0);
+  useEffect(() => {
+    if (!role || role === 'loading') return;
+    const poll = () => af('/api/sabi/admin/resubmitted').then(r => (r.ok ? r.json() : null)).then(d => d && setResub(d.count || 0)).catch(() => {});
+    poll();
+    const i = setInterval(poll, 60000);
+    return () => clearInterval(i);
+  }, [role]);
+
   if (role === 'loading') return <div className="min-h-screen bg-[#030507] text-slate-400 flex items-center justify-center">Loading…</div>;
   if (!role) return (
     <div className="min-h-screen bg-[#030507] text-slate-300 flex items-center justify-center p-6">
@@ -71,7 +81,17 @@ export default function StaffConsole() {
           <h1 className="text-2xl font-black flex items-center gap-2">🛡️ Staff Console</h1>
           {role === 'owner' && <Link href="/sabi/admin/staff" className="text-sm text-blue-400 hover:underline">Manage staff →</Link>}
         </div>
-        <p className="text-xs text-slate-500 mb-5">Review delivery proofs, confirm coherence, and handle refill & custom requests.</p>
+        <p className="text-xs text-slate-500 mb-4">Review delivery proofs, confirm coherence, and handle refill & custom requests.</p>
+
+        {resub > 0 && (
+          <button onClick={() => setTab('proofs')}
+            className="w-full text-left mb-4 rounded-xl px-4 py-3 flex items-center gap-2 transition hover:brightness-110"
+            style={{ background: 'rgba(234,179,8,0.12)', border: '1px solid rgba(234,179,8,0.4)' }}>
+            <span className="text-lg">🔁</span>
+            <span className="text-sm font-bold text-yellow-300">{resub} re-upload{resub > 1 ? 's' : ''} waiting for re-review</span>
+            <span className="text-xs text-yellow-200/70 ml-auto">Open Orders &amp; Proofs →</span>
+          </button>
+        )}
 
         <div className="flex gap-2 mb-5">
           {([['proofs', '🧾 Orders & Proofs'], ['refills', '🔁 Refills'], ['requests', '📋 Requests']] as [Tab, string][]).map(([k, label]) => (

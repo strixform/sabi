@@ -29,6 +29,19 @@ export async function sendAdminAlertEmail(subject: string, bodyHtml: string) {
   } catch {}
 }
 
+// Alert a staff moderator that taskers re-uploaded flagged proofs to re-review.
+export async function sendStaffReuploadAlert(to: string, count: number) {
+  try {
+    await resend.emails.send({
+      from: FROM, to,
+      subject: `🔁 ${count} re-uploaded proof${count > 1 ? 's' : ''} to re-review`,
+      html: baseHtml('Re-uploads to re-review', `
+        <p style="color:#cbd5e1">A tasker re-uploaded proof for a flagged order. Please re-check it in the Staff Console — confirm it now matches the target, then Clear it or Flag it again.</p>
+        <div style="text-align:center;margin-top:24px"><a href="${APP_URL}/sabi/staff" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:bold">Open Staff Console</a></div>`),
+    });
+  } catch {}
+}
+
 export async function sendGrowthDigestEmail(email: string, name: string, d: { orders: number; delivered: number; topService: string }) {
   try {
     await resend.emails.send({
