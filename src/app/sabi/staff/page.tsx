@@ -26,12 +26,18 @@ interface CustomReq {
 const isImg = (u?: string | null) => !!u && /^https?:\/\/\S+\.(png|jpe?g|webp|gif)(\?|$)/i.test(u);
 const fmtSvc = (s: string) => s.replace(/_/g, ' ');
 
+// Auth is by login session cookie — owner (admin-email account) or staff. No
+// token needed; same-origin cookies are sent automatically.
+function af(url: string, opts: RequestInit = {}) {
+  return fetch(url, opts);
+}
+
 export default function StaffConsole() {
   const [role, setRole] = useState<'owner' | 'staff' | null | 'loading'>('loading');
   const [tab, setTab] = useState<Tab>('proofs');
 
   useEffect(() => {
-    fetch('/api/sabi/admin/whoami')
+    af('/api/sabi/admin/whoami')
       .then(r => (r.ok ? r.json() : null))
       .then(d => setRole(d?.role || null))
       .catch(() => setRole(null));
@@ -89,13 +95,13 @@ function ProofsTab() {
   const load = useCallback(() => {
     setLoading(true);
     const q = status === 'all' ? '' : `&status=${status}`;
-    fetch(`/api/sabi/admin/orders?limit=50${q}`)
+    af(`/api/sabi/admin/orders?limit=50${q}`)
       .then(r => (r.ok ? r.json() : null))
       .then(async d => {
         const os: Order[] = d?.orders || [];
         setOrders(os);
         if (os.length) {
-          const rv = await fetch(`/api/sabi/admin/proof-review?orderIds=${os.map(o => o.id).join(',')}`)
+          const rv = await af(`/api/sabi/admin/proof-review?orderIds=${os.map(o => o.id).join(',')}`)
             .then(r => (r.ok ? r.json() : null)).catch(() => null);
           if (rv?.reviews) setReviews(rv.reviews);
         }
@@ -110,7 +116,7 @@ function ProofsTab() {
     setExpanded(id);
     if (!proofs[id]) {
       setProofs(p => ({ ...p, [id]: { loading: true, items: [], total: 0, approved: 0 } }));
-      fetch(`/api/sabi/orders/proofs?orderId=${encodeURIComponent(id)}`)
+      af(`/api/sabi/orders/proofs?orderId=${encodeURIComponent(id)}`)
         .then(r => (r.ok ? r.json() : null))
         .then(d => setProofs(p => ({ ...p, [id]: { loading: false, items: d?.proofs || [], total: d?.total || 0, approved: d?.approved || 0 } })))
         .catch(() => setProofs(p => ({ ...p, [id]: { loading: false, items: [], total: 0, approved: 0 } })));
@@ -120,7 +126,7 @@ function ProofsTab() {
   const review = async (orderId: string, verdict: 'verified' | 'flagged') => {
     setBusy(orderId + verdict);
     try {
-      const res = await fetch('/api/sabi/admin/proof-review', {
+      const res = await af('/api/sabi/admin/proof-review', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderId, status: verdict, note: notes[orderId] || '' }),
       });
@@ -211,7 +217,7 @@ function RefillsTab() {
 
   const load = () => {
     setLoading(true);
-    fetch('/api/sabi/admin/refills?status=pending')
+    af('/api/sabi/admin/refills?status=pending')
       .then(r => (r.ok ? r.json() : null))
       .then(d => setRefills(d?.refills || []))
       .catch(() => setRefills([]))
@@ -222,7 +228,7 @@ function RefillsTab() {
   const act = async (id: string, action: 'approve' | 'reject') => {
     setBusy(id);
     try {
-      const res = await fetch('/api/sabi/admin/refills', {
+      const res = await af('/api/sabi/admin/refills', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, action, note: notes[id] || '' }),
       });
@@ -265,7 +271,7 @@ function RequestsTab() {
 
   const load = () => {
     setLoading(true);
-    fetch('/api/sabi/admin/custom-requests?limit=50')
+    af('/api/sabi/admin/custom-requests?limit=50')
       .then(r => (r.ok ? r.json() : null))
       .then(d => setReqs(d?.requests || []))
       .catch(() => setReqs([]))
@@ -276,7 +282,7 @@ function RequestsTab() {
   const update = async (id: string, patch: { status?: string; adminNotes?: string }) => {
     setBusy(id);
     try {
-      const res = await fetch('/api/sabi/admin/custom-requests', {
+      const res = await af('/api/sabi/admin/custom-requests', {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, ...patch }),
       });

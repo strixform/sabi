@@ -125,6 +125,27 @@ export async function setProofReview(orderId: string, status: 'verified' | 'flag
   });
 }
 
+/** All currently-flagged proofs, enriched with order info, for the owner's review. */
+export async function listFlaggedReviews(limit = 100): Promise<any[]> {
+  await ensure();
+  try {
+    const r = await sabiExecute({
+      sql: `SELECT pr.orderId, pr.note, pr.reviewedBy, pr.reviewedAt,
+                   o.serviceType, o.targetUrl, o.status AS orderStatus, o.quantity, o.completedQuantity
+              FROM SabiProofReview pr
+              LEFT JOIN SabiOrder o ON o.id = pr.orderId
+             WHERE pr.status = 'flagged'
+             ORDER BY pr.reviewedAt DESC LIMIT ?`,
+      args: [limit],
+    });
+    return r.rows;
+  } catch {
+    // Fallback without the join if SabiOrder shape differs.
+    const r = await sabiExecute({ sql: `SELECT orderId, note, reviewedBy, reviewedAt FROM SabiProofReview WHERE status = 'flagged' ORDER BY reviewedAt DESC LIMIT ?`, args: [limit] });
+    return r.rows;
+  }
+}
+
 /** Review verdicts for a set of orders, keyed by orderId. */
 export async function getProofReviews(orderIds: string[]): Promise<Record<string, { status: string; note: string | null; reviewedBy: string; reviewedAt: string }>> {
   const out: Record<string, any> = {};

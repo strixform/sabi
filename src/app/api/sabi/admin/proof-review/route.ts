@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { allowOwnerOrStaff, setProofReview, getProofReviews, logStaffAction } from '@/lib/sabiStaff';
+import { allowOwnerOrStaff, setProofReview, getProofReviews, listFlaggedReviews, logStaffAction } from '@/lib/sabiStaff';
 
 export const preferredRegion = 'sfo1';
 export const maxDuration = 15;
 
-// GET ?orderIds=a,b,c — proof verdicts for a set of orders (owner or staff).
+// GET ?orderIds=a,b,c — verdicts for a set of orders. GET ?flagged=1 — all
+// currently-flagged proofs (owner/staff oversight).
 export async function GET(req: NextRequest) {
   const { ok } = await allowOwnerOrStaff(req);
   if (!ok) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (req.nextUrl.searchParams.get('flagged') === '1') {
+    return NextResponse.json({ flagged: await listFlaggedReviews(100) });
+  }
   const ids = (req.nextUrl.searchParams.get('orderIds') || '').split(',').map(s => s.trim()).filter(Boolean);
   const reviews = await getProofReviews(ids);
   return NextResponse.json({ reviews });
