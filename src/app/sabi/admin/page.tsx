@@ -1496,10 +1496,18 @@ export default function AdminPage() {
                 <FiSettings className="w-4 h-4" />
                 Open Settings
               </Link>
-              <div className="pt-2 border-t border-white/[0.06]">
+              <div className="pt-2 border-t border-white/[0.06] flex flex-wrap gap-2">
                 <Link href="/sabi/admin/promos"
                   className="inline-flex items-center gap-2 px-5 py-3 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl transition">
                   🎁 Manage Promo Codes
+                </Link>
+                <Link href="/sabi/admin/staff"
+                  className="inline-flex items-center gap-2 px-5 py-3 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl transition">
+                  🛡️ Staff Access
+                </Link>
+                <Link href="/sabi/staff"
+                  className="inline-flex items-center gap-2 px-5 py-3 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl transition">
+                  🧾 Staff Console
                 </Link>
               </div>
             </div>
