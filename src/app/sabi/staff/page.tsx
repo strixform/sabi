@@ -36,12 +36,18 @@ export default function StaffConsole() {
   const [role, setRole] = useState<'owner' | 'staff' | null | 'loading'>('loading');
   const [tab, setTab] = useState<Tab>('proofs');
 
-  useEffect(() => {
-    af('/api/sabi/admin/whoami')
+  const checkRole = useCallback(() => {
+    setRole('loading');
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 12000); // never hang on "Loading…"
+    fetch('/api/sabi/admin/whoami', { signal: ctrl.signal })
       .then(r => (r.ok ? r.json() : null))
       .then(d => setRole(d?.role || null))
-      .catch(() => setRole(null));
+      .catch(() => setRole(null))
+      .finally(() => clearTimeout(t));
   }, []);
+
+  useEffect(() => { checkRole(); }, [checkRole]);
 
   if (role === 'loading') return <div className="min-h-screen bg-[#030507] text-slate-400 flex items-center justify-center">Loading…</div>;
   if (!role) return (
@@ -49,8 +55,11 @@ export default function StaffConsole() {
       <div className="text-center max-w-sm">
         <div className="text-4xl mb-3">🔒</div>
         <h1 className="text-lg font-black text-white mb-2">Staff access only</h1>
-        <p className="text-sm text-slate-500 mb-4">Sign in with the SABI account your admin added as staff.</p>
-        <Link href="/sabi/login" className="inline-block px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg text-sm">Sign in</Link>
+        <p className="text-sm text-slate-500 mb-4">Sign in with the SABI account that&apos;s registered as admin or staff, then reload.</p>
+        <div className="flex gap-2 justify-center">
+          <Link href="/sabi/login" className="inline-block px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg text-sm">Sign in</Link>
+          <button onClick={checkRole} className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white font-bold rounded-lg text-sm">Retry</button>
+        </div>
       </div>
     </div>
   );

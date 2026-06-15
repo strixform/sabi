@@ -21,27 +21,21 @@ export type AdminRole = 'owner' | 'staff' | null;
 let ready = false;
 async function ensure() {
   if (ready) return;
-  await sabiExecute({ sql: `CREATE TABLE IF NOT EXISTS SabiStaff (
-      email TEXT PRIMARY KEY,
-      addedBy TEXT,
-      active INTEGER NOT NULL DEFAULT 1,
+  // Parallel — independent IF NOT EXISTS DDL; keeps cold-start latency low.
+  await Promise.all([
+    sabiExecute({ sql: `CREATE TABLE IF NOT EXISTS SabiStaff (
+      email TEXT PRIMARY KEY, addedBy TEXT, active INTEGER NOT NULL DEFAULT 1,
       createdAt TEXT NOT NULL DEFAULT (datetime('now'))
-    )` });
-  await sabiExecute({ sql: `CREATE TABLE IF NOT EXISTS SabiStaffAudit (
-      id TEXT PRIMARY KEY,
-      staffEmail TEXT NOT NULL,
-      action TEXT NOT NULL,
-      target TEXT,
-      detail TEXT,
-      createdAt TEXT NOT NULL DEFAULT (datetime('now'))
-    )` });
-  await sabiExecute({ sql: `CREATE TABLE IF NOT EXISTS SabiProofReview (
-      orderId TEXT PRIMARY KEY,
-      status TEXT NOT NULL,
-      note TEXT,
-      reviewedBy TEXT NOT NULL,
-      reviewedAt TEXT NOT NULL DEFAULT (datetime('now'))
-    )` });
+    )` }),
+    sabiExecute({ sql: `CREATE TABLE IF NOT EXISTS SabiStaffAudit (
+      id TEXT PRIMARY KEY, staffEmail TEXT NOT NULL, action TEXT NOT NULL,
+      target TEXT, detail TEXT, createdAt TEXT NOT NULL DEFAULT (datetime('now'))
+    )` }),
+    sabiExecute({ sql: `CREATE TABLE IF NOT EXISTS SabiProofReview (
+      orderId TEXT PRIMARY KEY, status TEXT NOT NULL, note TEXT,
+      reviewedBy TEXT NOT NULL, reviewedAt TEXT NOT NULL DEFAULT (datetime('now'))
+    )` }),
+  ]);
   ready = true;
 }
 
@@ -75,14 +69,17 @@ export async function isActiveStaff(email: string): Promise<boolean> {
 }
 
 // ─── Role resolution ───────────────────────────────────────────────────────
-/** Resolve who is calling: owner (full), staff (scoped), or null (reject). */
+/** Resolve who is calling: owner (full), staff (scoped), or null (reject).
+ *  Never throws — any failure resolves to null so callers degrade cleanly. */
 export async function getAdminRole(req: NextRequest): Promise<{ role: AdminRole; email: string | null }> {
   // Owner: matches the owner email or the shared admin token.
-  if (await checkSabiAdmin(req)) {
-    let email: string | null = null;
-    try { email = (await getSabiSession())?.email?.toLowerCase() ?? 'owner'; } catch { email = 'owner'; }
-    return { role: 'owner', email };
-  }
+  try {
+    if (await checkSabiAdmin(req)) {
+      let email: string | null = null;
+      try { email = (await getSabiSession())?.email?.toLowerCase() ?? 'owner'; } catch { email = 'owner'; }
+      return { role: 'owner', email };
+    }
+  } catch { /* ignore — fall through to staff/null */ }
   // Staff: a signed-in SabiUser whose email is on the active allowlist.
   try {
     const session = await getSabiSession();
