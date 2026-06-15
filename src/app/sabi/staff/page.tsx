@@ -19,12 +19,13 @@ interface Refill {
   refillQuantity: number; reason: string | null; status: string; createdAt: string;
 }
 interface CustomReq {
-  id: string; serviceType: string; status: string; description: string;
-  name: string; email: string; whatsapp: string; targetUrl?: string | null; createdAt: string;
+  id: string; category?: string; status: string; description: string;
+  name: string; email: string; whatsapp: string; targetUrl?: string | null;
+  targetPlatform?: string | null; quantity?: number | null; budget?: string | null; createdAt: string;
 }
 
 const isImg = (u?: string | null) => !!u && /^https?:\/\/\S+\.(png|jpe?g|webp|gif)(\?|$)/i.test(u);
-const fmtSvc = (s: string) => s.replace(/_/g, ' ');
+const fmtSvc = (s?: string | null) => (s || 'request').replace(/_/g, ' ');
 
 // Auth is by login session cookie — owner (admin-email account) or staff. No
 // token needed; same-origin cookies are sent automatically.
@@ -115,6 +116,8 @@ function ProofsTab() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('all'); // show every order by default
+  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [expanded, setExpanded] = useState<string | null>(null);
   const [proofs, setProofs] = useState<Record<string, { loading: boolean; items: Proof[]; total: number; approved: number }>>({});
   const [proofBusy, setProofBusy] = useState<string | null>(null);
@@ -122,12 +125,13 @@ function ProofsTab() {
   const load = useCallback(() => {
     setLoading(true);
     const q = status === 'all' ? '' : `&status=${status}`;
-    af(`/api/sabi/admin/orders?limit=50${q}`)
+    const s = search.trim() ? `&search=${encodeURIComponent(search.trim())}` : '';
+    af(`/api/sabi/admin/orders?limit=50${q}${s}`)
       .then(r => (r.ok ? r.json() : null))
       .then(d => setOrders(d?.orders || []))
       .catch(() => setOrders([]))
       .finally(() => setLoading(false));
-  }, [status]);
+  }, [status, search]);
   useEffect(() => { load(); }, [load]);
 
   const loadProofs = (id: string) => {
@@ -175,6 +179,14 @@ function ProofsTab() {
       <p className="text-xs text-slate-400 mb-3 bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2">
         👉 Tap an order to open its delivery proofs. Check each proof matches the target account. If one doesn&apos;t, tap <b className="text-red-300">⚠️ Flag</b> on that proof — the tasker is told to re-upload within 12h. When they re-upload (🔁), re-check and <b className="text-emerald-300">✅ Clear</b> it.
       </p>
+      {/* Search by customer email, name, or order ID */}
+      <form onSubmit={(e) => { e.preventDefault(); setSearch(searchInput); }} className="flex gap-2 mb-3">
+        <input value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="Search by customer email, name, or order ID…"
+          className="flex-1 bg-[#0F1420] border border-white/[0.08] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500/40" />
+        <button type="submit" className="px-4 py-2 rounded-lg text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white">Search</button>
+        {search && <button type="button" onClick={() => { setSearch(''); setSearchInput(''); }} className="px-3 py-2 rounded-lg text-sm font-bold bg-white/10 text-slate-300">Clear</button>}
+      </form>
       <div className="flex gap-2 mb-4 flex-wrap">
         {['all', 'executing', 'completed', 'processing'].map(s => (
           <button key={s} onClick={() => setStatus(s)}
@@ -348,7 +360,7 @@ function RequestsTab() {
         <div key={r.id} className="rounded-xl p-4 bg-white/[0.025] border border-white/[0.07]">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="font-bold capitalize text-sm">{fmtSvc(r.serviceType)}</div>
+              <div className="font-bold capitalize text-sm">{fmtSvc(r.category)}{r.targetPlatform ? ` · ${r.targetPlatform}` : ''}{r.quantity ? ` · ${r.quantity.toLocaleString()}` : ''}</div>
               <div className="text-xs text-slate-400 mt-1 line-clamp-2">{r.description}</div>
               <div className="text-[11px] text-slate-500 mt-1">
                 {r.name} · <a href={`mailto:${r.email}`} className="text-blue-400 hover:underline">{r.email}</a>
