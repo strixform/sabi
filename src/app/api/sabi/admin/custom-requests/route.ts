@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { checkSabiAdmin } from '@/lib/sabiAdminAuth';
+import { allowOwnerOrStaff, logStaffAction } from '@/lib/sabiStaff';
 
 export const preferredRegion = 'sfo1';
 export const maxDuration = 15;
@@ -17,7 +17,7 @@ export const maxDuration = 15;
 const VALID_STATUSES = ['new', 'reviewing', 'contacted', 'quoted', 'active', 'completed', 'rejected'] as const;
 
 export async function GET(req: NextRequest) {
-  if (!await checkSabiAdmin(req)) {
+  if (!(await allowOwnerOrStaff(req)).ok) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -74,7 +74,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  if (!await checkSabiAdmin(req)) {
+  const auth = await allowOwnerOrStaff(req);
+  if (!auth.ok) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -94,5 +95,6 @@ export async function PATCH(req: NextRequest) {
     select: { id: true, status: true, adminNotes: true },
   });
 
+  logStaffAction(auth.email || 'owner', 'request:update', id, status || (adminNotes !== undefined ? 'note' : ''));
   return NextResponse.json({ success: true, request: updated });
 }

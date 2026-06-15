@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSabiSession } from '@/lib/sabiAuth';
 import { sabiExecute } from '@/lib/tursoClient';
+import { allowOwnerOrStaff } from '@/lib/sabiStaff';
 
 export const maxDuration = 15;
 export const preferredRegion = 'sfo1';
@@ -14,20 +15,25 @@ const G360_URL = process.env.GAMERZ360_API_URL || 'https://gamerz360.com';
  * the proofs from gamerz360 via the integration token.
  */
 export async function GET(req: NextRequest) {
+  // Owner/staff (admin dashboard) may view ANY order's proofs; a customer only
+  // their own. Owner via token has no session — allowOwnerOrStaff covers both.
+  const isAdminOrStaff = (await allowOwnerOrStaff(req)).ok;
   const session = await getSabiSession();
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!isAdminOrStaff && !session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const orderId = req.nextUrl.searchParams.get('orderId')?.trim();
   if (!orderId) return NextResponse.json({ error: 'orderId required' }, { status: 400 });
 
   try {
-    // Ownership check — the order must belong to this user.
-    const own = await sabiExecute({
-      sql: `SELECT id FROM SabiOrder WHERE id = ? AND userId = ? LIMIT 1`,
-      args: [orderId, session.id],
-    });
-    if (own.rows.length === 0) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    // Ownership check — skipped for owner/staff who moderate every order.
+    if (!isAdminOrStaff) {
+      const own = await sabiExecute({
+        sql: `SELECT id FROM SabiOrder WHERE id = ? AND userId = ? LIMIT 1`,
+        args: [orderId, session!.id],
+      });
+      if (own.rows.length === 0) {
+        return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+      }
     }
 
     // The buyer's "before" screenshot + starting count (guarded — columns may not exist yet in prod).

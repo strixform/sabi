@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { checkSabiAdmin } from '@/lib/sabiAdminAuth';
+import { allowOwnerOrStaff, logStaffAction } from '@/lib/sabiStaff';
 import { prisma } from '@/lib/prisma';
 import { listRefills, getRefill, resolveRefill } from '@/lib/sabiRefills';
 import { getService } from '@/lib/sabiServices';
@@ -15,7 +15,7 @@ export const preferredRegion = 'sfo1';
  *   still budgeted so taskers are paid). The cron submits it like any order.
  */
 export async function GET(req: NextRequest) {
-  if (!await checkSabiAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  if (!(await allowOwnerOrStaff(req)).ok) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   const status = req.nextUrl.searchParams.get('status') || undefined;
   try {
     return NextResponse.json({ success: true, refills: await listRefills(status) });
@@ -25,7 +25,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  if (!await checkSabiAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  const auth = await allowOwnerOrStaff(req);
+  if (!auth.ok) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
 
   const body = await req.json().catch(() => ({}));
   const id = String(body.id || '');
@@ -64,6 +65,7 @@ export async function POST(req: NextRequest) {
   }
 
   await resolveRefill(id, action === 'approve' ? 'approved' : 'rejected', note, refillOrderId);
+  logStaffAction(auth.email || 'owner', `refill:${action}`, reqRow.orderId, note);
 
   // Notify the buyer (fire-and-forget).
   prisma.sabiUser.findUnique({ where: { id: reqRow.userId }, select: { email: true, name: true, notifyEmail: true } })

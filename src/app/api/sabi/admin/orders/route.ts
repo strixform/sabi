@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkSabiAdmin } from '@/lib/sabiAdminAuth';
+import { allowOwnerOrStaff } from '@/lib/sabiStaff';
 import { prisma } from '@/lib/prisma';
 
 export const maxDuration = 15;
@@ -11,7 +12,8 @@ type OrderStatus = typeof VALID_STATUSES[number];
 
 export async function GET(req: NextRequest) {
   try {
-    if (!await checkSabiAdmin(req)) {
+    // Owner OR staff may view orders + delivery proofs.
+    if (!(await allowOwnerOrStaff(req)).ok) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
