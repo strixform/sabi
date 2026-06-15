@@ -12,8 +12,8 @@ interface Order {
   completedQuantity: number | null; status: string; createdAt: string;
   user?: { email: string; name: string } | null;
 }
-interface Proof { id: string; proofUrl: string | null; proofText: string | null; status: string; createdAt: string; }
-interface Review { status: string; note: string | null; reviewedBy: string; reviewedAt: string; }
+interface ProofFlag { status: string; reason: string | null; reuploadedAt: string | null; }
+interface Proof { id: string; proofUrl: string | null; proofText: string | null; status: string; createdAt: string; flag?: ProofFlag | null; }
 interface Refill {
   id: string; orderId: string; serviceType: string; targetUrl: string;
   refillQuantity: number; reason: string | null; status: string; createdAt: string;
@@ -97,56 +97,63 @@ function ProofsTab() {
   const [status, setStatus] = useState('all'); // show every order by default
   const [expanded, setExpanded] = useState<string | null>(null);
   const [proofs, setProofs] = useState<Record<string, { loading: boolean; items: Proof[]; total: number; approved: number }>>({});
-  const [reviews, setReviews] = useState<Record<string, Review>>({});
-  const [notes, setNotes] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState<string | null>(null);
+  const [proofBusy, setProofBusy] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
     const q = status === 'all' ? '' : `&status=${status}`;
     af(`/api/sabi/admin/orders?limit=50${q}`)
       .then(r => (r.ok ? r.json() : null))
-      .then(async d => {
-        const os: Order[] = d?.orders || [];
-        setOrders(os);
-        if (os.length) {
-          const rv = await af(`/api/sabi/admin/proof-review?orderIds=${os.map(o => o.id).join(',')}`)
-            .then(r => (r.ok ? r.json() : null)).catch(() => null);
-          if (rv?.reviews) setReviews(rv.reviews);
-        }
-      })
+      .then(d => setOrders(d?.orders || []))
       .catch(() => setOrders([]))
       .finally(() => setLoading(false));
   }, [status]);
   useEffect(() => { load(); }, [load]);
 
+  const loadProofs = (id: string) => {
+    setProofs(p => ({ ...p, [id]: { loading: true, items: [], total: 0, approved: 0 } }));
+    af(`/api/sabi/orders/proofs?orderId=${encodeURIComponent(id)}`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => setProofs(p => ({ ...p, [id]: { loading: false, items: d?.proofs || [], total: d?.total || 0, approved: d?.approved || 0 } })))
+      .catch(() => setProofs(p => ({ ...p, [id]: { loading: false, items: [], total: 0, approved: 0 } })));
+  };
+
   const toggle = (id: string) => {
     if (expanded === id) { setExpanded(null); return; }
     setExpanded(id);
-    if (!proofs[id]) {
-      setProofs(p => ({ ...p, [id]: { loading: true, items: [], total: 0, approved: 0 } }));
-      af(`/api/sabi/orders/proofs?orderId=${encodeURIComponent(id)}`)
-        .then(r => (r.ok ? r.json() : null))
-        .then(d => setProofs(p => ({ ...p, [id]: { loading: false, items: d?.proofs || [], total: d?.total || 0, approved: d?.approved || 0 } })))
-        .catch(() => setProofs(p => ({ ...p, [id]: { loading: false, items: [], total: 0, approved: 0 } })));
-    }
+    if (!proofs[id]) loadProofs(id);
   };
 
-  const review = async (orderId: string, verdict: 'verified' | 'flagged') => {
-    setBusy(orderId + verdict);
+  // Flag (or clear) a SPECIFIC proof → gamerz360 notifies that exact tasker.
+  const flagProof = async (orderId: string, completionId: string, action: 'flag' | 'clear') => {
+    let reason = '';
+    if (action === 'flag') {
+      reason = (window.prompt("Why doesn't this proof match? The tasker will see this and must re-upload within 12h.") || '').trim();
+      if (!reason) return;
+    }
+    setProofBusy(completionId);
     try {
-      const res = await af('/api/sabi/admin/proof-review', {
+      const res = await af('/api/sabi/admin/flag-proof', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId, status: verdict, note: notes[orderId] || '' }),
+        body: JSON.stringify({ completionId, action, reason }),
       });
-      if (res.ok) setReviews(r => ({ ...r, [orderId]: { status: verdict, note: notes[orderId] || '', reviewedBy: 'you', reviewedAt: new Date().toISOString() } }));
-    } finally { setBusy(null); }
+      if (res.ok) {
+        setProofs(p => {
+          const cur = p[orderId]; if (!cur) return p;
+          return { ...p, [orderId]: { ...cur, items: cur.items.map(it => it.id === completionId
+            ? { ...it, flag: action === 'clear' ? null : { status: 'flagged', reason, reuploadedAt: null } } : it) } };
+        });
+      } else {
+        const d = await res.json().catch(() => ({}));
+        alert(d.error || 'Could not flag this proof.');
+      }
+    } finally { setProofBusy(null); }
   };
 
   return (
     <div>
       <p className="text-xs text-slate-400 mb-3 bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2">
-        👉 Tap any order to open its delivery proof, then mark it <b className="text-emerald-300">✅ Verify</b> (matches the order) or <b className="text-red-300">⚠️ Flag</b> (looks off) with a note.
+        👉 Tap an order to open its delivery proofs. Check each proof matches the target account. If one doesn&apos;t, tap <b className="text-red-300">⚠️ Flag</b> on that proof — the tasker is told to re-upload within 12h. When they re-upload (🔁), re-check and <b className="text-emerald-300">✅ Clear</b> it.
       </p>
       <div className="flex gap-2 mb-4 flex-wrap">
         {['all', 'executing', 'completed', 'processing'].map(s => (
@@ -159,8 +166,9 @@ function ProofsTab() {
       ) : (
         <div className="space-y-3">
           {orders.map(o => {
-            const rv = reviews[o.id];
             const pf = proofs[o.id];
+            const flaggedCount = pf?.items.filter(it => it.flag && it.flag.status !== 'cleared').length || 0;
+            const resubCount = pf?.items.filter(it => it.flag?.status === 'resubmitted').length || 0;
             return (
               <div key={o.id} className="rounded-xl bg-white/[0.025] border border-white/[0.07] overflow-hidden">
                 <button onClick={() => toggle(o.id)} className="w-full text-left p-4 flex items-start justify-between gap-3">
@@ -171,8 +179,10 @@ function ProofsTab() {
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${o.status === 'completed' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-yellow-500/15 text-yellow-300'}`}>{o.status}</span>
-                    {rv
-                      ? <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${rv.status === 'verified' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300'}`}>{rv.status === 'verified' ? '✅ verified' : '⚠️ flagged'}</span>
+                    {resubCount > 0
+                      ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300">🔁 {resubCount} re-uploaded</span>
+                      : flaggedCount > 0
+                      ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-300">⚠️ {flaggedCount} flagged</span>
                       : <span className="text-[10px] font-bold text-blue-400">{expanded === o.id ? 'Hide ▴' : 'Review proof ▾'}</span>}
                   </div>
                 </button>
@@ -182,33 +192,39 @@ function ProofsTab() {
                       <>
                         <div className="text-[11px] text-slate-500 my-3">{pf.total} proof(s) · {pf.approved} approved</div>
                         {pf.items.length === 0 ? <p className="text-slate-600 text-xs pb-2">No proof uploaded yet.</p> : (
-                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-3">
-                            {pf.items.map(p => (
-                              <div key={p.id} className="rounded-lg overflow-hidden bg-black/30 border border-white/[0.06]">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-1">
+                            {pf.items.map(p => {
+                              const fl = p.flag && p.flag.status !== 'cleared' ? p.flag : null;
+                              const resub = fl?.status === 'resubmitted';
+                              return (
+                              <div key={p.id} className={`rounded-lg overflow-hidden bg-black/30 border ${fl ? (resub ? 'border-yellow-500/40' : 'border-red-500/40') : 'border-white/[0.06]'}`}>
                                 {isImg(p.proofUrl) ? (
                                   // eslint-disable-next-line @next/next/no-img-element
-                                  <a href={p.proofUrl!} target="_blank" rel="noopener noreferrer"><img src={p.proofUrl!} alt="proof" loading="lazy" className="w-full h-20 object-cover hover:opacity-90" /></a>
+                                  <a href={p.proofUrl!} target="_blank" rel="noopener noreferrer"><img src={p.proofUrl!} alt="proof" loading="lazy" className="w-full h-24 object-cover hover:opacity-90" /></a>
                                 ) : p.proofUrl ? (
-                                  <a href={p.proofUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center h-20 text-[10px] text-blue-400 hover:underline px-1 text-center break-all">View ↗</a>
-                                ) : <div className="flex items-center justify-center h-20 text-xl">✅</div>}
+                                  <a href={p.proofUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center h-24 text-[10px] text-blue-400 hover:underline px-1 text-center break-all">View ↗</a>
+                                ) : <div className="flex items-center justify-center h-24 text-xl">✅</div>}
                                 <div className="px-1.5 py-1 text-[9px] text-slate-400 truncate">{p.proofText || p.status}</div>
+                                {fl && <div className={`px-1.5 text-[9px] font-bold ${resub ? 'text-yellow-300' : 'text-red-300'}`}>{resub ? '🔁 re-uploaded' : '⚠️ flagged'}{fl.reason ? ` · ${fl.reason}` : ''}</div>}
+                                <div className="p-1.5 flex gap-1">
+                                  {!fl && (
+                                    <button onClick={() => flagProof(o.id, p.id, 'flag')} disabled={proofBusy === p.id}
+                                      className="flex-1 py-1 rounded bg-red-600/80 hover:bg-red-500 text-white text-[10px] font-bold disabled:opacity-50">⚠️ Flag</button>
+                                  )}
+                                  {fl && (
+                                    <button onClick={() => flagProof(o.id, p.id, 'clear')} disabled={proofBusy === p.id}
+                                      className="flex-1 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold disabled:opacity-50">✅ {resub ? 'Re-verify' : 'Clear'}</button>
+                                  )}
+                                  {resub && (
+                                    <button onClick={() => flagProof(o.id, p.id, 'flag')} disabled={proofBusy === p.id}
+                                      className="flex-1 py-1 rounded bg-red-600/80 hover:bg-red-500 text-white text-[10px] font-bold disabled:opacity-50">⚠️ Flag again</button>
+                                  )}
+                                </div>
                               </div>
-                            ))}
+                            );})}
                           </div>
                         )}
-                        {/* Coherence verdict */}
-                        <div className="flex flex-col sm:flex-row gap-2 items-stretch">
-                          <input value={notes[o.id] ?? rv?.note ?? ''} onChange={e => setNotes(n => ({ ...n, [o.id]: e.target.value }))}
-                            placeholder="Note (e.g. proof matches target / mismatch)…"
-                            className="flex-1 bg-[#0F1420] border border-white/[0.08] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500/40" />
-                          <div className="flex gap-2">
-                            <button onClick={() => review(o.id, 'verified')} disabled={busy === o.id + 'verified'}
-                              className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs disabled:opacity-50">✅ Verify</button>
-                            <button onClick={() => review(o.id, 'flagged')} disabled={busy === o.id + 'flagged'}
-                              className="px-3 py-2 bg-red-600/80 hover:bg-red-500 text-white font-bold rounded-lg text-xs disabled:opacity-50">⚠️ Flag</button>
-                          </div>
-                        </div>
-                        {rv && <div className="text-[10px] text-slate-500 mt-2">Last: {rv.status} by {rv.reviewedBy}{rv.note ? ` — “${rv.note}”` : ''}</div>}
+                        <button onClick={() => loadProofs(o.id)} className="text-[10px] text-blue-400 hover:underline mt-2">↻ Refresh proofs</button>
                       </>
                     )}
                   </div>

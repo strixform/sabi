@@ -7,7 +7,8 @@ import Link from 'next/link';
 
 interface StaffRow { email: string; addedBy: string | null; active: boolean; createdAt: string; }
 interface AuditRow { staffEmail: string; action: string; target: string | null; detail: string | null; createdAt: string; }
-interface Flagged { orderId: string; note: string | null; reviewedBy: string; reviewedAt: string; serviceType?: string; targetUrl?: string; orderStatus?: string; }
+
+const G360 = 'https://gamerz360.com';
 
 // Auth is by your admin-login session cookie (owner-email account). No token.
 function af(url: string, opts: RequestInit = {}) {
@@ -17,7 +18,6 @@ function af(url: string, opts: RequestInit = {}) {
 export default function StaffManagerPage() {
   const [staff, setStaff] = useState<StaffRow[]>([]);
   const [audit, setAudit] = useState<AuditRow[]>([]);
-  const [flagged, setFlagged] = useState<Flagged[]>([]);
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
@@ -30,10 +30,6 @@ export default function StaffManagerPage() {
       .then(d => { if (d) { setStaff(d.staff || []); setAudit(d.audit || []); } })
       .catch(() => {})
       .finally(() => setLoading(false));
-    af('/api/sabi/admin/proof-review?flagged=1')
-      .then(r => (r.ok ? r.json() : null))
-      .then(d => { if (d) setFlagged(d.flagged || []); })
-      .catch(() => {});
   };
   useEffect(() => { load(); }, []);
 
@@ -56,15 +52,6 @@ export default function StaffManagerPage() {
     load();
   };
 
-  const clearFlag = async (orderId: string) => {
-    // Mark verified to clear the flag once you've resolved it.
-    await af('/api/sabi/admin/proof-review', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orderId, status: 'verified', note: 'Resolved by owner' }),
-    }).catch(() => {});
-    setFlagged(f => f.filter(x => x.orderId !== orderId));
-  };
-
   const activeStaff = staff.filter(s => s.active);
 
   return (
@@ -79,30 +66,16 @@ export default function StaffManagerPage() {
           They cannot touch payments, refunds, wallets or settings. Every action they take is logged below.
         </p>
 
-        {/* Flagged proofs — what staff marked as incoherent */}
-        <div className="rounded-xl p-4 border mb-6"
-          style={{ background: flagged.length ? 'rgba(239,68,68,0.06)' : 'rgba(255,255,255,0.025)', borderColor: flagged.length ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.07)' }}>
-          <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: flagged.length ? '#fca5a5' : '#94a3b8' }}>
-            ⚠️ Flagged proofs ({flagged.length})
-          </div>
-          {flagged.length === 0 ? (
-            <p className="text-sm text-slate-500">No flagged proofs — everything staff reviewed looks coherent.</p>
-          ) : (
-            <div className="space-y-2">
-              {flagged.map(f => (
-                <div key={f.orderId} className="flex items-start justify-between gap-3 rounded-lg p-3 bg-black/20">
-                  <div className="min-w-0">
-                    <div className="font-bold text-sm capitalize">{(f.serviceType || 'order').replace(/_/g, ' ')} · <span className="text-slate-400 font-mono text-xs">{f.orderId.slice(0, 8)}</span></div>
-                    {f.targetUrl && <a href={f.targetUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:underline break-all">{f.targetUrl}</a>}
-                    {f.note && <div className="text-sm text-red-300 mt-1">“{f.note}”</div>}
-                    <div className="text-[11px] text-slate-500 mt-0.5">flagged by {f.reviewedBy} · {new Date(f.reviewedAt).toLocaleString()}</div>
-                  </div>
-                  <button onClick={() => clearFlag(f.orderId)} className="text-xs text-emerald-400 hover:text-emerald-300 font-bold shrink-0">Mark resolved</button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* Flagged taskers + bans live on the Gamerz360 admin (that's where the
+            taskers, their re-uploads and account suspensions are). */}
+        <a href={`${G360}/admin/flagged-taskers`} target="_blank" rel="noopener noreferrer"
+          className="block rounded-xl p-4 border mb-6 transition hover:bg-white/[0.04]"
+          style={{ background: 'rgba(239,68,68,0.06)', borderColor: 'rgba(239,68,68,0.3)' }}>
+          <div className="text-sm font-black text-red-300">🚩 Flagged Taskers & bans →</div>
+          <p className="text-xs text-slate-400 mt-1">
+            When staff flag a proof, the tasker is told to re-upload within 12h. Review everyone with open flags — and bulk-suspend anyone overdue — on your Gamerz360 admin (opens in a new tab).
+          </p>
+        </a>
 
         {/* Add staff */}
         <div className="rounded-xl p-4 bg-white/[0.025] border border-white/[0.07] mb-6">
