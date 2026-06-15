@@ -94,7 +94,7 @@ export default function StaffConsole() {
 function ProofsTab() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState('executing');
+  const [status, setStatus] = useState('all'); // show every order by default
   const [expanded, setExpanded] = useState<string | null>(null);
   const [proofs, setProofs] = useState<Record<string, { loading: boolean; items: Proof[]; total: number; approved: number }>>({});
   const [reviews, setReviews] = useState<Record<string, Review>>({});
@@ -145,8 +145,11 @@ function ProofsTab() {
 
   return (
     <div>
+      <p className="text-xs text-slate-400 mb-3 bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2">
+        👉 Tap any order to open its delivery proof, then mark it <b className="text-emerald-300">✅ Verify</b> (matches the order) or <b className="text-red-300">⚠️ Flag</b> (looks off) with a note.
+      </p>
       <div className="flex gap-2 mb-4 flex-wrap">
-        {['executing', 'completed', 'processing', 'all'].map(s => (
+        {['all', 'executing', 'completed', 'processing'].map(s => (
           <button key={s} onClick={() => setStatus(s)}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition ${status === s ? 'bg-white/10 text-white' : 'bg-white/[0.03] text-slate-500 hover:text-slate-300'}`}>{s}</button>
         ))}
@@ -168,7 +171,9 @@ function ProofsTab() {
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${o.status === 'completed' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-yellow-500/15 text-yellow-300'}`}>{o.status}</span>
-                    {rv && <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${rv.status === 'verified' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300'}`}>{rv.status === 'verified' ? '✅ verified' : '⚠️ flagged'}</span>}
+                    {rv
+                      ? <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${rv.status === 'verified' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300'}`}>{rv.status === 'verified' ? '✅ verified' : '⚠️ flagged'}</span>
+                      : <span className="text-[10px] font-bold text-blue-400">{expanded === o.id ? 'Hide ▴' : 'Review proof ▾'}</span>}
                   </div>
                 </button>
                 {expanded === o.id && (
