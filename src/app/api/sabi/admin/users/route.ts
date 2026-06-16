@@ -114,3 +114,50 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to load users', detail: e?.message?.slice(0, 140) }, { status: 500 });
   }
 }
+
+/**
+ * DELETE — remove an EMPTY account (e.g. a case-duplicate). Hard-guarded: refuses
+ * if the user has any balance, has ever funded, or has any orders. Money/order
+ * accounts can never be deleted here.
+ */
+export async function DELETE(req: NextRequest) {
+  if (!await checkSabiAdmin(req)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  const body = await req.json().catch(() => ({}));
+  const userId = String(body.userId || '').trim();
+  if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 });
+
+  try {
+    const chk = await sabiExecute({
+      sql: `SELECT u.email,
+                   COALESCE(w.balance, 0)     AS balance,
+                   COALESCE(w.totalFunded, 0) AS totalFunded,
+                   (SELECT COUNT(*) FROM SabiOrder WHERE userId = ?) AS orders
+            FROM SabiUser u LEFT JOIN SabiWallet w ON w.userId = u.id
+            WHERE u.id = ? LIMIT 1`,
+      args: [userId, userId],
+    });
+    const row = chk.rows[0] as any;
+    if (!row) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+
+    const balance = Number(row.balance || 0);
+    const funded = Number(row.totalFunded || 0);
+    const orders = Number(row.orders || 0);
+    if (balance > 0 || funded > 0 || orders > 0) {
+      return NextResponse.json({
+        error: `Can't delete — this account has activity (balance ₦${(balance/100).toLocaleString()}, funded ₦${(funded/100).toLocaleString()}, ${orders} order(s)). Only empty accounts can be deleted.`,
+      }, { status: 400 });
+    }
+
+    // Empty account — safe to remove. Wallet first, then any referral rows, then user.
+    await sabiExecute({ sql: `DELETE FROM SabiWallet WHERE userId = ?`, args: [userId] }).catch(() => {});
+    await sabiExecute({ sql: `DELETE FROM SabiReferral WHERE referrerId = ? OR referredId = ?`, args: [userId, userId] }).catch(() => {});
+    await sabiExecute({ sql: `DELETE FROM SabiUser WHERE id = ?`, args: [userId] });
+
+    return NextResponse.json({ success: true, message: `Deleted empty account ${row.email}.` });
+  } catch (e: any) {
+    console.error('[admin/users DELETE]', e?.message);
+    return NextResponse.json({ error: 'Delete failed', detail: e?.message?.slice(0, 140) }, { status: 500 });
+  }
+}

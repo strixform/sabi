@@ -283,6 +283,40 @@ function UpdateOrderStatusButton({ order, onDone, adminFetch }: {
   );
 }
 
+// ─── Delete empty account (e.g. case-duplicate) ───────────────────────────────
+// Only shown for accounts with no balance, no funding history, and no orders.
+// The API hard-guards this too, so a non-empty account can never be deleted.
+function DeleteUserButton({ userId, userEmail, empty, onDone }: {
+  userId: string; userEmail: string; empty: boolean; onDone: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState('');
+  if (!empty) return null;
+
+  const del = async () => {
+    if (!confirm(`Delete empty account ${userEmail}? This cannot be undone.`)) return;
+    setLoading(true);
+    try {
+      const token = typeof window !== 'undefined' ? sessionStorage.getItem('sabi_admin_token') : null;
+      const res = await fetch('/api/sabi/admin/users', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', ...(token ? { 'x-admin-token': token } : {}) },
+        body: JSON.stringify({ userId }),
+      });
+      const d = await res.json();
+      if (res.ok) { onDone(); } else { setMsg(d.error || 'Failed'); setTimeout(() => setMsg(''), 8000); }
+    } catch { setMsg('Network error'); setTimeout(() => setMsg(''), 8000); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <button onClick={del} disabled={loading} title={msg || 'Delete empty account'}
+      className="px-2 py-1 bg-red-900/30 hover:bg-red-900/50 border border-red-800/40 text-red-300 text-[10px] font-bold rounded transition whitespace-nowrap">
+      {loading ? '…' : '🗑 Delete'}
+    </button>
+  );
+}
+
 // ─── Credit / Debit wallet button ─────────────────────────────────────────────
 // Credit: adds ₦ to user wallet (compensation, balance correction, manual top-up)
 // Debit:  removes ₦ from user wallet (error correction, admin adjustment)
@@ -1243,6 +1277,9 @@ export default function AdminPage() {
                               {expandedUser === u.id ? '▲ Hide' : `▾ Orders`}
                             </button>
                             <WalletAdjustButton userId={u.id} userName={u.name} userEmail={u.email} onDone={() => setUsers([])} />
+                            <DeleteUserButton userId={u.id} userEmail={u.email}
+                              empty={Number(u.balance) === 0 && Number(u.totalFunded) === 0 && Number(u.orderCount) === 0}
+                              onDone={() => setUsers([])} />
                           </div>
                         </td>
                       </tr>
