@@ -1,7 +1,6 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
 import { requestPasswordReset } from '@/lib/sabiAuth';
 import { sendPasswordResetEmail } from '@/lib/email';
-import { prisma } from '@/lib/prisma';
 import { getRateLimitKey, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit';
 export const maxDuration = 15;
 export const preferredRegion = 'sfo1'; // Turso DB in Oregon (sfo1) — keeps latency minimal
@@ -32,10 +31,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Send password reset email
-    const user = await prisma.sabiUser.findUnique({ where: { email } });
-    if (user && result.resetToken) {
-      await sendPasswordResetEmail(email, result.resetToken, user.name);
+    // Send password reset email — name comes back from requestPasswordReset, so no
+    // second (full-column) Prisma query that could throw on prod schema lag.
+    if (result.resetToken) {
+      await sendPasswordResetEmail(email, result.resetToken, result.name || 'there');
     }
 
     return NextResponse.json({

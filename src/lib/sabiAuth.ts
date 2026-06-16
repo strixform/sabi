@@ -410,28 +410,30 @@ export async function clearSabiSession(): Promise<void> {
 // Request password reset
 export async function requestPasswordReset(
   email: string
-): Promise<{ success: boolean; error?: string; resetToken?: string }> {
+): Promise<{ success: boolean; error?: string; resetToken?: string; name?: string }> {
   try {
-    const user = await prisma.sabiUser.findUnique({ where: { email } });
+    // Direct libsql with explicit columns — Prisma's full-column SELECT throws when
+    // the prod Turso schema lags (doctrine rule #3), which was breaking reset.
+    const res = await sabiExecute({
+      sql: `SELECT id, name FROM SabiUser WHERE email = ? LIMIT 1`,
+      args: [email],
+    });
+    const user = res.rows[0];
     if (!user) {
       return { success: false, error: 'Email not found' };
     }
 
     const resetToken = crypto.randomBytes(32).toString('hex');
     const resetTokenHash = hashToken(resetToken);
-    const resetExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    const resetExpiry = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour (ISO text)
 
-    await prisma.sabiUser.update({
-      where: { id: user.id },
-      data: {
-        resetToken: resetTokenHash,
-        resetTokenExpiry: resetExpiry,
-      },
+    await sabiExecute({
+      sql: `UPDATE SabiUser SET resetToken = ?, resetTokenExpiry = ? WHERE id = ?`,
+      args: [resetTokenHash, resetExpiry, user.id],
     });
 
-    return { success: true, resetToken };
+    return { success: true, resetToken, name: user.name as string };
   } catch (error) {
-    // Error logging handled by external service
     return { success: false, error: 'Request failed' };
   }
 }
@@ -443,32 +445,28 @@ export async function resetPassword(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const resetTokenHash = hashToken(resetToken);
+    const nowIso = new Date().toISOString();
 
-    const user = await prisma.sabiUser.findFirst({
-      where: {
-        resetToken: resetTokenHash,
-        resetTokenExpiry: { gt: new Date() },
-      },
+    // Direct libsql with explicit columns + retry — resilient to Turso blips and
+    // schema lag (the old Prisma full-column query was throwing "Reset failed").
+    const res = await sabiExecute({
+      sql: `SELECT id FROM SabiUser WHERE resetToken = ? AND resetTokenExpiry > ? LIMIT 1`,
+      args: [resetTokenHash, nowIso],
     });
-
+    const user = res.rows[0];
     if (!user) {
       return { success: false, error: 'Invalid or expired reset link' };
     }
 
     const passwordHash = await hash(newPassword, 10);
 
-    await prisma.sabiUser.update({
-      where: { id: user.id },
-      data: {
-        passwordHash,
-        resetToken: null,
-        resetTokenExpiry: null,
-      },
+    await sabiExecute({
+      sql: `UPDATE SabiUser SET passwordHash = ?, resetToken = NULL, resetTokenExpiry = NULL WHERE id = ?`,
+      args: [passwordHash, user.id as string],
     });
 
     return { success: true };
   } catch (error) {
-    // Error logging handled by external service
     return { success: false, error: 'Reset failed' };
   }
 }
