@@ -132,7 +132,11 @@ export async function registerSabiUser(
   signupIp?: string,
 ): Promise<{ success: boolean; error?: string; userId?: string }> {
   try {
-    // Check if user exists
+    // Normalise email — case-insensitive + trimmed — so "Owlet@x.com" and
+    // "owlet@x.com" can never become two accounts.
+    email = (email || "").trim().toLowerCase();
+
+    // Check if user exists (case-insensitive via the normalised value above).
     const existing = await prisma.sabiUser.findUnique({ where: { email } });
     if (existing) {
       return { success: false, error: 'Email already registered' };
@@ -210,9 +214,11 @@ export async function loginSabiUser(
     let user: any = null;
     try {
       const res = await sabiExecute({
+        // LOWER(email) so login is case-insensitive even for legacy rows stored
+        // with mixed-case emails (which a plain `email = ?` lowercased arg misses).
         sql: `SELECT id, email, name, passwordHash, status, emailVerified, businessName
-              FROM SabiUser WHERE email = ? LIMIT 1`,
-        args: [email.toLowerCase()],
+              FROM SabiUser WHERE LOWER(email) = ? LIMIT 1`,
+        args: [(email || "").trim().toLowerCase()],
       }, 6000);
       user = res.rows[0] ?? null;
     } catch (e: any) {
@@ -415,8 +421,8 @@ export async function requestPasswordReset(
     // Direct libsql with explicit columns — Prisma's full-column SELECT throws when
     // the prod Turso schema lags (doctrine rule #3), which was breaking reset.
     const res = await sabiExecute({
-      sql: `SELECT id, name FROM SabiUser WHERE email = ? LIMIT 1`,
-      args: [email],
+      sql: `SELECT id, name FROM SabiUser WHERE LOWER(email) = ? LIMIT 1`,
+      args: [(email || "").trim().toLowerCase()],
     });
     const user = res.rows[0];
     if (!user) {

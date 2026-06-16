@@ -95,8 +95,8 @@ export async function GET(req: NextRequest) {
     try {
       const res = await sabiExecute({
         sql: `SELECT id, email, name, status, emailVerified, businessName
-              FROM SabiUser WHERE email = ? LIMIT 1`,
-        args: [email],
+              FROM SabiUser WHERE LOWER(email) = ? LIMIT 1`,
+        args: [(email || "").trim().toLowerCase()],
       }, 6000);
       user = res.rows[0] ?? null;
     } catch {
@@ -116,7 +116,7 @@ export async function GET(req: NextRequest) {
         user = await withDbTimeout(
           prisma.sabiUser.create({
             data: {
-              email,
+              email: (email || "").trim().toLowerCase(),
               name: name || email.split('@')[0],
               emailVerified: true,
               passwordHash: randomPw,
