@@ -849,6 +849,150 @@ Post your WhatsApp Status (promo, flyer, product, announcement) and get real peo
     inputType: 'phone_whatsapp',
   },
 
+  // ============ POST COMMENT LIKES ============
+  // Taskers like the FIRST X comments under the buyer's own post (quantity = how
+  // many of the top comments get liked). Makes a post's comment section look hot
+  // and rewards the people who commented. Different from "*_comment_likes" above,
+  // which likes a comment the BUYER made on someone else's post.
+  {
+    id: 'instagram_post_comment_likes',
+    name: 'Instagram Post Comment Likes',
+    description: `👍 **LIKE THE TOP COMMENTS UNDER YOUR POST**
+
+A post with liked comments looks alive — and Instagram rewards busy comment sections with more reach. Our real Nigerian taskers like the first X comments under your post (you pick how many), so the conversation under your content pops.
+
+**WHAT YOU GET:**
+✓ Real likes on the first X comments under your post
+✓ You choose how many comments get liked (first 10, 20, 50…)
+✓ Makes your comment section look active and credible
+✓ Rewards the people who took time to comment
+✓ Naturally paced — looks organic, never flagged
+
+**HOW IT WORKS:** Paste your post/Reel link and choose how many of the top comments to like. That many of the earliest comments each get a real like.`,
+    category: PLATFORMS.INSTAGRAM,
+    action: 'Post Comment Likes',
+    pricePerUnit: 200, // DRAFT — ₦2 per comment liked
+    minQuantity: 10,
+    maxQuantity: 1000,
+    speed: 'fast',
+    refillable: false,
+  },
+  {
+    id: 'tiktok_post_comment_likes',
+    name: 'TikTok Post Comment Likes',
+    description: `👍 **LIKE THE TOP COMMENTS UNDER YOUR TIKTOK**
+
+TikTok pushes videos with active comment sections. Our real Nigerian taskers like the first X comments under your video (you choose how many), making your comment section look hot and keeping viewers engaged longer.
+
+**WHAT YOU GET:**
+✓ Real likes on the first X comments under your video
+✓ You choose how many comments get liked (first 10, 20, 50…)
+✓ Busier comment section = stronger For You signals
+✓ Rewards your commenters and sparks replies
+✓ Naturally paced delivery
+
+**HOW IT WORKS:** Paste your video link and choose how many top comments to like.`,
+    category: PLATFORMS.TIKTOK,
+    action: 'Post Comment Likes',
+    pricePerUnit: 200, // DRAFT — ₦2 per comment liked
+    minQuantity: 10,
+    maxQuantity: 1000,
+    speed: 'fast',
+    refillable: false,
+  },
+  {
+    id: 'youtube_post_comment_likes',
+    name: 'YouTube Post Comment Likes',
+    description: `👍 **LIKE THE TOP COMMENTS UNDER YOUR VIDEO**
+
+A video with liked comments signals an engaged community — and YouTube favours that in recommendations. Our real Nigerian taskers like the first X comments under your video (you choose how many).
+
+**WHAT YOU GET:**
+✓ Real likes on the first X comments under your video
+✓ You choose how many comments get liked (first 10, 20, 50…)
+✓ Active comment section = better ranking signals
+✓ Rewards your commenters and encourages replies
+✓ Naturally paced delivery
+
+**HOW IT WORKS:** Paste your video link and choose how many top comments to like.`,
+    category: PLATFORMS.YOUTUBE,
+    action: 'Post Comment Likes',
+    pricePerUnit: 200, // DRAFT — ₦2 per comment liked
+    minQuantity: 10,
+    maxQuantity: 1000,
+    speed: 'fast',
+    refillable: false,
+  },
+  {
+    id: 'twitter_post_comment_likes',
+    name: 'Twitter Reply Likes',
+    description: `👍 **LIKE THE TOP REPLIES UNDER YOUR TWEET**
+
+A tweet with liked replies looks like a real conversation — and Twitter (X) rewards engaged threads with more reach. Our real Nigerian taskers like the first X replies under your tweet (you choose how many).
+
+**WHAT YOU GET:**
+✓ Real likes on the first X replies under your tweet
+✓ You choose how many replies get liked (first 10, 20, 50…)
+✓ Busier thread = stronger algorithm signals
+✓ Rewards the people who replied
+✓ Naturally paced delivery
+
+**HOW IT WORKS:** Paste your tweet link and choose how many top replies to like.`,
+    category: PLATFORMS.TWITTER,
+    action: 'Post Comment Likes',
+    pricePerUnit: 200, // DRAFT — ₦2 per reply liked
+    minQuantity: 10,
+    maxQuantity: 1000,
+    speed: 'fast',
+    refillable: false,
+  },
+  {
+    id: 'facebook_post_comment_likes',
+    name: 'Facebook Post Comment Likes',
+    description: `👍 **LIKE THE TOP COMMENTS UNDER YOUR POST**
+
+A Facebook post with liked comments looks active and trustworthy — and Facebook pushes engaged posts to more feeds. Our real Nigerian taskers like the first X comments under your post (you choose how many).
+
+**WHAT YOU GET:**
+✓ Real reactions on the first X comments under your post
+✓ You choose how many comments get liked (first 10, 20, 50…)
+✓ Active comment section = more organic reach
+✓ Rewards your commenters
+✓ Naturally paced delivery
+
+**HOW IT WORKS:** Paste your post link and choose how many top comments to like.`,
+    category: PLATFORMS.FACEBOOK,
+    action: 'Post Comment Likes',
+    pricePerUnit: 200, // DRAFT — ₦2 per comment liked
+    minQuantity: 10,
+    maxQuantity: 1000,
+    speed: 'fast',
+    refillable: false,
+  },
+  {
+    id: 'threads_post_comment_likes',
+    name: 'Threads Post Comment Likes',
+    description: `👍 **LIKE THE TOP REPLIES UNDER YOUR THREAD**
+
+Early engagement matters most on Threads. Our real Nigerian taskers like the first X replies under your thread (you choose how many), making your post look active on this fast-growing platform.
+
+**WHAT YOU GET:**
+✓ Real likes on the first X replies under your thread
+✓ You choose how many replies get liked (first 10, 20, 50…)
+✓ Active thread = better early-platform reach
+✓ Rewards the people who replied
+✓ Naturally paced delivery
+
+**HOW IT WORKS:** Paste your thread link and choose how many top replies to like.`,
+    category: PLATFORMS.THREADS,
+    action: 'Post Comment Likes',
+    pricePerUnit: 200, // DRAFT — ₦2 per reply liked
+    minQuantity: 10,
+    maxQuantity: 1000,
+    speed: 'fast',
+    refillable: false,
+  },
+
   // ============ YOUTUBE ============
   // Subscribers
   {
