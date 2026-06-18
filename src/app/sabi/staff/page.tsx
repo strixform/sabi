@@ -206,7 +206,10 @@ function ProofsTab() {
                 <button onClick={() => toggle(o.id)} className="w-full text-left p-4 flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="font-bold capitalize text-sm">{fmtSvc(o.serviceType)} · <span className="text-cyan-400">{(o.completedQuantity ?? 0).toLocaleString()}/{o.quantity.toLocaleString()}</span></div>
-                    <div className="text-xs text-blue-400 truncate max-w-[240px]">{o.targetUrl}</div>
+                    <span role="link" tabIndex={0}
+                      onClick={(e) => { e.stopPropagation(); window.open(o.targetUrl, '_blank', 'noopener,noreferrer'); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); window.open(o.targetUrl, '_blank', 'noopener,noreferrer'); } }}
+                      className="block text-xs text-blue-400 hover:underline cursor-pointer truncate max-w-[240px]">{o.targetUrl} ↗</span>
                     <div className="text-[11px] text-slate-500 mt-0.5">{o.user?.email || '—'} · {o.id.slice(0, 8)} · {new Date(o.createdAt).toLocaleDateString()}</div>
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
