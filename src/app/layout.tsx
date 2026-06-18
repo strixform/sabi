@@ -13,7 +13,7 @@ const outfit = Outfit({ weight: ['300', '400', '500', '600', '700', '800', '900'
 const playfair = Playfair_Display({ weight: ['400', '500', '600', '700', '800', '900'], subsets: ['latin'], variable: '--font-playfair' });
 
 export const metadata: Metadata = {
-  title: 'SABI — Nigeria\'s Social Media Engine',
+  title: 'SABI — Nigeria\'s Social Infrastructure',
   description: 'The only social media growth platform powered by 300,000 real Nigerians. Real followers, likes, views and comments across 11 platforms. Target by state, city and gender. Orders start within minutes.',
   keywords: 'Nigerian followers, real engagement, Instagram followers Nigeria, TikTok followers Nigeria, YouTube subscribers Nigeria, Lagos followers, Abuja audience, real Nigerian users, social growth Nigeria',
   openGraph: {
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'SABI — Nigeria\'s Social Media Engine',
+    title: 'SABI — Nigeria\'s Social Infrastructure',
     description: '300,000 real Nigerians powering your social growth. Every platform. Every state.',
     images: ['/sabi-logo-main.png'],
   },

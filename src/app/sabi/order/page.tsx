@@ -963,13 +963,25 @@ export default function OrderPage() {
                       </motion.button>
                       <input
                         type="number"
-                        value={quantity}
-                        onChange={(e) =>
-                          setQuantity(
-                            Math.max(selectedService.minQuantity, Math.min(selectedService.maxQuantity, parseInt(e.target.value) || 0))
+                        inputMode="numeric"
+                        min={selectedService.minQuantity}
+                        max={selectedService.maxQuantity}
+                        value={quantity === 0 ? '' : quantity}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          if (raw === '') { setQuantity(0); return; } // allow clearing while typing
+                          const n = parseInt(raw, 10);
+                          if (isNaN(n)) return;
+                          // Type freely — only cap the upper bound. The lower bound is
+                          // enforced on blur so partial entries (e.g. "5" → "50" → "500") work.
+                          setQuantity(Math.min(selectedService.maxQuantity, Math.max(0, n)));
+                        }}
+                        onBlur={() =>
+                          setQuantity((q) =>
+                            Math.max(selectedService.minQuantity, Math.min(selectedService.maxQuantity, q || selectedService.minQuantity))
                           )
                         }
-                        className="flex-1 px-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-center focus:border-blue-500/50 outline-none"
+                        className="flex-1 px-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-center focus:border-blue-500/50 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
                       <motion.button
                         onClick={() => setQuantity(Math.min(selectedService.maxQuantity, quantity + 10))}
