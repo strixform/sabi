@@ -91,7 +91,9 @@ export default function OrderReportPage() {
             <Row k="Quantity" v={Number(order.quantity).toLocaleString()} />
             <Row k="Status" v={String(order.status).toUpperCase()} />
             <Row k="Completion" v={`${order.completionPercentage || 0}%`} />
-            <Row k="Target" v={order.targetUrl} mono />
+            {/* WhatsApp orders carry the buyer's phone number as a wa.me link —
+                never expose it on a shareable/printable report. */}
+            <Row k="Target" v={/wa\.me\//i.test(order.targetUrl || '') ? 'WhatsApp number (private)' : order.targetUrl} mono />
           </div>
           <div>
             <div style={{ fontSize: 11, fontWeight: 800, color: '#6d28d9', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Delivery proof</div>

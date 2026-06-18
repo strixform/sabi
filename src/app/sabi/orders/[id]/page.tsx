@@ -640,6 +640,11 @@ export default function OrderTrackingPage() {
                       <div className="text-[11px] text-slate-400">
                         Verified baseline: <span className="text-emerald-300 font-bold">{startCount.toLocaleString()}</span>
                         {' '}→ target <span className="text-white font-semibold">{(startCount + order.quantity).toLocaleString()}</span> after delivery.
+                        {order.status === 'completed' && (
+                          <span className="block mt-0.5 text-emerald-300 font-semibold">
+                            ✅ Now ~{(startCount + (order.completedQuantity ?? order.quantity)).toLocaleString()} — that&apos;s +{(order.completedQuantity ?? order.quantity).toLocaleString()} delivered.
+                          </span>
+                        )}
                       </div>
                     ) : (
                       <div className="text-[11px] text-slate-400">The snapshot you uploaded when ordering — your verified baseline.</div>
