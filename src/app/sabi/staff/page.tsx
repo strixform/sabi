@@ -220,6 +220,16 @@ function ProofsTab() {
                 </button>
                 {expanded === o.id && (
                   <div className="px-4 pb-4 border-t border-white/[0.06]">
+                    {/* Target link — open it in a new tab to confirm the proofs are for THIS account */}
+                    <div className="mt-3 flex items-center gap-2 bg-blue-500/[0.07] border border-blue-500/20 rounded-lg px-3 py-2">
+                      <span className="text-[11px] text-slate-400 shrink-0">🎯 Target:</span>
+                      <a href={o.targetUrl} target="_blank" rel="noopener noreferrer"
+                        className="text-xs text-blue-400 hover:underline break-all flex-1 min-w-0">{o.targetUrl}</a>
+                      <a href={o.targetUrl} target="_blank" rel="noopener noreferrer"
+                        className="text-[10px] font-bold text-blue-300 hover:text-white shrink-0 whitespace-nowrap">Open ↗</a>
+                      <button onClick={() => { navigator.clipboard?.writeText(o.targetUrl); }}
+                        className="text-[10px] text-slate-400 hover:text-white shrink-0">Copy</button>
+                    </div>
                     {!pf || pf.loading ? <p className="text-slate-500 text-sm py-4">Loading proofs…</p> : (
                       <>
                         <div className="text-[11px] text-slate-500 my-3">{pf.total} proof(s) · {pf.approved} approved</div>
