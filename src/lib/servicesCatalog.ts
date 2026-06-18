@@ -841,7 +841,7 @@ Post your WhatsApp Status (promo, flyer, product, announcement) and get real peo
 **TIP:** Save the numbers that message you (and post your Status as usual) — that locks in the views and means future statuses get seen too. Your number is never shown publicly.`,
     category: PLATFORMS.WHATSAPP,
     action: 'Story Views',
-    pricePerUnit: 150, // DRAFT price — ₦1.50 per story view (manual, labour-heavy)
+    pricePerUnit: 1000, // ₦10 per story view
     minQuantity: 50,
     maxQuantity: 5000,
     speed: 'medium',
