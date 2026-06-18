@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   const {
     serviceId, quantity, targetUrl, paymentMethod,
     audienceGender, audienceLocation, commentGender, commentInstructions,
-    startScreenshotUrl, startCount,
+    durationMinutes, startScreenshotUrl, startCount,
   } = body;
   const dripDays = parseInt(body.dripDays);
   const qty = parseInt(quantity);
@@ -66,6 +66,7 @@ export async function POST(req: NextRequest) {
       quantity: slices[i],
       paymentMethod: paymentMethod || 'flutterwave',
       audienceGender, audienceLocation, commentGender, commentInstructions,
+      durationMinutes: durationMinutes !== undefined && durationMinutes !== null ? Number(durationMinutes) : undefined,
       scheduledAt,
       startScreenshotUrl: i === 0 ? (startScreenshotUrl || undefined) : undefined,
       startCount: i === 0 && startCount !== undefined && startCount !== null && startCount !== '' && Number.isFinite(Number(startCount)) ? Number(startCount) : undefined,

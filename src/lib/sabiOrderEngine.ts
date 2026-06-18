@@ -1,6 +1,6 @@
 import { prisma } from './prisma';
 import { getService, validateOrder } from './sabiServices';
-import { computePricing } from './servicesCatalog';
+import { computePricing, durationPriceMultiplier } from './servicesCatalog';
 import { debitSabiWallet, refundSabiWallet } from './sabiWallet';
 import { sabiExecute } from './tursoClient';
 
@@ -17,6 +17,7 @@ export interface CreateOrderInput {
   audienceLocation?: string;
   commentGender?: 'male' | 'female' | 'both';
   commentInstructions?: string | null;
+  durationMinutes?: number;    // live-stream "stop view time" (watch-time) in minutes
   promoCodeId?: string;
   discountAmount?: number;
   scheduledAt?: Date;
@@ -71,7 +72,19 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
       return { success: false, error: 'Service not found' };
     }
 
-    const pricing = computePricing(service.pricePerUnit, input.quantity);
+    // Live-stream watch-time → price multiplier. Normalise the duration to a valid
+    // option (never trust the client's number) so the charge always matches what
+    // we deliver. Non-live services keep multiplier 1.
+    let durationMinutes: number | undefined;
+    let durationMult = 1;
+    if (service.durationOptions?.length && service.baseDurationMins) {
+      durationMinutes = service.durationOptions.includes(Number(input.durationMinutes))
+        ? Number(input.durationMinutes)
+        : service.baseDurationMins;
+      durationMult = durationPriceMultiplier(service, durationMinutes);
+    }
+
+    const pricing = computePricing(service.pricePerUnit, input.quantity, durationMult);
     const totalPrice = pricing.totalKobo;           // grand total before promo/welcome (volume discount applied)
     const basePrice = pricing.baseKobo;             // discounted base
     const platformFee = pricing.platformFeeKobo + pricing.vatKobo;
@@ -142,7 +155,12 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
           audienceGender: input.audienceGender || null,
           audienceLocation: input.audienceLocation || null,
           commentGender: input.commentGender || null,
-          commentInstructions: input.commentInstructions || null,
+          // For live-stream orders, fold the chosen watch-time into the instructions
+          // so taskers/fulfilment know how long to hold viewers (no schema change).
+          commentInstructions: [
+            durationMinutes ? `Watch time: ${durationMinutes} min` : '',
+            input.commentInstructions || '',
+          ].filter(Boolean).join(' | ') || null,
           promoCodeId: input.promoCodeId || null,
           discountAmount: totalDiscountKobo,
           scheduledAt: input.scheduledAt || null,

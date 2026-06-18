@@ -23,7 +23,7 @@ import { AnimatedBackground } from '@/components/AnimatedBackground';
 import { AnimateInText } from '@/components/AnimateInText';
 import { ModernSabiHeader } from '@/components/ModernSabiHeader';
 import type { Service } from '@/lib/servicesCatalog';
-import { PLATFORMS, computePricing, getServiceById } from '@/lib/servicesCatalog';
+import { PLATFORMS, computePricing, durationPriceMultiplier, getServiceById } from '@/lib/servicesCatalog';
 
 const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   instagram:  SiInstagram,
@@ -304,6 +304,9 @@ export default function OrderPage() {
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [targetUrl, setTargetUrl] = useState('');
   const [quantity, setQuantity] = useState(100);
+  // Live-stream "stop view time" (watch-time) in minutes — only used by services
+  // that define durationOptions. Defaults to the service's base duration.
+  const [durationMins, setDurationMins] = useState<number | undefined>(undefined);
   // Audience targeting + comment customization
   const [audienceGender, setAudienceGender] = useState<'both' | 'male' | 'female'>('both');
   const [audienceState, setAudienceState] = useState('All Nigeria');
@@ -363,6 +366,16 @@ export default function OrderPage() {
     }
   }, [selectedPlatform]);
 
+  // Default the watch-time when a live-stream service is selected (and clear it
+  // for non-live services).
+  useEffect(() => {
+    if (selectedService?.durationOptions?.length) {
+      setDurationMins(selectedService.baseDurationMins ?? selectedService.durationOptions[0]);
+    } else {
+      setDurationMins(undefined);
+    }
+  }, [selectedService]);
+
   // Re-order prefill: /sabi/order?reorder=1&serviceId=&quantity=&url=
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
@@ -409,7 +422,9 @@ export default function OrderPage() {
     }
   };
 
-  const pricing = selectedService ? computePricing(selectedService.pricePerUnit, quantity) : null;
+  const pricing = selectedService
+    ? computePricing(selectedService.pricePerUnit, quantity, durationPriceMultiplier(selectedService, durationMins))
+    : null;
   const [promoCode, setPromoCode] = useState('');
   const [promoResult, setPromoResult] = useState<any>(null);
   const [promoLoading, setPromoLoading] = useState(false);
@@ -575,6 +590,7 @@ export default function OrderPage() {
         ...(COMMENT_ACTIONS.includes(selectedService.action)
           ? { commentGender, commentInstructions: commentInstructions.trim() || null }
           : {}),
+        ...(durationMins ? { durationMinutes: durationMins } : {}),
         ...(startShot ? { startScreenshotUrl: startShot } : {}),
         ...(startCount !== '' && Number.isFinite(Number(startCount)) ? { startCount: Number(startCount) } : {}),
       };
@@ -996,6 +1012,38 @@ export default function OrderPage() {
                     </p>
                   </motion.div>
 
+                  {/* Watch-time (stop view time) — live-stream services only */}
+                  {selectedService.durationOptions?.length ? (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.25 }}
+                    >
+                      <label className="block text-sm font-semibold text-slate-300 mb-2">
+                        Watch time <span className="text-slate-500 font-normal">(how long viewers stay)</span>
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedService.durationOptions.map((mins) => {
+                          const label = mins % 60 === 0 ? `${mins / 60} hr${mins / 60 > 1 ? 's' : ''}` : `${mins} min`;
+                          const active = durationMins === mins;
+                          return (
+                            <button
+                              key={mins}
+                              type="button"
+                              onClick={() => setDurationMins(mins)}
+                              className={`px-4 py-2 rounded-lg text-sm font-bold transition ${active ? 'bg-blue-600 text-white' : 'bg-slate-800/50 text-slate-300 hover:bg-slate-700/50 border border-slate-700/50'}`}
+                            >
+                              {label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <p className="text-xs text-slate-400 mt-2">
+                        Viewers stay live for the selected time — longer watch-time scales the price.
+                      </p>
+                    </motion.div>
+                  ) : null}
+
                   {/* Audience targeting */}
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
@@ -1181,6 +1229,12 @@ export default function OrderPage() {
                           <span className="text-slate-400">Quantity</span>
                           <span className="font-bold text-lg">{quantity.toLocaleString()}</span>
                         </div>
+                        {durationMins ? (
+                          <div className="flex justify-between items-center pb-4 border-b border-slate-700/50">
+                            <span className="text-slate-400">Watch time</span>
+                            <span className="font-bold">{durationMins % 60 === 0 ? `${durationMins / 60} hr${durationMins / 60 > 1 ? 's' : ''}` : `${durationMins} min`}</span>
+                          </div>
+                        ) : null}
                         <div className="flex justify-between items-center pb-4 border-b border-slate-700/50">
                           <span className="text-slate-400">Target URL</span>
                           <span className="font-mono text-xs text-blue-400 truncate">{targetUrl}</span>

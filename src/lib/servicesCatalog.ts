@@ -10,6 +10,12 @@ export interface Service {
   speed: 'instant' | 'fast' | 'medium' | 'slow';
   refillable: boolean;
   icon?: string;
+  // Live-stream services only: selectable "stop view time" in minutes. When set,
+  // the order page shows a watch-time picker and price scales by duration.
+  durationOptions?: number[];
+  // The watch-time (minutes) that `pricePerUnit` is quoted for. Price for another
+  // duration = pricePerUnit × (chosenMinutes / baseDurationMins).
+  baseDurationMins?: number;
 }
 
 export const PLATFORMS = {
@@ -609,6 +615,195 @@ Bookmarks mean your content is so useful, entertaining, or inspiring that people
     maxQuantity: 50000,
     speed: 'medium',
     refillable: true,
+  },
+
+  // ============ LIVE STREAMING ============
+  // Live stream VIEWS — concurrent viewers that stay for a chosen "stop view
+  // time" (watch-time). Price scales with the duration the buyer picks.
+  {
+    id: 'tiktok_live_views',
+    name: 'TikTok LIVE Views',
+    description: `🔴 **PACK YOUR TIKTOK LIVE WITH REAL CONCURRENT VIEWERS**
+
+Go live and instantly show a crowd. Real Nigerian viewers join your TikTok LIVE and stay for the watch-time you choose — TikTok pushes lives with high, steady viewer counts to the For You feed, pulling in even more organic viewers.
+
+**WHAT YOU GET:**
+✓ Real viewers joining your LIVE within minutes of going on
+✓ You choose how long they stay (30 min – 4 hours)
+✓ Steady, natural viewer count (no sudden drop-off)
+✓ More organic joiners as TikTok promotes a busy LIVE
+✓ Higher gifts, follows and engagement during the stream
+
+**HOW IT WORKS:** Start your LIVE first, paste the LIVE link, pick your viewer count and watch-time, and the crowd builds up and holds for the full session.`,
+    category: PLATFORMS.TIKTOK,
+    action: 'LIVE Views',
+    pricePerUnit: 200, // ₦2 per viewer for the base 60-min watch-time (DRAFT price)
+    minQuantity: 50,
+    maxQuantity: 5000,
+    speed: 'instant',
+    refillable: false,
+    durationOptions: [30, 60, 120, 180, 240],
+    baseDurationMins: 60,
+  },
+  {
+    id: 'instagram_live_views',
+    name: 'Instagram LIVE Views',
+    description: `🔴 **FILL YOUR INSTAGRAM LIVE WITH A REAL AUDIENCE**
+
+Nothing kills a LIVE like an empty room. Real Nigerian viewers join your Instagram LIVE and stay for the watch-time you choose, so you open to a packed house — which pushes your LIVE higher in followers' trays and the Explore LIVE rail.
+
+**WHAT YOU GET:**
+✓ Real viewers joining shortly after you go live
+✓ You choose how long they stay (30 min – 4 hours)
+✓ Natural, steady viewer count throughout
+✓ More organic joiners as Instagram surfaces a busy LIVE
+✓ Stronger comments, shares and follows during the stream
+
+**HOW IT WORKS:** Go live, paste your LIVE link, choose viewers + watch-time, and the audience builds and holds for the whole session.`,
+    category: PLATFORMS.INSTAGRAM,
+    action: 'LIVE Views',
+    pricePerUnit: 220, // DRAFT price — ₦2.20 per viewer / 60 min
+    minQuantity: 50,
+    maxQuantity: 5000,
+    speed: 'instant',
+    refillable: false,
+    durationOptions: [30, 60, 120, 180, 240],
+    baseDurationMins: 60,
+  },
+  {
+    id: 'youtube_live_views',
+    name: 'YouTube Live Views',
+    description: `🔴 **BOOST YOUR YOUTUBE LIVE WITH REAL CONCURRENT VIEWERS**
+
+YouTube ranks lives by concurrent viewers and watch-time. Real Nigerian viewers join your stream and stay for the duration you pick, lifting your live into recommendations and search while it's still on.
+
+**WHAT YOU GET:**
+✓ Real concurrent viewers on your live broadcast
+✓ You choose how long they stay (30 min – 4 hours)
+✓ Builds watch-time hours (counts toward monetisation)
+✓ Steady viewer graph — looks organic, never spiky
+✓ More organic viewers as YouTube promotes an active live
+
+**HOW IT WORKS:** Start your live, paste the watch link, pick viewers + watch-time, and the audience holds for the full session.`,
+    category: PLATFORMS.YOUTUBE,
+    action: 'Live Views',
+    pricePerUnit: 240, // DRAFT price — ₦2.40 per viewer / 60 min
+    minQuantity: 50,
+    maxQuantity: 5000,
+    speed: 'instant',
+    refillable: false,
+    durationOptions: [30, 60, 120, 180, 240],
+    baseDurationMins: 60,
+  },
+  {
+    id: 'facebook_live_views',
+    name: 'Facebook Live Views',
+    description: `🔴 **GROW YOUR FACEBOOK LIVE WITH REAL CONCURRENT VIEWERS**
+
+Facebook pushes lives with active, steady audiences to more feeds. Real Nigerian viewers join your Facebook Live and stay for the watch-time you choose, building momentum that pulls in organic viewers and reactions.
+
+**WHAT YOU GET:**
+✓ Real concurrent viewers on your Facebook Live
+✓ You choose how long they stay (30 min – 4 hours)
+✓ Steady, natural viewer count throughout
+✓ More organic reach as Facebook surfaces a busy live
+✓ Stronger reactions, comments and shares during the stream
+
+**HOW IT WORKS:** Go live, paste your live link, choose viewers + watch-time, and the audience builds and holds for the whole session.`,
+    category: PLATFORMS.FACEBOOK,
+    action: 'Live Views',
+    pricePerUnit: 220, // DRAFT price — ₦2.20 per viewer / 60 min
+    minQuantity: 50,
+    maxQuantity: 5000,
+    speed: 'instant',
+    refillable: false,
+    durationOptions: [30, 60, 120, 180, 240],
+    baseDurationMins: 60,
+  },
+  // Live stream LIKES / reactions — one-time engagement during a live broadcast.
+  {
+    id: 'tiktok_live_likes',
+    name: 'TikTok LIVE Likes',
+    description: `❤️ **FLOOD YOUR TIKTOK LIVE WITH REAL LIKES**
+
+The tap-tap of likes during a TikTok LIVE signals energy — TikTok rewards high-reaction lives with more For You placement. Get a wave of real likes during your broadcast to show your room is hot.
+
+**WHAT YOU GET:**
+✓ Real likes delivered while you're live
+✓ Natural pacing that matches a busy room
+✓ Signals an active LIVE to the algorithm
+✓ Encourages organic viewers to tap along
+✓ Pairs perfectly with TikTok LIVE Views`,
+    category: PLATFORMS.TIKTOK,
+    action: 'LIVE Likes',
+    pricePerUnit: 90, // DRAFT price
+    minQuantity: 100,
+    maxQuantity: 100000,
+    speed: 'fast',
+    refillable: false,
+  },
+  {
+    id: 'instagram_live_likes',
+    name: 'Instagram LIVE Likes',
+    description: `❤️ **POUR REAL HEARTS INTO YOUR INSTAGRAM LIVE**
+
+A stream of hearts floating up your Instagram LIVE tells everyone — and the algorithm — that your room is alive. Get real likes during your broadcast to keep the energy and reach climbing.
+
+**WHAT YOU GET:**
+✓ Real hearts delivered while you're live
+✓ Natural pacing that matches an active room
+✓ Signals a popular LIVE to Instagram
+✓ Encourages organic viewers to react too
+✓ Pairs perfectly with Instagram LIVE Views`,
+    category: PLATFORMS.INSTAGRAM,
+    action: 'LIVE Likes',
+    pricePerUnit: 100, // DRAFT price
+    minQuantity: 100,
+    maxQuantity: 100000,
+    speed: 'fast',
+    refillable: false,
+  },
+  {
+    id: 'youtube_live_likes',
+    name: 'YouTube Live Likes',
+    description: `👍 **RACK UP REAL LIKES ON YOUR YOUTUBE LIVE**
+
+Likes during a YouTube live are a quality signal that lifts your stream in recommendations. Get real likes while you're broadcasting to boost ranking and social proof in real time.
+
+**WHAT YOU GET:**
+✓ Real likes added during your live broadcast
+✓ Natural pacing throughout the stream
+✓ Improves the live's ranking signals
+✓ Builds social proof for joiners
+✓ Pairs perfectly with YouTube Live Views`,
+    category: PLATFORMS.YOUTUBE,
+    action: 'Live Likes',
+    pricePerUnit: 110, // DRAFT price
+    minQuantity: 100,
+    maxQuantity: 50000,
+    speed: 'fast',
+    refillable: false,
+  },
+  {
+    id: 'facebook_live_likes',
+    name: 'Facebook Live Reactions',
+    description: `👍 **LIGHT UP YOUR FACEBOOK LIVE WITH REAL REACTIONS**
+
+Reactions streaming across your Facebook Live tell the algorithm your broadcast is worth pushing. Get real reactions during your stream to grow reach and social proof while you're on.
+
+**WHAT YOU GET:**
+✓ Real reactions delivered during your live
+✓ Natural pacing that matches an active broadcast
+✓ Signals an engaging live to Facebook
+✓ Encourages organic viewers to react
+✓ Pairs perfectly with Facebook Live Views`,
+    category: PLATFORMS.FACEBOOK,
+    action: 'Live Reactions',
+    pricePerUnit: 100, // DRAFT price
+    minQuantity: 100,
+    maxQuantity: 100000,
+    speed: 'fast',
+    refillable: false,
   },
 
   // ============ YOUTUBE ============
@@ -2628,9 +2823,22 @@ export function volumeDiscountRate(quantity: number): number {
   return 0;
 }
 
-/** Compute the full order pricing breakdown (kobo). Shared by UI + backend. */
-export function computePricing(pricePerUnitKobo: number, quantity: number): PricingBreakdown {
-  const grossBaseKobo = pricePerUnitKobo * quantity;
+/**
+ * Live-stream watch-time price multiplier. Price scales linearly with how long
+ * the viewers stay: a 120-min order on a service quoted per 60 min costs 2×.
+ * Returns 1 for non-live services or when no/invalid duration is given (the
+ * server normalises duration to a valid option before pricing).
+ */
+export function durationPriceMultiplier(service: Pick<Service, 'durationOptions' | 'baseDurationMins'>, durationMins?: number): number {
+  if (!service.durationOptions?.length || !service.baseDurationMins || !durationMins) return 1;
+  if (!service.durationOptions.includes(durationMins)) return 1;
+  return durationMins / service.baseDurationMins;
+}
+
+/** Compute the full order pricing breakdown (kobo). Shared by UI + backend.
+ *  `priceMultiplier` scales the base (used for live-stream watch-time). */
+export function computePricing(pricePerUnitKobo: number, quantity: number, priceMultiplier = 1): PricingBreakdown {
+  const grossBaseKobo = Math.round(pricePerUnitKobo * quantity * priceMultiplier);
   const discountRate = volumeDiscountRate(quantity);
   const discountKobo = Math.round(grossBaseKobo * discountRate);
   const baseKobo = grossBaseKobo - discountKobo;
