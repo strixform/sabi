@@ -17,7 +17,7 @@ import { FiGlobe, FiMusic, FiAward } from 'react-icons/fi';
 import { ModernSabiHeader } from '@/components/ModernSabiHeader';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
 import { GradientText } from '@/components/AnimatedText';
-import { SERVICES_CATALOG, computePricing, getPlatformLabel } from '@/lib/servicesCatalog';
+import { SERVICES_CATALOG, computePricing, computeServicePricing, getPlatformLabel } from '@/lib/servicesCatalog';
 
 const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   instagram: SiInstagram, twitter: SiX,       youtube:   SiYoutube,  tiktok:    SiTiktok,
@@ -285,7 +285,13 @@ export default function ServicesPage() {
 
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {services.map((service, i) => {
-                    const pricing = computePricing(service.pricePerUnit, service.minQuantity);
+                    // Flat-duration (live) services are priced per MINUTE, not per unit —
+                    // show "from <shortest watch-time>" instead of a per-viewer minimum.
+                    const isFlat = service.priceModel === 'flat_duration';
+                    const minDuration = isFlat ? Math.min(...(service.durationOptions ?? [0])) : undefined;
+                    const pricing = isFlat
+                      ? computeServicePricing(service, service.standardPack ?? service.minQuantity, minDuration)
+                      : computePricing(service.pricePerUnit, service.minQuantity);
                     const unitPrice = (service.pricePerUnit / 100).toFixed(2);
                     return (
                       <motion.div
@@ -316,11 +322,11 @@ export default function ServicesPage() {
                         <div className="grid grid-cols-3 gap-2 mb-4 text-center">
                           <div className="bg-slate-800/60 rounded-lg py-2">
                             <p className="text-emerald-400 font-black text-sm">₦{unitPrice}</p>
-                            <p className="text-slate-500 text-[10px]">per unit</p>
+                            <p className="text-slate-500 text-[10px]">{isFlat ? 'per min' : 'per unit'}</p>
                           </div>
                           <div className="bg-slate-800/60 rounded-lg py-2">
-                            <p className="text-blue-400 font-black text-sm">{service.minQuantity.toLocaleString()}+</p>
-                            <p className="text-slate-500 text-[10px]">min qty</p>
+                            <p className="text-blue-400 font-black text-sm">{isFlat ? `${minDuration}m+` : `${service.minQuantity.toLocaleString()}+`}</p>
+                            <p className="text-slate-500 text-[10px]">{isFlat ? 'min time' : 'min qty'}</p>
                           </div>
                           <div className={`bg-slate-800/60 rounded-lg py-2`}>
                             <p className={`font-black text-sm ${SPEED_COLOR[service.speed]}`}>{SPEED_LABEL[service.speed]}</p>
