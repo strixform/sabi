@@ -133,11 +133,28 @@ export async function GET(req: NextRequest) {
         ].filter(Boolean).join(' | ') || undefined,
       };
 
-      const response = await fetch(`${gamerz360ApiUrl}/api/admin/sabi/orders`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${integrationToken}` },
-        body: JSON.stringify(payload),
-      });
+      // 15s per-order timeout so one slow/hung call (e.g. Cloudflare challenge)
+      // can't eat the whole 25s function budget and leave EVERY order pending.
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      let response: Response;
+      try {
+        response = await fetch(`${gamerz360ApiUrl}/api/admin/sabi/orders`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${integrationToken}`,
+            // CRITICAL: Cloudflare fronts gamerz360.com and challenges non-browser
+            // User-Agents — without this the call hangs/blocks and the order is
+            // never submitted (stuck 'pending'). Auth is still the Bearer token.
+            'User-Agent': 'Mozilla/5.0 (compatible; SABI-Integration/1.0)',
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       if (response.ok) {
         const data = await response.json();
