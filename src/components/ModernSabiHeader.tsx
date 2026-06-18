@@ -119,16 +119,21 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
             </motion.div>
           </Link>
 
-          {/* Desktop Navigation */}
+          {/* Desktop Navigation — single non-wrapping row that scrolls within its
+              own bounds, so a crowded nav can never wrap to two lines (vertical
+              stretch) or push the page wider than the viewport. */}
           {showNavigation && (
-            <nav className="hidden lg:flex items-center gap-1">
+            <nav
+              className="hidden lg:flex items-center gap-0.5 flex-1 min-w-0 overflow-x-auto mx-2 [&::-webkit-scrollbar]:hidden"
+              style={{ scrollbarWidth: 'none' }}
+            >
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.href);
                 return (
-                  <Link key={item.href} href={item.href}>
+                  <Link key={item.href} href={item.href} className="shrink-0">
                     <motion.button
-                      className={`relative px-4 py-2 rounded-lg font-medium text-sm transition-all duration-300 flex items-center gap-2 tracking-wide ${
+                      className={`relative px-3 py-2 rounded-lg font-medium text-sm transition-all duration-300 flex items-center gap-1.5 tracking-wide whitespace-nowrap shrink-0 ${
                         active
                           ? 'text-white bg-white/[0.06] border border-white/[0.08]'
                           : 'text-white/35 hover:text-white/70'
