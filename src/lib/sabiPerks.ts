@@ -23,16 +23,16 @@ export function maxDiscountKobo(totalChargeKobo: number, baseKobo: number): numb
 export const DAILY_PROMO_BUDGET_KOBO = 20_000_000; // ₦200,000/day of giveaways
 
 // ── Top-up funding bonus ────────────────────────────────────────────────────
-// Fund more in one go, get a bonus credit. Pulls cash forward.
+// Flat 10% bonus credited on every wallet top-up (capped overall by the daily
+// promo budget in the callback). Pulls cash forward and rewards funding.
+export const TOPUP_BONUS_RATE = 0.10;
+// Kept for any UI that lists tiers — now a single flat tier.
 export const TOPUP_BONUS_TIERS: { minKobo: number; rate: number; label: string }[] = [
-  { minKobo: 10_000_000, rate: 0.08, label: '+8%' }, // ≥ ₦100,000
-  { minKobo: 5_000_000,  rate: 0.05, label: '+5%' }, // ≥ ₦50,000
-  { minKobo: 2_000_000,  rate: 0.03, label: '+3%' }, // ≥ ₦20,000
+  { minKobo: 0, rate: TOPUP_BONUS_RATE, label: '+10%' },
 ];
 
 export function topupBonusRate(amountKobo: number): number {
-  for (const t of TOPUP_BONUS_TIERS) if (amountKobo >= t.minKobo) return t.rate;
-  return 0;
+  return amountKobo > 0 ? TOPUP_BONUS_RATE : 0;
 }
 
 export function topupBonusKobo(amountKobo: number): number {

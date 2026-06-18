@@ -310,6 +310,8 @@ export default function OrderPage() {
   // WhatsApp number (digits only, no +) for phone_whatsapp services — turned into
   // a wa.me link on submit. Defaults to Nigeria country code.
   const [whatsappNumber, setWhatsappNumber] = useState('');
+  // Post Comment Likes only: which comments taskers should like (most-recent vs top).
+  const [commentSort, setCommentSort] = useState<'recent' | 'top'>('recent');
   // Audience targeting + comment customization
   const [audienceGender, setAudienceGender] = useState<'both' | 'male' | 'female'>('both');
   const [audienceState, setAudienceState] = useState('All Nigeria');
@@ -600,6 +602,9 @@ export default function OrderPage() {
         audienceLocation,
         ...(COMMENT_ACTIONS.includes(selectedService.action)
           ? { commentGender, commentInstructions: commentInstructions.trim() || null }
+          : {}),
+        ...(selectedService.action === 'Post Comment Likes'
+          ? { commentInstructions: `Like the first ${quantity} ${commentSort === 'top' ? 'TOP (most-liked)' : 'most-recent'} comments under the post` }
           : {}),
         ...(durationMins ? { durationMinutes: durationMins } : {}),
         ...(startShot ? { startScreenshotUrl: startShot } : {}),
@@ -1107,6 +1112,31 @@ export default function OrderPage() {
                     </motion.div>
                   ) : null}
 
+                  {/* Which comments to like — Post Comment Likes services only */}
+                  {selectedService.action === 'Post Comment Likes' ? (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.25 }}
+                    >
+                      <label className="block text-sm font-semibold text-slate-300 mb-2">
+                        Which comments? <span className="text-slate-500 font-normal">(we like the first {quantity.toLocaleString()})</span>
+                      </label>
+                      <div className="flex gap-2">
+                        {([['recent', 'Most recent'], ['top', 'Top / most-liked']] as [typeof commentSort, string][]).map(([val, label]) => (
+                          <button
+                            key={val}
+                            type="button"
+                            onClick={() => setCommentSort(val)}
+                            className={`px-4 py-2 rounded-lg text-sm font-bold transition ${commentSort === val ? 'bg-blue-600 text-white' : 'bg-slate-800/50 text-slate-300 hover:bg-slate-700/50 border border-slate-700/50'}`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  ) : null}
+
                   {/* Audience targeting */}
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
@@ -1333,34 +1363,38 @@ export default function OrderPage() {
                       </h3>
 
                       <div className="space-y-4 mb-6">
+                        {/* Live (flat) services are priced by watch-time, not per viewer —
+                            skip the per-unit/quantity rows that would read as confusing. */}
+                        {selectedService.priceModel === 'flat_duration' ? (
+                          durationMins ? (
+                            <div className="flex justify-between items-center pb-3 border-b border-slate-700/50">
+                              <span className="text-slate-400">Watch time</span>
+                              <span className="font-bold">{durationMins % 60 === 0 ? `${durationMins / 60} hr${durationMins / 60 > 1 ? 's' : ''}` : `${durationMins} min`}</span>
+                            </div>
+                          ) : null
+                        ) : (
+                          <>
+                            <div className="flex justify-between items-center pb-3 border-b border-slate-700/50">
+                              <span className="text-slate-400">Price per unit</span>
+                              <span className="font-bold">₦{(selectedService.pricePerUnit / 100).toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between items-center pb-3 border-b border-slate-700/50">
+                              <span className="text-slate-400">Quantity</span>
+                              <span className="font-bold">{quantity.toLocaleString()}</span>
+                            </div>
+                          </>
+                        )}
+                        {/* All-in price — fees are baked in (no separate fee lines). */}
                         <div className="flex justify-between items-center pb-3 border-b border-slate-700/50">
-                          <span className="text-slate-400">Price per unit</span>
-                          <span className="font-bold">₦{(selectedService.pricePerUnit / 100).toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between items-center pb-3 border-b border-slate-700/50">
-                          <span className="text-slate-400">Quantity</span>
-                          <span className="font-bold">{quantity.toLocaleString()}</span>
-                        </div>
-                        <div className="flex justify-between items-center pb-3 border-b border-slate-700/50">
-                          <span className="text-slate-400">Subtotal</span>
-                          <span className="font-bold">₦{((pricing?.grossBaseKobo ?? 0) / 100).toFixed(2)}</span>
+                          <span className="text-slate-400">Price <span className="text-[10px] text-slate-500">(incl. all fees)</span></span>
+                          <span className="font-bold">₦{((pricing?.totalKobo ?? 0) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                         {pricing && pricing.discountKobo > 0 && (
                           <div className="flex justify-between items-center pb-3 border-b border-slate-700/50">
-                            <span className="text-emerald-400 flex items-center gap-1.5">
-                              🎉 Volume discount ({Math.round(pricing.discountRate * 100)}%)
-                            </span>
-                            <span className="font-bold text-emerald-400">−₦{(pricing.discountKobo / 100).toFixed(2)}</span>
+                            <span className="text-emerald-400 flex items-center gap-1.5">🎉 Volume discount ({Math.round(pricing.discountRate * 100)}%)</span>
+                            <span className="font-bold text-emerald-400">applied ✓</span>
                           </div>
                         )}
-                        <div className="flex justify-between items-center pb-3 border-b border-slate-700/50">
-                          <span className="text-slate-400">Platform fee (7.5%)</span>
-                          <span className="font-bold">₦{((pricing?.platformFeeKobo ?? 0) / 100).toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between items-center pb-3 border-b border-slate-700/50">
-                          <span className="text-slate-400">VAT (7.5%)</span>
-                          <span className="font-bold">₦{((pricing?.vatKobo ?? 0) / 100).toFixed(2)}</span>
-                        </div>
                         {welcomeKobo > 0 && (
                           <div className="flex justify-between items-center pb-3 border-b border-slate-700/50">
                             <span className="text-amber-400 flex items-center gap-1.5">🎉 First-order coupon (10%)</span>

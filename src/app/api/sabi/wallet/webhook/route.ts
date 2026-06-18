@@ -76,6 +76,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true }, { status: 200 });
     }
 
+    // Flat top-up bonus — idempotent via the `_bonus` ref, so it's safe even if
+    // the browser callback also ran. Capped by the daily promo budget.
+    try {
+      const { topupBonusKobo, DAILY_PROMO_BUDGET_KOBO } = await import('@/lib/sabiPerks');
+      const bonusKobo = topupBonusKobo(amountInKobo);
+      if (bonusKobo > 0) {
+        const { consumePromoBudget } = await import('@/lib/redis');
+        if (await consumePromoBudget(bonusKobo, DAILY_PROMO_BUDGET_KOBO)) {
+          await creditSabiWallet(userId, bonusKobo, `${txRef}_bonus`);
+        }
+      }
+    } catch { /* bonus is best-effort */ }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     // Log internally but don't expose to client
