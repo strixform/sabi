@@ -11,11 +11,22 @@ export interface Service {
   refillable: boolean;
   icon?: string;
   // Live-stream services only: selectable "stop view time" in minutes. When set,
-  // the order page shows a watch-time picker and price scales by duration.
+  // the order page shows a watch-time picker.
   durationOptions?: number[];
-  // The watch-time (minutes) that `pricePerUnit` is quoted for. Price for another
-  // duration = pricePerUnit × (chosenMinutes / baseDurationMins).
+  // The watch-time (minutes) that `pricePerUnit` is quoted for (per_unit model only).
   baseDurationMins?: number;
+  // Pricing model:
+  //  - 'per_unit' (default): price = pricePerUnit × quantity (× duration multiplier)
+  //  - 'flat_duration': price = pricePerUnit (per MINUTE) × chosen minutes; viewer
+  //    count is a fixed standard pack and does NOT affect price.
+  priceModel?: 'per_unit' | 'flat_duration';
+  // flat_duration services: the standard viewer pack delivered (stored as the
+  // order quantity; the buyer doesn't pick it).
+  standardPack?: number;
+  // What the buyer must provide as the target:
+  //  - 'url' (default): a link
+  //  - 'phone_whatsapp': their WhatsApp number (we turn it into a wa.me link)
+  inputType?: 'url' | 'phone_whatsapp';
 }
 
 export const PLATFORMS = {
@@ -637,13 +648,15 @@ Go live and instantly show a crowd. Real Nigerian viewers join your TikTok LIVE 
 **HOW IT WORKS:** Start your LIVE first, paste the LIVE link, pick your viewer count and watch-time, and the crowd builds up and holds for the full session.`,
     category: PLATFORMS.TIKTOK,
     action: 'LIVE Views',
-    pricePerUnit: 200, // ₦2 per viewer for the base 60-min watch-time (DRAFT price)
-    minQuantity: 50,
-    maxQuantity: 5000,
+    pricePerUnit: 1000, // ₦10 per MINUTE (flat — viewer count is a standard pack)
+    minQuantity: 100,
+    maxQuantity: 100,
     speed: 'instant',
     refillable: false,
     durationOptions: [30, 60, 120, 180, 240],
     baseDurationMins: 60,
+    priceModel: 'flat_duration',
+    standardPack: 100, // viewers delivered (fixed) — price is by watch-time, not count
   },
   {
     id: 'instagram_live_views',
@@ -662,13 +675,15 @@ Nothing kills a LIVE like an empty room. Real Nigerian viewers join your Instagr
 **HOW IT WORKS:** Go live, paste your LIVE link, choose viewers + watch-time, and the audience builds and holds for the whole session.`,
     category: PLATFORMS.INSTAGRAM,
     action: 'LIVE Views',
-    pricePerUnit: 220, // DRAFT price — ₦2.20 per viewer / 60 min
-    minQuantity: 50,
-    maxQuantity: 5000,
+    pricePerUnit: 1000, // ₦10 per MINUTE (flat — viewer count is a standard pack)
+    minQuantity: 100,
+    maxQuantity: 100,
     speed: 'instant',
     refillable: false,
     durationOptions: [30, 60, 120, 180, 240],
     baseDurationMins: 60,
+    priceModel: 'flat_duration',
+    standardPack: 100, // viewers delivered (fixed) — price is by watch-time, not count
   },
   {
     id: 'youtube_live_views',
@@ -687,13 +702,15 @@ YouTube ranks lives by concurrent viewers and watch-time. Real Nigerian viewers 
 **HOW IT WORKS:** Start your live, paste the watch link, pick viewers + watch-time, and the audience holds for the full session.`,
     category: PLATFORMS.YOUTUBE,
     action: 'Live Views',
-    pricePerUnit: 240, // DRAFT price — ₦2.40 per viewer / 60 min
-    minQuantity: 50,
-    maxQuantity: 5000,
+    pricePerUnit: 1000, // ₦10 per MINUTE (flat — viewer count is a standard pack)
+    minQuantity: 100,
+    maxQuantity: 100,
     speed: 'instant',
     refillable: false,
     durationOptions: [30, 60, 120, 180, 240],
     baseDurationMins: 60,
+    priceModel: 'flat_duration',
+    standardPack: 100, // viewers delivered (fixed) — price is by watch-time, not count
   },
   {
     id: 'facebook_live_views',
@@ -712,13 +729,15 @@ Facebook pushes lives with active, steady audiences to more feeds. Real Nigerian
 **HOW IT WORKS:** Go live, paste your live link, choose viewers + watch-time, and the audience builds and holds for the whole session.`,
     category: PLATFORMS.FACEBOOK,
     action: 'Live Views',
-    pricePerUnit: 220, // DRAFT price — ₦2.20 per viewer / 60 min
-    minQuantity: 50,
-    maxQuantity: 5000,
+    pricePerUnit: 1000, // ₦10 per MINUTE (flat — viewer count is a standard pack)
+    minQuantity: 100,
+    maxQuantity: 100,
     speed: 'instant',
     refillable: false,
     durationOptions: [30, 60, 120, 180, 240],
     baseDurationMins: 60,
+    priceModel: 'flat_duration',
+    standardPack: 100, // viewers delivered (fixed) — price is by watch-time, not count
   },
   // Live stream LIKES / reactions — one-time engagement during a live broadcast.
   {
@@ -736,7 +755,7 @@ The tap-tap of likes during a TikTok LIVE signals energy — TikTok rewards high
 ✓ Pairs perfectly with TikTok LIVE Views`,
     category: PLATFORMS.TIKTOK,
     action: 'LIVE Likes',
-    pricePerUnit: 90, // DRAFT price
+    pricePerUnit: 200, // ₦2 per like
     minQuantity: 100,
     maxQuantity: 100000,
     speed: 'fast',
@@ -757,7 +776,7 @@ A stream of hearts floating up your Instagram LIVE tells everyone — and the al
 ✓ Pairs perfectly with Instagram LIVE Views`,
     category: PLATFORMS.INSTAGRAM,
     action: 'LIVE Likes',
-    pricePerUnit: 100, // DRAFT price
+    pricePerUnit: 200, // ₦2 per like
     minQuantity: 100,
     maxQuantity: 100000,
     speed: 'fast',
@@ -778,7 +797,7 @@ Likes during a YouTube live are a quality signal that lifts your stream in recom
 ✓ Pairs perfectly with YouTube Live Views`,
     category: PLATFORMS.YOUTUBE,
     action: 'Live Likes',
-    pricePerUnit: 110, // DRAFT price
+    pricePerUnit: 200, // ₦2 per like
     minQuantity: 100,
     maxQuantity: 50000,
     speed: 'fast',
@@ -799,11 +818,35 @@ Reactions streaming across your Facebook Live tell the algorithm your broadcast 
 ✓ Pairs perfectly with Facebook Live Views`,
     category: PLATFORMS.FACEBOOK,
     action: 'Live Reactions',
-    pricePerUnit: 100, // DRAFT price
+    pricePerUnit: 200, // ₦2 per like
     minQuantity: 100,
     maxQuantity: 100000,
     speed: 'fast',
     refillable: false,
+  },
+
+  // ============ WHATSAPP ============
+  {
+    id: 'whatsapp_story_views',
+    name: 'WhatsApp Story Views',
+    description: `👀 **REAL VIEWS ON YOUR WHATSAPP STATUS — FROM REAL NIGERIANS**
+
+Post your WhatsApp Status (promo, flyer, product, announcement) and get real people viewing it. Perfect for vendors and creators who run their business on WhatsApp — a busy Status with lots of viewers builds instant trust.
+
+**HOW IT WORKS:**
+1. You enter your WhatsApp number at checkout (kept private — only shown to the viewer assigned to you).
+2. Each real viewer reaches out with a short friendly note like “👋 Here for promotions — save this number for your story view 🙌”, so you know it’s genuine.
+3. They view your current Status. One-time view per person.
+
+**TIP:** Save the numbers that message you (and post your Status as usual) — that locks in the views and means future statuses get seen too. Your number is never shown publicly.`,
+    category: PLATFORMS.WHATSAPP,
+    action: 'Story Views',
+    pricePerUnit: 150, // DRAFT price — ₦1.50 per story view (manual, labour-heavy)
+    minQuantity: 50,
+    maxQuantity: 5000,
+    speed: 'medium',
+    refillable: false,
+    inputType: 'phone_whatsapp',
   },
 
   // ============ YOUTUBE ============
@@ -2845,6 +2888,28 @@ export function computePricing(pricePerUnitKobo: number, quantity: number, price
   const platformFeeKobo = Math.ceil(baseKobo * PLATFORM_FEE_RATE);
   const vatKobo = Math.ceil(baseKobo * VAT_RATE);
   return { grossBaseKobo, discountRate, discountKobo, baseKobo, platformFeeKobo, vatKobo, totalKobo: baseKobo + platformFeeKobo + vatKobo };
+}
+
+/** Flat watch-time pricing (kobo): price = pricePerMinute × minutes. No volume
+ *  discount (it's time-based, not quantity-based). Used by live-view services. */
+export function computeLivePricing(pricePerMinuteKobo: number, durationMins: number): PricingBreakdown {
+  const grossBaseKobo = Math.round(pricePerMinuteKobo * Math.max(0, durationMins));
+  const baseKobo = grossBaseKobo;
+  const platformFeeKobo = Math.ceil(baseKobo * PLATFORM_FEE_RATE);
+  const vatKobo = Math.ceil(baseKobo * VAT_RATE);
+  return { grossBaseKobo, discountRate: 0, discountKobo: 0, baseKobo, platformFeeKobo, vatKobo, totalKobo: baseKobo + platformFeeKobo + vatKobo };
+}
+
+/** Single entry point both UI and backend use, so they always agree on price.
+ *  Routes to the right model (flat watch-time vs per-unit ± duration multiplier). */
+export function computeServicePricing(service: Service, quantity: number, durationMins?: number): PricingBreakdown {
+  if (service.priceModel === 'flat_duration') {
+    const mins = service.durationOptions?.includes(Number(durationMins))
+      ? Number(durationMins)
+      : (service.baseDurationMins ?? service.durationOptions?.[0] ?? 0);
+    return computeLivePricing(service.pricePerUnit, mins);
+  }
+  return computePricing(service.pricePerUnit, quantity, durationPriceMultiplier(service, durationMins));
 }
 
 export function getServicesByCategory(category: string): Service[] {

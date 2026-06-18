@@ -1,6 +1,6 @@
 import { prisma } from './prisma';
 import { getService, validateOrder } from './sabiServices';
-import { computePricing, durationPriceMultiplier } from './servicesCatalog';
+import { computeServicePricing } from './servicesCatalog';
 import { debitSabiWallet, refundSabiWallet } from './sabiWallet';
 import { sabiExecute } from './tursoClient';
 
@@ -72,19 +72,21 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
       return { success: false, error: 'Service not found' };
     }
 
-    // Live-stream watch-time → price multiplier. Normalise the duration to a valid
-    // option (never trust the client's number) so the charge always matches what
-    // we deliver. Non-live services keep multiplier 1.
+    // Live-stream watch-time → normalise to a valid option (never trust the
+    // client's number) so the charge always matches what we deliver.
     let durationMinutes: number | undefined;
-    let durationMult = 1;
-    if (service.durationOptions?.length && service.baseDurationMins) {
+    if (service.durationOptions?.length) {
       durationMinutes = service.durationOptions.includes(Number(input.durationMinutes))
         ? Number(input.durationMinutes)
-        : service.baseDurationMins;
-      durationMult = durationPriceMultiplier(service, durationMinutes);
+        : (service.baseDurationMins ?? service.durationOptions[0]);
     }
+    // flat_duration services bill by watch-time and ship a fixed viewer pack —
+    // force the stored quantity to the standard pack regardless of client input.
+    const effectiveQuantity = service.priceModel === 'flat_duration'
+      ? (service.standardPack ?? service.minQuantity)
+      : input.quantity;
 
-    const pricing = computePricing(service.pricePerUnit, input.quantity, durationMult);
+    const pricing = computeServicePricing(service, effectiveQuantity, durationMinutes);
     const totalPrice = pricing.totalKobo;           // grand total before promo/welcome (volume discount applied)
     const basePrice = pricing.baseKobo;             // discounted base
     const platformFee = pricing.platformFeeKobo + pricing.vatKobo;
@@ -144,7 +146,7 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
           userId: input.userId,
           serviceType: input.serviceId,
           targetUrl: input.targetUrl,
-          quantity: input.quantity,
+          quantity: effectiveQuantity,
           pricePerUnit: service.pricePerUnit,
           totalPrice: basePrice,
           platformFee: platformFee,
@@ -214,7 +216,7 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
       import('./email').then(({ sendOrderPlacedEmail }) => {
         sendOrderPlacedEmail(
           user.email, user.name, order.id,
-          service.name, input.quantity,
+          service.name, effectiveQuantity,
           Math.round(totalPrice / 100), // kobo → naira
         );
       }).catch(() => {});

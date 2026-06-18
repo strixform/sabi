@@ -23,7 +23,7 @@ import { AnimatedBackground } from '@/components/AnimatedBackground';
 import { AnimateInText } from '@/components/AnimateInText';
 import { ModernSabiHeader } from '@/components/ModernSabiHeader';
 import type { Service } from '@/lib/servicesCatalog';
-import { PLATFORMS, computePricing, durationPriceMultiplier, getServiceById } from '@/lib/servicesCatalog';
+import { PLATFORMS, computeServicePricing, getServiceById } from '@/lib/servicesCatalog';
 
 const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   instagram:  SiInstagram,
@@ -307,6 +307,9 @@ export default function OrderPage() {
   // Live-stream "stop view time" (watch-time) in minutes — only used by services
   // that define durationOptions. Defaults to the service's base duration.
   const [durationMins, setDurationMins] = useState<number | undefined>(undefined);
+  // WhatsApp number (digits only, no +) for phone_whatsapp services — turned into
+  // a wa.me link on submit. Defaults to Nigeria country code.
+  const [whatsappNumber, setWhatsappNumber] = useState('');
   // Audience targeting + comment customization
   const [audienceGender, setAudienceGender] = useState<'both' | 'male' | 'female'>('both');
   const [audienceState, setAudienceState] = useState('All Nigeria');
@@ -367,12 +370,16 @@ export default function OrderPage() {
   }, [selectedPlatform]);
 
   // Default the watch-time when a live-stream service is selected (and clear it
-  // for non-live services).
+  // for non-live services). Flat-duration services ship a fixed viewer pack, so
+  // lock quantity to the standard pack.
   useEffect(() => {
     if (selectedService?.durationOptions?.length) {
       setDurationMins(selectedService.baseDurationMins ?? selectedService.durationOptions[0]);
     } else {
       setDurationMins(undefined);
+    }
+    if (selectedService?.priceModel === 'flat_duration') {
+      setQuantity(selectedService.standardPack ?? selectedService.minQuantity);
     }
   }, [selectedService]);
 
@@ -423,7 +430,7 @@ export default function OrderPage() {
   };
 
   const pricing = selectedService
-    ? computePricing(selectedService.pricePerUnit, quantity, durationPriceMultiplier(selectedService, durationMins))
+    ? computeServicePricing(selectedService, quantity, durationMins)
     : null;
   const [promoCode, setPromoCode] = useState('');
   const [promoResult, setPromoResult] = useState<any>(null);
@@ -535,6 +542,10 @@ export default function OrderPage() {
     } catch {
       return 'Invalid URL format';
     }
+
+    // Live-stream links (profile/live URLs) and WhatsApp wa.me links vary too much
+    // to auto-verify — accept any valid URL.
+    if (selectedService.durationOptions?.length || selectedService.inputType === 'phone_whatsapp') return null;
 
     // Smart link-type checking is enforced only for the big 4 platforms. For
     // every other platform we accept any valid URL (and show a "double-check"
@@ -852,7 +863,43 @@ export default function OrderPage() {
 
               <InteractiveCard glowColor="blue">
                 <div className="p-8 space-y-6">
-                  {/* Target URL */}
+                  {/* WhatsApp number — for phone_whatsapp services. We build a wa.me
+                      link (with a friendly promo message) and store it as the target,
+                      so the rest of the flow + the staff link work unchanged. */}
+                  {selectedService.inputType === 'phone_whatsapp' ? (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 }}
+                    >
+                      <label className="block text-sm font-semibold text-slate-300 mb-2">
+                        Your WhatsApp number
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <span className="px-3 py-3 bg-slate-800/50 border border-slate-700/50 rounded-lg text-slate-300 font-mono">🇳🇬 +234</span>
+                        <input
+                          type="tel"
+                          inputMode="numeric"
+                          value={whatsappNumber}
+                          onChange={(e) => {
+                            // keep digits only; drop a leading 0 (local format)
+                            let d = e.target.value.replace(/\D/g, '');
+                            if (d.startsWith('0')) d = d.slice(1);
+                            d = d.slice(0, 11);
+                            setWhatsappNumber(d);
+                            const promo = encodeURIComponent('👋 Here for promotions — save this number for your story view 🙌');
+                            setTargetUrl(d.length >= 7 ? `https://wa.me/234${d}?text=${promo}` : '');
+                          }}
+                          placeholder="8012345678"
+                          className="flex-1 px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                      </div>
+                      <p className="text-xs text-slate-400 mt-2">
+                        Real viewers will message you a short promo note, then view your current WhatsApp Status. Your number is kept private — only shown to the viewer assigned to your order. Post your Status before/after ordering, and save anyone who messages you so the views land.
+                      </p>
+                    </motion.div>
+                  ) : (
+                  /* Target URL */
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -921,6 +968,7 @@ export default function OrderPage() {
                       </p>
                     )}
                   </motion.div>
+                  )}
 
                   {/* Start screenshot (optional but recommended) */}
                   <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}>
@@ -960,7 +1008,21 @@ export default function OrderPage() {
                     </div>
                   </motion.div>
 
-                  {/* Quantity */}
+                  {/* Quantity — hidden for flat-duration live services (fixed viewer
+                      pack; the buyer only picks watch-time). */}
+                  {selectedService.priceModel === 'flat_duration' ? (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="rounded-lg bg-slate-800/40 border border-slate-700/50 px-4 py-3"
+                    >
+                      <div className="text-sm font-semibold text-slate-300">Live viewers</div>
+                      <div className="text-xs text-slate-400 mt-0.5">
+                        A standard live-viewer pack is included — you only choose the watch-time below. Price is per minute live.
+                      </div>
+                    </motion.div>
+                  ) : (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1011,6 +1073,7 @@ export default function OrderPage() {
                       Min: {selectedService.minQuantity.toLocaleString()} • Max: {selectedService.maxQuantity.toLocaleString()}
                     </p>
                   </motion.div>
+                  )}
 
                   {/* Watch-time (stop view time) — live-stream services only */}
                   {selectedService.durationOptions?.length ? (
