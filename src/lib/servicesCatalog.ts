@@ -1012,7 +1012,7 @@ Rumble is the fast-growing free-speech video platform. Get real subscribers on y
 **HOW IT WORKS:** Paste your Rumble channel link and choose how many subscribers.`,
     category: PLATFORMS.RUMBLE,
     action: 'Subscribers',
-    pricePerUnit: 200, // DRAFT — ₦2 per subscriber
+    pricePerUnit: 10000, // ₦100 per subscriber
     minQuantity: 50,
     maxQuantity: 50000,
     speed: 'medium',
@@ -1035,7 +1035,7 @@ Views are the first signal Rumble uses to decide what to promote. Get real views
 **HOW IT WORKS:** Paste your Rumble video link and choose how many views.`,
     category: PLATFORMS.RUMBLE,
     action: 'Views',
-    pricePerUnit: 80, // DRAFT — ₦0.80 per view
+    pricePerUnit: 500, // ₦5 per view
     minQuantity: 500,
     maxQuantity: 500000,
     speed: 'fast',
@@ -1058,7 +1058,7 @@ Likes tell Rumble your content is worth recommending. Get real likes on your vid
 **HOW IT WORKS:** Paste your Rumble video link and choose how many likes.`,
     category: PLATFORMS.RUMBLE,
     action: 'Likes',
-    pricePerUnit: 150, // DRAFT — ₦1.50 per like
+    pricePerUnit: 1000, // ₦10 per like
     minQuantity: 50,
     maxQuantity: 50000,
     speed: 'fast',
@@ -1081,7 +1081,7 @@ Comments drive engagement and keep viewers watching longer. Get real, relevant c
 **HOW IT WORKS:** Paste your Rumble video link and choose how many comments.`,
     category: PLATFORMS.RUMBLE,
     action: 'Comments',
-    pricePerUnit: 300, // DRAFT — ₦3 per comment
+    pricePerUnit: 5000, // ₦50 per comment
     minQuantity: 10,
     maxQuantity: 5000,
     speed: 'medium',
