@@ -13,7 +13,7 @@ import {
 import {
   SiInstagram, SiX, SiYoutube, SiTiktok, SiSnapchat, SiSpotify,
   SiWhatsapp, SiPinterest, SiThreads, SiTelegram, SiTwitch,
-  SiFacebook, SiGoogle, SiApple, SiApplepodcasts, SiAudiomack, SiApplemusic,
+  SiFacebook, SiGoogle, SiApple, SiApplepodcasts, SiAudiomack, SiApplemusic, SiRumble,
 } from 'react-icons/si';
 import { FaLinkedinIn } from 'react-icons/fa';
 import { FiGlobe } from 'react-icons/fi';
@@ -47,6 +47,7 @@ const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string }>
   app_store:  SiApple,
   podcast:    SiApplepodcasts,
   website:    FiGlobe,
+  rumble:     SiRumble,
 };
 
 // Intelligent URL detection patterns for each platform
@@ -237,6 +238,7 @@ const PLATFORM_COLORS: Record<string, string> = {
   app_store: 'from-gray-700 to-gray-900',
   podcast:   'from-purple-600 to-violet-800',
   website:   'from-cyan-500 to-blue-600',
+  rumble:    'from-green-500 to-emerald-700',
 };
 
 // Nigerian states (audience targeting — Nigerian audience only for now)

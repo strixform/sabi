@@ -51,6 +51,7 @@ export const PLATFORMS = {
   APP_STORE: 'app_store',
   WEBSITE: 'website',
   PODCAST: 'podcast',
+  RUMBLE: 'rumble',
 };
 
 export const SERVICES_CATALOG: Service[] = [
@@ -990,6 +991,100 @@ Early engagement matters most on Threads. Our real Nigerian taskers like the fir
     minQuantity: 10,
     maxQuantity: 1000,
     speed: 'fast',
+    refillable: false,
+  },
+
+  // ============ RUMBLE ============
+  {
+    id: 'rumble_subscribers',
+    name: 'Rumble Subscribers',
+    description: `📺 **GROW YOUR RUMBLE CHANNEL WITH REAL SUBSCRIBERS**
+
+Rumble is the fast-growing free-speech video platform. Get real subscribers on your channel to build authority early, unlock monetisation faster, and get your videos recommended to more viewers.
+
+**WHAT YOU GET:**
+✓ Real Rumble channel subscribers
+✓ Steady, natural delivery
+✓ Stronger channel credibility and reach
+✓ Foundation for Rumble monetisation
+✓ Early-mover advantage on a growing platform
+
+**HOW IT WORKS:** Paste your Rumble channel link and choose how many subscribers.`,
+    category: PLATFORMS.RUMBLE,
+    action: 'Subscribers',
+    pricePerUnit: 200, // DRAFT — ₦2 per subscriber
+    minQuantity: 50,
+    maxQuantity: 50000,
+    speed: 'medium',
+    refillable: true,
+  },
+  {
+    id: 'rumble_views',
+    name: 'Rumble Video Views',
+    description: `📊 **BOOST YOUR RUMBLE VIDEOS WITH REAL VIEWS**
+
+Views are the first signal Rumble uses to decide what to promote. Get real views on your videos to trigger the algorithm, climb the trending lists, and pull in organic viewers.
+
+**WHAT YOU GET:**
+✓ Real views on your Rumble videos
+✓ Fast, natural delivery
+✓ Better trending + recommendation placement
+✓ Counts toward your channel's watch metrics
+✓ No drops
+
+**HOW IT WORKS:** Paste your Rumble video link and choose how many views.`,
+    category: PLATFORMS.RUMBLE,
+    action: 'Views',
+    pricePerUnit: 80, // DRAFT — ₦0.80 per view
+    minQuantity: 500,
+    maxQuantity: 500000,
+    speed: 'fast',
+    refillable: false,
+  },
+  {
+    id: 'rumble_likes',
+    name: 'Rumble Likes',
+    description: `👍 **SIGNAL QUALITY ON RUMBLE WITH REAL LIKES**
+
+Likes tell Rumble your content is worth recommending. Get real likes on your videos to improve ranking and social proof so more viewers hit play.
+
+**WHAT YOU GET:**
+✓ Real likes on your Rumble videos
+✓ Natural pacing
+✓ Better quality signals to the algorithm
+✓ Stronger social proof for new viewers
+✓ No drops
+
+**HOW IT WORKS:** Paste your Rumble video link and choose how many likes.`,
+    category: PLATFORMS.RUMBLE,
+    action: 'Likes',
+    pricePerUnit: 150, // DRAFT — ₦1.50 per like
+    minQuantity: 50,
+    maxQuantity: 50000,
+    speed: 'fast',
+    refillable: true,
+  },
+  {
+    id: 'rumble_comments',
+    name: 'Rumble Comments',
+    description: `💬 **SPARK CONVERSATION ON YOUR RUMBLE VIDEOS**
+
+Comments drive engagement and keep viewers watching longer. Get real, relevant comments on your Rumble videos to build an active community and boost the algorithm.
+
+**WHAT YOU GET:**
+✓ Real, relevant comments on your videos
+✓ Natural pacing over a few hours
+✓ Sparks organic replies and discussion
+✓ Stronger engagement signals
+✓ Permanent
+
+**HOW IT WORKS:** Paste your Rumble video link and choose how many comments.`,
+    category: PLATFORMS.RUMBLE,
+    action: 'Comments',
+    pricePerUnit: 300, // DRAFT — ₦3 per comment
+    minQuantity: 10,
+    maxQuantity: 5000,
+    speed: 'medium',
     refillable: false,
   },
 
@@ -3100,6 +3195,7 @@ export function getPlatformLabel(platform: string): string {
     [PLATFORMS.APP_STORE]:  'App Store (iOS)',
     [PLATFORMS.WEBSITE]:    'Website / Digital',
     [PLATFORMS.PODCAST]:    'Podcast',
+    [PLATFORMS.RUMBLE]:     'Rumble',
   };
 
   return labels[platform] || platform;
