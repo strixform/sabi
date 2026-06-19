@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { allowOwnerOrStaff, logStaffAction } from '@/lib/sabiStaff';
+import { sabiExecute } from '@/lib/tursoClient';
 
 export const preferredRegion = 'sfo1';
 export const maxDuration = 15;
@@ -27,50 +28,40 @@ export async function GET(req: NextRequest) {
   const limit  = Math.min(parseInt(searchParams.get('limit')  || '50'), 200);
   const offset = parseInt(searchParams.get('offset') || '0');
 
-  const where: any = {};
-  if (status && status !== 'all') where.status = status;
+  // Raw SQL (SELECT *) instead of a Prisma `select`/`groupBy`. A single column that
+  // lags behind the prod Turso schema makes the Prisma query throw, which silently
+  // empties the whole list (the recurring SABI schema-lag bug). Raw returns whatever
+  // columns actually exist, so the list can never disappear on a missing field.
+  const conds: string[] = [];
+  const args: any[] = [];
+  if (status && status !== 'all') { conds.push('status = ?'); args.push(status); }
   if (search) {
-    where.OR = [
-      { name:        { contains: search } },
-      { email:       { contains: search } },
-      { whatsapp:    { contains: search } },
-      { description: { contains: search } },
-    ];
+    conds.push('(name LIKE ? OR email LIKE ? OR whatsapp LIKE ? OR description LIKE ?)');
+    const like = `%${search}%`;
+    args.push(like, like, like, like);
   }
+  const whereSql = conds.length ? 'WHERE ' + conds.join(' AND ') : '';
 
-  const [requests, total, counts] = await Promise.all([
-    prisma.sabiCustomRequest.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      skip: offset,
-      take: limit,
-      select: {
-        id: true, name: true, email: true, whatsapp: true,
-        category: true, description: true, targetPlatform: true,
-        targetUrl: true, quantity: true, budget: true, timeline: true,
-        status: true, adminNotes: true, createdAt: true, userId: true,
-      },
-    }),
-    prisma.sabiCustomRequest.count({ where }),
-    // Status breakdown counts
-    prisma.sabiCustomRequest.groupBy({
-      by: ['status'],
-      _count: { _all: true },
-    }),
-  ]);
-
-  const statusCounts = Object.fromEntries(
-    counts.map(c => [c.status, c._count._all])
-  );
-
-  return NextResponse.json({
-    success: true,
-    requests,
-    total,
-    statusCounts,
-    limit,
-    offset,
-  });
+  try {
+    const [rowsRes, totalRes, countRes] = await Promise.all([
+      sabiExecute({ sql: `SELECT * FROM SabiCustomRequest ${whereSql} ORDER BY createdAt DESC LIMIT ? OFFSET ?`, args: [...args, limit, offset] }),
+      sabiExecute({ sql: `SELECT COUNT(*) AS c FROM SabiCustomRequest ${whereSql}`, args }),
+      sabiExecute({ sql: `SELECT status, COUNT(*) AS c FROM SabiCustomRequest GROUP BY status`, args: [] }),
+    ]);
+    const statusCounts = Object.fromEntries((countRes.rows as any[]).map(r => [r.status, Number(r.c)]));
+    return NextResponse.json({
+      success: true,
+      requests: rowsRes.rows,
+      total: Number((totalRes.rows[0] as any)?.c || 0),
+      statusCounts,
+      limit,
+      offset,
+    });
+  } catch (e: any) {
+    console.error('[custom-requests] list failed:', e?.message);
+    // success:false so the UI can show a real error instead of a misleading "No requests".
+    return NextResponse.json({ success: false, error: 'Failed to load requests', requests: [], total: 0, statusCounts: {} }, { status: 200 });
+  }
 }
 
 export async function PATCH(req: NextRequest) {

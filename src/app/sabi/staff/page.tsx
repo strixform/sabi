@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 
-type Tab = 'proofs' | 'refills' | 'requests';
+type Tab = 'proofs' | 'refills' | 'requests' | 'partnerships';
 
 interface Order {
   id: string; serviceType: string; targetUrl: string; quantity: number;
@@ -95,7 +95,7 @@ export default function StaffConsole() {
         )}
 
         <div className="flex gap-2 mb-5">
-          {([['proofs', '🧾 Orders & Proofs'], ['refills', '🔁 Refills'], ['requests', '📋 Requests']] as [Tab, string][]).map(([k, label]) => (
+          {([['proofs', '🧾 Orders & Proofs'], ['refills', '🔁 Refills'], ['requests', '📋 Requests'], ['partnerships', '🤝 Partnerships']] as [Tab, string][]).map(([k, label]) => (
             <button key={k} onClick={() => setTab(k)}
               className={`px-3 py-2 rounded-lg text-xs font-bold transition ${tab === k ? 'bg-blue-600 text-white' : 'bg-white/[0.04] text-slate-400 hover:text-slate-200'}`}>
               {label}
@@ -106,6 +106,7 @@ export default function StaffConsole() {
         {tab === 'proofs' && <ProofsTab />}
         {tab === 'refills' && <RefillsTab />}
         {tab === 'requests' && <RequestsTab />}
+        {tab === 'partnerships' && <PartnershipsTab />}
       </div>
     </div>
   );
@@ -341,15 +342,19 @@ const REQ_STATUSES = ['new', 'reviewing', 'contacted', 'quoted', 'active', 'comp
 function RequestsTab() {
   const [reqs, setReqs] = useState<CustomReq[]>([]);
   const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
 
   const load = () => {
-    setLoading(true);
+    setLoading(true); setErr('');
     af('/api/sabi/admin/custom-requests?limit=50')
-      .then(r => (r.ok ? r.json() : null))
-      .then(d => setReqs(d?.requests || []))
-      .catch(() => setReqs([]))
+      .then(async r => ({ ok: r.ok, d: await r.json().catch(() => null) }))
+      .then(({ ok, d }) => {
+        if (!ok || (d && d.success === false)) { setErr(d?.error || 'Could not load requests. Try again.'); setReqs([]); return; }
+        setReqs(d?.requests || []);
+      })
+      .catch(() => setErr('Network error loading requests.'))
       .finally(() => setLoading(false));
   };
   useEffect(() => { load(); }, []);
@@ -366,6 +371,12 @@ function RequestsTab() {
   };
 
   if (loading) return <p className="text-slate-500 py-10 text-center">Loading…</p>;
+  if (err) return (
+    <div className="py-10 text-center">
+      <p className="text-red-300 text-sm mb-3">⚠️ {err}</p>
+      <button onClick={load} className="px-4 py-2 rounded-lg text-sm font-bold bg-white/10 text-white hover:bg-white/20">Retry</button>
+    </div>
+  );
   if (reqs.length === 0) return <p className="text-slate-500 py-10 text-center">No requests.</p>;
   return (
     <div className="space-y-3">
@@ -398,6 +409,71 @@ function RequestsTab() {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+// ─── Partnership / Reseller Requests (read-only for staff) ───────────────────
+interface Partnership {
+  id: string; brandName?: string | null; domain?: string | null;
+  contactPhone?: string | null; notes?: string | null;
+  status: string; paidKobo?: number | null; createdAt: string;
+}
+function PartnershipsTab() {
+  const [items, setItems] = useState<Partnership[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState('');
+
+  const load = () => {
+    setLoading(true); setErr('');
+    af('/api/sabi/admin/partnerships')
+      .then(async r => ({ ok: r.ok, d: await r.json().catch(() => null) }))
+      .then(({ ok, d }) => {
+        if (!ok) { setErr('Could not load partnership requests.'); setItems([]); return; }
+        setItems(d?.partnerships || []);
+      })
+      .catch(() => setErr('Network error loading partnership requests.'))
+      .finally(() => setLoading(false));
+  };
+  useEffect(() => { load(); }, []);
+
+  const statusColor = (s: string) =>
+    s === 'live' ? 'bg-emerald-500/20 text-emerald-300'
+    : s === 'cancelled' ? 'bg-red-500/20 text-red-300'
+    : 'bg-yellow-500/15 text-yellow-300';
+
+  if (loading) return <p className="text-slate-500 py-10 text-center">Loading…</p>;
+  if (err) return (
+    <div className="py-10 text-center">
+      <p className="text-red-300 text-sm mb-3">⚠️ {err}</p>
+      <button onClick={load} className="px-4 py-2 rounded-lg text-sm font-bold bg-white/10 text-white hover:bg-white/20">Retry</button>
+    </div>
+  );
+  if (items.length === 0) return <p className="text-slate-500 py-10 text-center">No partnership requests.</p>;
+  return (
+    <div>
+      <p className="text-xs text-slate-400 mb-3 bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2">
+        🤝 Reseller &amp; partnership requests. View-only — the owner approves and changes status from the admin dashboard.
+      </p>
+      <div className="space-y-3">
+        {items.map(p => (
+          <div key={p.id} className="rounded-xl p-4 bg-white/[0.025] border border-white/[0.07]">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="font-bold text-sm">{p.brandName || 'Unnamed brand'}</div>
+                {p.domain && <a href={/^https?:\/\//i.test(p.domain) ? p.domain : `https://${p.domain}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:underline break-all">{p.domain}</a>}
+                <div className="text-[11px] text-slate-500 mt-1">
+                  {p.contactPhone && <a href={`https://wa.me/${p.contactPhone.replace(/[^\d]/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:underline">{p.contactPhone}</a>}
+                  {p.contactPhone && ' · '}{new Date(p.createdAt).toLocaleDateString()}
+                  {typeof p.paidKobo === 'number' && p.paidKobo > 0 && <> · <span className="text-slate-300">₦{(p.paidKobo / 100).toLocaleString()}</span></>}
+                </div>
+                {p.notes && <div className="text-xs text-slate-300 mt-2 bg-black/30 rounded-lg p-2">{p.notes}</div>}
+              </div>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 capitalize ${statusColor(p.status)}`}>{p.status}</span>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

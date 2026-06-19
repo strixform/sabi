@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkSabiAdmin } from '@/lib/sabiAdminAuth';
+import { allowOwnerOrStaff } from '@/lib/sabiStaff';
 import { listPartnerships, setPartnershipStatus } from '@/lib/sabiPartnership';
 
 export const maxDuration = 15;
 export const preferredRegion = 'sfo1';
 
 export async function GET(req: NextRequest) {
-  if (!await checkSabiAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  // Owner OR staff may VIEW the partnership/reseller request list (read-only in the
+  // staff console). Status changes (POST) remain owner-only below.
+  if (!(await allowOwnerOrStaff(req)).ok) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   const status = req.nextUrl.searchParams.get('status') || undefined;
   try {
     return NextResponse.json({ success: true, partnerships: await listPartnerships(status) });
