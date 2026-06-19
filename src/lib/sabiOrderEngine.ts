@@ -72,6 +72,14 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
       return { success: false, error: 'Service not found' };
     }
 
+    // Comment services MUST carry a brief so taskers write exactly what this buyer
+    // wants (and never improvise things like "coming from gamerz"). The order form
+    // makes it required; enforce server-side too so the API can't be bypassed.
+    const COMMENT_ACTIONS = ['Comments', 'Replies', 'Chat Comments'];
+    if (COMMENT_ACTIONS.includes(service.action) && !(input.commentInstructions || '').trim()) {
+      return { success: false, error: 'Please describe what the comments should say before placing this order.' };
+    }
+
     // Live-stream watch-time → normalise to a valid option (never trust the
     // client's number) so the charge always matches what we deliver.
     let durationMinutes: number | undefined;

@@ -524,12 +524,18 @@ export default function OrderPage() {
     ? Object.entries(PLATFORMS).find(([, value]) => value === selectedPlatform)?.[0] || selectedPlatform
     : '';
 
+  // Comment services REQUIRE a comment brief, so taskers know exactly what to write
+  // for this buyer (and never improvise things like "coming from gamerz"). Enforced
+  // before leaving the details step.
+  const commentBriefRequired = !!selectedService && COMMENT_ACTIONS.includes(selectedService.action);
+  const commentBriefMissing = commentBriefRequired && commentInstructions.trim().length === 0;
+
   const handleNextStep = () => {
     if (currentStep === 'platform' && selectedPlatform) {
       setCurrentStep('service');
     } else if (currentStep === 'service' && selectedService) {
       setCurrentStep('details');
-    } else if (currentStep === 'details' && targetUrl && quantity) {
+    } else if (currentStep === 'details' && targetUrl && quantity && !commentBriefMissing) {
       setCurrentStep('review');
     }
   };
@@ -1244,18 +1250,24 @@ export default function OrderPage() {
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-300 mb-2">
-                          What should the comments say?
+                          What should the comments say? <span className="text-red-400">*</span>
                         </label>
                         <textarea
                           value={commentInstructions}
                           onChange={(e) => setCommentInstructions(e.target.value.slice(0, COMMENT_MAX))}
                           rows={3}
                           placeholder="e.g. Positive comments about our new product launch, mention the discount, keep it casual and friendly."
-                          className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white placeholder-slate-500 text-sm focus:border-purple-500/50 outline-none resize-none"
+                          className={`w-full px-4 py-3 bg-slate-800/50 border rounded-lg text-white placeholder-slate-500 text-sm outline-none resize-none focus:border-purple-500/50 ${commentBriefMissing ? 'border-red-500/60' : 'border-slate-700/50'}`}
                         />
-                        <p className="text-xs text-slate-400 mt-1 text-right">
-                          {commentInstructions.length}/{COMMENT_MAX}
-                        </p>
+                        <div className="flex items-start justify-between gap-2 mt-1">
+                          <p className="text-[11px] text-slate-400">
+                            Required — the people commenting follow exactly this. Be specific so the comments fit your page and sound natural.
+                          </p>
+                          <p className="text-xs text-slate-400 shrink-0">{commentInstructions.length}/{COMMENT_MAX}</p>
+                        </div>
+                        {commentBriefMissing && (
+                          <p className="text-[11px] text-red-400 mt-1">Please tell us what the comments should say before continuing.</p>
+                        )}
                       </div>
                     </motion.div>
                   )}
@@ -1271,7 +1283,7 @@ export default function OrderPage() {
                       {selectedService.description.split('\n').slice(0, 3).join('\n')}...
                     </p>
                     <motion.button
-                      onClick={() => setCurrentStep('review')}
+                      onClick={() => { if (!commentBriefMissing) setCurrentStep('review'); }}
                       className="mt-4 text-blue-400 hover:text-blue-300 text-sm font-semibold"
                       whileHover={{ x: 4 }}
                     >
@@ -1630,7 +1642,7 @@ export default function OrderPage() {
               disabled={
                 (currentStep === 'platform' && !selectedPlatform) ||
                 (currentStep === 'service' && !selectedService) ||
-                (currentStep === 'details' && (!targetUrl || !quantity))
+                (currentStep === 'details' && (!targetUrl || !quantity || commentBriefMissing))
               }
               className="ml-auto px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               whileHover={{ scale: 1.05 }}
