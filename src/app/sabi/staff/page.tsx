@@ -27,6 +27,19 @@ interface CustomReq {
 const isImg = (u?: string | null) => !!u && /^https?:\/\/\S+\.(png|jpe?g|webp|gif)(\?|$)/i.test(u);
 const fmtSvc = (s?: string | null) => (s || 'request').replace(/_/g, ' ');
 
+// Preset flag reasons staff can pick (plus a free-text box for anything else).
+const FLAG_REASONS = [
+  'Wrong account/page — proof is for a different target',
+  'Screenshot does not show the action completed',
+  'Fake, edited or reused screenshot',
+  'Action not actually performed (no like/follow/comment visible)',
+  'Engagement dropped / was undone',
+  'Comment does not match the buyer’s brief',
+  'Mentioned Gamerz / revealed the source',
+  'Low quality or spammy engagement',
+  'Blurry or unreadable screenshot',
+];
+
 // Auth is by login session cookie — owner (admin-email account) or staff. No
 // token needed; same-origin cookies are sent automatically.
 function af(url: string, opts: RequestInit = {}) {
@@ -122,6 +135,10 @@ function ProofsTab() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [proofs, setProofs] = useState<Record<string, { loading: boolean; items: Proof[]; total: number; approved: number }>>({});
   const [proofBusy, setProofBusy] = useState<string | null>(null);
+  // Flag-reason modal
+  const [flagTarget, setFlagTarget] = useState<{ orderId: string; completionId: string } | null>(null);
+  const [flagPresets, setFlagPresets] = useState<string[]>([]);
+  const [flagNote, setFlagNote] = useState('');
 
   const load = useCallback(() => {
     setLoading(true);
@@ -149,30 +166,46 @@ function ProofsTab() {
     if (!proofs[id]) loadProofs(id);
   };
 
-  // Flag (or clear) a SPECIFIC proof → gamerz360 notifies that exact tasker.
-  const flagProof = async (orderId: string, completionId: string, action: 'flag' | 'clear') => {
-    let reason = '';
-    if (action === 'flag') {
-      reason = (window.prompt("Why doesn't this proof match? The tasker will see this and must re-upload within 12h.") || '').trim();
-      if (!reason) return;
-    }
+  // Open the reason picker for a flag. Clearing skips it (no reason needed).
+  const openFlag = (orderId: string, completionId: string) => {
+    setFlagTarget({ orderId, completionId });
+    setFlagPresets([]);
+    setFlagNote('');
+  };
+
+  // Flag (or clear) a SPECIFIC proof → gamerz360 notifies that exact tasker, and
+  // surfaces whether this flag triggered a final warning or auto-suspension.
+  const doFlag = async (orderId: string, completionId: string, action: 'flag' | 'clear', reason = '') => {
     setProofBusy(completionId);
     try {
       const res = await af('/api/sabi/admin/flag-proof', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ completionId, action, reason }),
       });
-      if (res.ok) {
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d?.success) {
         setProofs(p => {
           const cur = p[orderId]; if (!cur) return p;
           return { ...p, [orderId]: { ...cur, items: cur.items.map(it => it.id === completionId
             ? { ...it, flag: action === 'clear' ? null : { status: 'flagged', reason, reuploadedAt: null } } : it) } };
         });
+        if (action === 'flag') {
+          if (d.suspended) alert('🚫 This was the final strike — the tasker has been AUTO-SUSPENDED.');
+          else if (d.finalWarning) alert('🚨 Final warning sent — the tasker will be suspended on their next flag.');
+        }
       } else {
-        const d = await res.json().catch(() => ({}));
         alert(d.error || 'Could not flag this proof.');
       }
     } finally { setProofBusy(null); }
+  };
+
+  const submitFlag = async () => {
+    if (!flagTarget) return;
+    const reason = [...flagPresets, flagNote.trim()].filter(Boolean).join(' · ');
+    if (!reason) { alert('Pick at least one reason or type one.'); return; }
+    const { orderId, completionId } = flagTarget;
+    setFlagTarget(null);
+    await doFlag(orderId, completionId, 'flag', reason);
   };
 
   return (
@@ -254,15 +287,15 @@ function ProofsTab() {
                                 {fl && <div className={`px-1.5 text-[9px] font-bold ${resub ? 'text-yellow-300' : 'text-red-300'}`}>{resub ? '🔁 re-uploaded' : '⚠️ flagged'}{fl.reason ? ` · ${fl.reason}` : ''}</div>}
                                 <div className="p-1.5 flex gap-1">
                                   {!fl && (
-                                    <button onClick={() => flagProof(o.id, p.id, 'flag')} disabled={proofBusy === p.id}
+                                    <button onClick={() => openFlag(o.id, p.id)} disabled={proofBusy === p.id}
                                       className="flex-1 py-1 rounded bg-red-600/80 hover:bg-red-500 text-white text-[10px] font-bold disabled:opacity-50">⚠️ Flag</button>
                                   )}
                                   {fl && (
-                                    <button onClick={() => flagProof(o.id, p.id, 'clear')} disabled={proofBusy === p.id}
+                                    <button onClick={() => doFlag(o.id, p.id, 'clear')} disabled={proofBusy === p.id}
                                       className="flex-1 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold disabled:opacity-50">✅ {resub ? 'Re-verify' : 'Clear'}</button>
                                   )}
                                   {resub && (
-                                    <button onClick={() => flagProof(o.id, p.id, 'flag')} disabled={proofBusy === p.id}
+                                    <button onClick={() => openFlag(o.id, p.id)} disabled={proofBusy === p.id}
                                       className="flex-1 py-1 rounded bg-red-600/80 hover:bg-red-500 text-white text-[10px] font-bold disabled:opacity-50">⚠️ Flag again</button>
                                   )}
                                 </div>
@@ -278,6 +311,35 @@ function ProofsTab() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Flag-reason picker */}
+      {flagTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setFlagTarget(null)}>
+          <div onClick={e => e.stopPropagation()} className="w-full max-w-md bg-[#0b0f1a] border border-white/10 rounded-2xl p-5">
+            <h3 className="text-base font-black text-white mb-1">Why are you flagging this proof?</h3>
+            <p className="text-xs text-slate-400 mb-3">The tasker sees this and must re-upload within 12h. Pick all that apply, and/or add a note.</p>
+            <div className="space-y-1.5 mb-3 max-h-[42vh] overflow-y-auto">
+              {FLAG_REASONS.map(r => {
+                const on = flagPresets.includes(r);
+                return (
+                  <button key={r} type="button"
+                    onClick={() => setFlagPresets(prev => on ? prev.filter(x => x !== r) : [...prev, r])}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold transition border ${on ? 'bg-red-500/20 border-red-500/40 text-red-200' : 'bg-white/[0.03] border-white/[0.06] text-slate-300 hover:border-white/20'}`}>
+                    {on ? '☑ ' : '☐ '}{r}
+                  </button>
+                );
+              })}
+            </div>
+            <textarea value={flagNote} onChange={e => setFlagNote(e.target.value.slice(0, 280))} rows={2}
+              placeholder="Add a specific note (or type your own reason)…"
+              className="w-full bg-[#0F1420] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-red-500/40 resize-none mb-3" />
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setFlagTarget(null)} className="px-4 py-2 rounded-lg text-sm font-bold bg-white/10 text-slate-300 hover:bg-white/20">Cancel</button>
+              <button onClick={submitFlag} className="px-5 py-2 rounded-lg text-sm font-bold bg-red-600 hover:bg-red-500 text-white">Flag proof</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

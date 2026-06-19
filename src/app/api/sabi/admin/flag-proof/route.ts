@@ -33,7 +33,13 @@ export async function POST(req: NextRequest) {
     const d = await res.json().catch(() => ({}));
     if (!res.ok || d?.error) return NextResponse.json({ error: d?.error || 'Flag failed' }, { status: 400 });
     logStaffAction(auth.email || 'owner', action === 'clear' ? 'proof:clear' : 'proof:flag', completionId, reason);
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      suspended: d?.suspended || false,
+      finalWarning: d?.finalWarning || false,
+      sameTaskCount: d?.sameTaskCount,
+      weeklyCount: d?.weeklyCount,
+    });
   } catch (e: any) {
     return NextResponse.json({ error: 'Could not reach gamerz360' }, { status: 502 });
   }
