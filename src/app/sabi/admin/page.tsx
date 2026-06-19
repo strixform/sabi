@@ -93,7 +93,13 @@ const STATUS_COLORS: Record<string, string> = {
 
 const fmt = (kobo: number | undefined | null) => `₦${Math.round((kobo ?? 0) / 100).toLocaleString()}`;
 const fmtDate = (d: string) => new Date(d).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' });
-const TABS = ['Users', 'Orders', 'Payments', 'Reconcile', 'Referrals', 'Requests', 'Settings'] as const;
+const TABS = ['Users', 'Orders', 'Payments', 'Reconcile', 'Referrals', 'Requests', 'Partnerships', 'Settings'] as const;
+
+interface PartnershipReq {
+  id: string; brandName?: string | null; domain?: string | null;
+  contactPhone?: string | null; notes?: string | null;
+  status: string; paidKobo?: number | null; createdAt: string;
+}
 type Tab = typeof TABS[number];
 
 // ─── Sort state helper ────────────────────────────────────────────────────────
@@ -862,6 +868,10 @@ export default function AdminPage() {
   const [reqStatusCounts, setReqStatusCounts] = useState<Record<string, number>>({});
   const [reqExpanded, setReqExpanded]     = useState<string | null>(null);
 
+  // Partnership / reseller requests
+  const [partnerships, setPartnerships] = useState<PartnershipReq[]>([]);
+  const [partBusy, setPartBusy] = useState<string | null>(null);
+
   // Settings (WhatsApp + order limits — managed by /sabi/admin/settings)
   const LIMIT = 50;
 
@@ -963,6 +973,10 @@ export default function AdminPage() {
           if (search) p.search = search;
           const d = await adminFetch('/api/sabi/admin/custom-requests' + qs(p)).then(r => r.json());
           if (d.success) { setRequests(d.requests || []); setReqTotal(d.total ?? 0); setReqStatusCounts(d.statusCounts || {}); }
+        }
+        if (tab === 'Partnerships') {
+          const d = await adminFetch('/api/sabi/admin/partnerships').then(r => r.json());
+          if (d.success) setPartnerships(d.partnerships || []);
         }
       } catch (e) { console.error('Admin fetch error:', e); }
       finally { setLoading(false); }
@@ -1514,6 +1528,63 @@ export default function AdminPage() {
                         if (d.success) { setRequests(d.requests || []); setReqTotal(d.total ?? 0); setReqStatusCounts(d.statusCounts || {}); }
                       });
                     }} />
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── PARTNERSHIPS tab ──────────────────────────────────────────────── */}
+        {tab === 'Partnerships' && (
+          <>
+            {loading ? (
+              <div className="text-center py-16 text-slate-600">Loading partnerships…</div>
+            ) : partnerships.length === 0 ? (
+              <div className="text-center py-16 bg-slate-900/60 border border-white/[0.06] rounded-xl">
+                <div className="text-4xl mb-3">🤝</div>
+                <div className="text-slate-400 font-semibold">No partnership requests yet</div>
+                <div className="text-slate-600 text-sm mt-1">Reseller &amp; partnership applications appear here.</div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {partnerships.map(p => (
+                  <div key={p.id} className="bg-slate-900/60 border border-white/[0.06] rounded-xl p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="font-bold text-white text-sm">{p.brandName || 'Unnamed brand'}</div>
+                        {p.domain && <a href={/^https?:\/\//i.test(p.domain) ? p.domain : `https://${p.domain}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:underline break-all">{p.domain}</a>}
+                        <div className="text-[11px] text-slate-500 mt-1">
+                          {p.contactPhone && <a href={`https://wa.me/${p.contactPhone.replace(/[^\d]/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:underline">{p.contactPhone}</a>}
+                          {p.contactPhone && ' · '}{new Date(p.createdAt).toLocaleDateString()}
+                          {typeof p.paidKobo === 'number' && p.paidKobo > 0 && <> · <span className="text-slate-300">₦{(p.paidKobo / 100).toLocaleString()}</span></>}
+                        </div>
+                        {p.notes && <div className="text-xs text-slate-300 mt-2 bg-black/30 rounded-lg p-2">{p.notes}</div>}
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 capitalize ${
+                        p.status === 'live' ? 'bg-emerald-500/20 text-emerald-300'
+                        : p.status === 'cancelled' ? 'bg-red-500/20 text-red-300'
+                        : 'bg-yellow-500/15 text-yellow-300'}`}>{p.status}</span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {['building', 'live', 'cancelled'].map(s => (
+                        <button key={s} disabled={partBusy === p.id || p.status === s}
+                          onClick={async () => {
+                            setPartBusy(p.id);
+                            try {
+                              const res = await adminFetch('/api/sabi/admin/partnerships', {
+                                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ id: p.id, status: s }),
+                              });
+                              if (res.ok) {
+                                const d = await adminFetch('/api/sabi/admin/partnerships').then(r => r.json());
+                                if (d.success) setPartnerships(d.partnerships || []);
+                              }
+                            } finally { setPartBusy(null); }
+                          }}
+                          className={`px-2.5 py-1 rounded text-[10px] font-bold capitalize transition disabled:opacity-40 ${p.status === s ? 'bg-violet-600 text-white' : 'bg-white/[0.05] text-slate-400 hover:text-white'}`}>{s}</button>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
