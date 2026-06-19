@@ -294,7 +294,10 @@ const COMMENT_ACTIONS = ['Comments', 'Replies', 'Chat Comments'];
 
 // Smart link-type validation is enforced only for these platforms; all others
 // accept any valid URL but show a "double-check your link" warning.
-const STRICT_LINK_PLATFORMS = ['instagram', 'twitter', 'facebook', 'tiktok'];
+// Facebook removed: its link formats (profiles, pages, posts, videos, groups,
+// fb.me, share/permalink URLs) vary too much to auto-verify, so we accept any
+// valid URL and show a "double-check" warning instead of blocking the order.
+const STRICT_LINK_PLATFORMS = ['instagram', 'twitter', 'tiktok'];
 const COMMENT_MAX = 300;
 
 type Step = 'platform' | 'service' | 'details' | 'review';
