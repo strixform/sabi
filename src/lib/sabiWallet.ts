@@ -107,16 +107,19 @@ export async function debitSabiWallet(
       };
     }
 
-    // Record transaction
-    await prisma.sabiTransaction.create({
-      data: {
-        userId,
-        orderId,
-        type: 'spend',
-        amount: amountInKobo,
-        description: `Order ${orderId}`,
-      },
-    });
+    // The balance has ALREADY moved above. The transaction log is best-effort:
+    // if it fails we must NOT report failure — doing so makes the caller skip the
+    // refund while the money is already gone (the charged-without-order bug).
+    // Raw insert for resilience (Prisma cold-starts can time out on Turso).
+    try {
+      await sabiExecute({
+        sql: `INSERT INTO SabiTransaction (id, userId, orderId, type, amount, description, createdAt)
+              VALUES (?, ?, ?, 'spend', ?, ?, datetime('now'))`,
+        args: [crypto.randomUUID(), userId, orderId || null, amountInKobo, `Order ${orderId || ''}`.trim()],
+      });
+    } catch (logErr: any) {
+      console.error('[debitSabiWallet] balance debited but tx-log failed (non-fatal):', logErr?.message);
+    }
 
     return { success: true };
   } catch (error) {
@@ -133,36 +136,29 @@ export async function refundSabiWallet(
   reason: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // Idempotency check — prevent double-refund for the same order
-    const duplicate = await prisma.sabiTransaction.findFirst({
-      where: {
-        userId,
-        type: 'refund',
-        reference: orderId,
-      },
-    });
+    // RAW (sabiExecute) throughout — Prisma's libsql adapter cold-starts can time
+    // out on Vercel, which is exactly when a refund matters most (the order create
+    // just failed for the same reason). Raw HTTP with 429-retry is the resilient path.
 
-    if (duplicate) {
+    // Idempotency — prevent double-refund for the same reference (orderId).
+    const duplicate = await sabiExecute({
+      sql: `SELECT id FROM SabiTransaction WHERE userId = ? AND type = 'refund' AND reference = ? LIMIT 1`,
+      args: [userId, orderId],
+    });
+    if (duplicate.rows.length > 0) {
       return { success: true }; // Already refunded — idempotent return
     }
 
-    await prisma.sabiWallet.update({
-      where: { userId },
-      data: {
-        balance: { increment: amountInKobo },
-        totalRefunded: { increment: amountInKobo },
-      },
+    await sabiExecute({
+      sql: `UPDATE SabiWallet SET balance = balance + ?, totalRefunded = totalRefunded + ?, updatedAt = datetime('now')
+            WHERE userId = ?`,
+      args: [amountInKobo, amountInKobo, userId],
     });
 
-    await prisma.sabiTransaction.create({
-      data: {
-        userId,
-        orderId,
-        type: 'refund',
-        amount: amountInKobo,
-        reference: orderId,
-        description: `Order ${orderId} refunded: ${reason}`,
-      },
+    await sabiExecute({
+      sql: `INSERT INTO SabiTransaction (id, userId, orderId, type, amount, reference, description, createdAt)
+            VALUES (?, ?, ?, 'refund', ?, ?, ?, datetime('now'))`,
+      args: [crypto.randomUUID(), userId, orderId || null, amountInKobo, orderId, `Order ${orderId} refunded: ${reason}`],
     });
 
     return { success: true };

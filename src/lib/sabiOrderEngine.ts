@@ -3,6 +3,54 @@ import { getService, validateOrder } from './sabiServices';
 import { computeServicePricing } from './servicesCatalog';
 import { debitSabiWallet, refundSabiWallet } from './sabiWallet';
 import { sabiExecute } from './tursoClient';
+import crypto from 'crypto';
+
+/**
+ * Resilient order insert. Prisma's libsql adapter can cold-start/time out on
+ * Vercel — when that happens during checkout, the wallet is already debited and
+ * the buyer ends up charged with no order. This raw HTTP insert (with 429-retry)
+ * is the fallback: it writes the CORE, long-standing columns first (so the order
+ * always lands), then best-effort fills the newer/optional columns — a missing or
+ * problematic optional column can never undo the order row.
+ */
+async function rawInsertSabiOrder(o: {
+  userId: string; serviceType: string; targetUrl: string; quantity: number;
+  pricePerUnit: number; totalPrice: number; platformFee: number; paymentMethod: string;
+  discountAmount: number;
+  audienceGender?: string | null; audienceLocation?: string | null;
+  commentGender?: string | null; commentInstructions?: string | null;
+  promoCodeId?: string | null; clientId?: string | null; customRef?: string | null;
+  scheduledAt?: Date | null;
+}): Promise<{ id: string }> {
+  const id = crypto.randomUUID();
+  await sabiExecute({
+    sql: `INSERT INTO SabiOrder
+            (id, userId, serviceType, targetUrl, quantity, pricePerUnit, totalPrice, platformFee,
+             paymentMethod, orderedVia, status, completedQuantity, completionPercentage,
+             discountAmount, refundedAmount, createdAt, updatedAt)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'web', 'pending', 0, 0, ?, 0, datetime('now'), datetime('now'))`,
+    args: [id, o.userId, o.serviceType, o.targetUrl, o.quantity, o.pricePerUnit, o.totalPrice, o.platformFee, o.paymentMethod, o.discountAmount],
+  });
+  // Optional / newer columns — best-effort; never let one undo the order.
+  const opt: [string, any][] = [
+    ['audienceGender', o.audienceGender ?? null],
+    ['audienceLocation', o.audienceLocation ?? null],
+    ['commentGender', o.commentGender ?? null],
+    ['commentInstructions', o.commentInstructions ?? null],
+    ['promoCodeId', o.promoCodeId ?? null],
+    ['clientId', o.clientId ?? null],
+    ['customRef', o.customRef ?? null],
+  ];
+  for (const [col, val] of opt) {
+    if (val == null) continue;
+    await sabiExecute({ sql: `UPDATE SabiOrder SET "${col}" = ? WHERE id = ?`, args: [val, id] }).catch(() => {});
+  }
+  if (o.scheduledAt) {
+    const iso = o.scheduledAt instanceof Date ? o.scheduledAt.toISOString() : String(o.scheduledAt);
+    await sabiExecute({ sql: `UPDATE SabiOrder SET scheduledAt = ? WHERE id = ?`, args: [iso, id] }).catch(() => {});
+  }
+  return { id };
+}
 
 export interface CreateOrderInput {
   userId: string;
@@ -147,7 +195,7 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
     // CRITICAL: the wallet was already debited above. If the order row fails to
     // create, we MUST refund — otherwise the buyer is charged with no order
     // (the "spent but 0 orders" money-safety bug).
-    let order;
+    let order: { id: string };
     try {
       order = await prisma.sabiOrder.create({
         data: {
@@ -181,9 +229,40 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
         },
       });
     } catch (createErr: any) {
-      console.error('[createSabiOrder] order create FAILED after debit — refunding:', createErr?.message);
-      await refundSabiWallet(input.userId, chargeKobo, `failed-create-${Date.now()}`, 'Order creation failed — auto refund').catch(() => {});
-      return { success: false, error: 'Order creation failed. Your wallet was not charged.' };
+      // Prisma create failed (commonly a libsql cold-start/timeout). Try the
+      // resilient raw insert before giving up — recovers the order instead of
+      // bouncing the buyer, so they're not charged-without-order.
+      console.error('[createSabiOrder] prisma create failed — trying resilient raw insert:', createErr?.message);
+      try {
+        order = await rawInsertSabiOrder({
+          userId: input.userId,
+          serviceType: input.serviceId,
+          targetUrl: input.targetUrl,
+          quantity: effectiveQuantity,
+          pricePerUnit: service.pricePerUnit,
+          totalPrice: basePrice,
+          platformFee,
+          paymentMethod: input.paymentMethod,
+          discountAmount: totalDiscountKobo,
+          audienceGender: input.audienceGender || null,
+          audienceLocation: input.audienceLocation || null,
+          commentGender: input.commentGender || null,
+          commentInstructions: [
+            durationMinutes ? `Watch time: ${durationMinutes} min` : '',
+            input.commentInstructions || '',
+          ].filter(Boolean).join(' | ') || null,
+          promoCodeId: input.promoCodeId || null,
+          clientId: input.clientId || null,
+          customRef: input.customRef || null,
+          scheduledAt: input.scheduledAt || null,
+        });
+      } catch (rawErr: any) {
+        // Both paths failed AFTER the debit — refund (raw/resilient) so the buyer
+        // is made whole, and bail.
+        console.error('[createSabiOrder] raw insert ALSO failed after debit — refunding:', rawErr?.message);
+        await refundSabiWallet(input.userId, chargeKobo, `failed-create-${Date.now()}`, 'Order creation failed — auto refund').catch(() => {});
+        return { success: false, error: 'Order creation failed. Your wallet was not charged.' };
+      }
     }
 
     // Save the buyer's "before" screenshot + starting count separately (guarded)
