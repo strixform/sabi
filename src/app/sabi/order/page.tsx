@@ -529,6 +529,11 @@ export default function OrderPage() {
   // before leaving the details step.
   const commentBriefRequired = !!selectedService && COMMENT_ACTIONS.includes(selectedService.action);
   const commentBriefMissing = commentBriefRequired && commentInstructions.trim().length === 0;
+  // Comment-like services (A = like first N comments under your post; B = likes on
+  // your own comment elsewhere). Both bill ₦10/like and get the quantity presets.
+  const isCommentLikeService = !!selectedService && (selectedService.action === 'Comment Likes' || selectedService.action === 'Post Comment Likes');
+  // Show the "specific instructions" field on all comment/engagement services.
+  const showInstructions = commentBriefRequired || isCommentLikeService;
 
   const handleNextStep = () => {
     if (currentStep === 'platform' && selectedPlatform) {
@@ -615,7 +620,10 @@ export default function OrderPage() {
           ? { commentGender, commentInstructions: commentInstructions.trim() || null }
           : {}),
         ...(selectedService.action === 'Post Comment Likes'
-          ? { commentInstructions: `Like the first ${quantity} ${commentSort === 'top' ? 'TOP (most-liked)' : 'most-recent'} comments under the post` }
+          ? { commentInstructions: `Like the first ${quantity} ${commentSort === 'top' ? 'TOP (most-liked)' : 'most-recent'} comments under the post.${commentInstructions.trim() ? ` Buyer note: ${commentInstructions.trim()}` : ''}` }
+          : {}),
+        ...(selectedService.action === 'Comment Likes'
+          ? { commentInstructions: `Add ${quantity} like(s) to the BUYER'S OWN comment/reply at the link (NOT the post itself).${commentInstructions.trim() ? ` Buyer note: ${commentInstructions.trim()}` : ''}` }
           : {}),
         ...(durationMins ? { durationMinutes: durationMins } : {}),
         ...(startShot ? { startScreenshotUrl: startShot } : {}),
@@ -1045,8 +1053,26 @@ export default function OrderPage() {
                     transition={{ delay: 0.2 }}
                   >
                     <label className="block text-sm font-semibold text-slate-300 mb-2">
-                      Quantity ({selectedService.action})
+                      {isCommentLikeService
+                        ? (selectedService.action === 'Post Comment Likes' ? 'How many comments to like?' : 'How many likes on your comment?')
+                        : `Quantity (${selectedService.action})`}
+                      {isCommentLikeService && <span className="text-slate-500 font-normal"> — ₦10 each</span>}
                     </label>
+                    {isCommentLikeService && (
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {[10, 20, 30].map((p) => (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => setQuantity(p)}
+                            className={`px-4 py-2 rounded-lg text-sm font-bold transition ${quantity === p ? 'bg-blue-600 text-white' : 'bg-slate-800/50 text-slate-300 hover:bg-slate-700/50 border border-slate-700/50'}`}
+                          >
+                            {selectedService.action === 'Post Comment Likes' ? `First ${p}` : `${p} likes`}
+                          </button>
+                        ))}
+                        <span className="px-1 py-2 text-xs text-slate-500 self-center">or enter a custom number below</span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-4">
                       <motion.button
                         onClick={() => setQuantity(Math.max(selectedService.minQuantity, quantity - 10))}
@@ -1219,14 +1245,16 @@ export default function OrderPage() {
                     </div>
                   </motion.div>
 
-                  {/* Comment customization (comment-type services only) */}
-                  {COMMENT_ACTIONS.includes(selectedService.action) && (
+                  {/* Comment customization — gender for comment-writing services;
+                      the "specific instructions" field for ALL comment/engagement services. */}
+                  {showInstructions && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.3 }}
                       className="space-y-4 p-4 bg-slate-800/30 border border-slate-700/30 rounded-lg"
                     >
+                      {commentBriefRequired && (
                       <div>
                         <label className="block text-sm font-semibold text-slate-300 mb-2">
                           Commenter Gender
@@ -1248,20 +1276,27 @@ export default function OrderPage() {
                           ))}
                         </div>
                       </div>
+                      )}
                       <div>
                         <label className="block text-sm font-semibold text-slate-300 mb-2">
-                          What should the comments say? <span className="text-red-400">*</span>
+                          {commentBriefRequired
+                            ? <>What should the comments say? <span className="text-red-400">*</span></>
+                            : <>Specific instructions you want SABI real people to follow <span className="text-slate-500 font-normal">(optional)</span></>}
                         </label>
                         <textarea
                           value={commentInstructions}
                           onChange={(e) => setCommentInstructions(e.target.value.slice(0, COMMENT_MAX))}
                           rows={3}
-                          placeholder="e.g. Positive comments about our new product launch, mention the discount, keep it casual and friendly."
+                          placeholder={commentBriefRequired
+                            ? "e.g. Positive comments about our new product launch, mention the discount, keep it casual and friendly."
+                            : "e.g. Like the 2nd comment from the top — it's mine. Keep it natural."}
                           className={`w-full px-4 py-3 bg-slate-800/50 border rounded-lg text-white placeholder-slate-500 text-sm outline-none resize-none focus:border-purple-500/50 ${commentBriefMissing ? 'border-red-500/60' : 'border-slate-700/50'}`}
                         />
                         <div className="flex items-start justify-between gap-2 mt-1">
                           <p className="text-[11px] text-slate-400">
-                            Required — the people commenting follow exactly this. Be specific so the comments fit your page and sound natural.
+                            {commentBriefRequired
+                              ? 'Required — the people commenting follow exactly this. Be specific so the comments fit your page and sound natural.'
+                              : 'SABI’s real people follow this. Don’t include anything that reveals where the order came from.'}
                           </p>
                           <p className="text-xs text-slate-400 shrink-0">{commentInstructions.length}/{COMMENT_MAX}</p>
                         </div>

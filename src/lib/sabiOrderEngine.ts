@@ -91,6 +91,17 @@ function mapServiceToTaskType(serviceId: string): string {
   return service?.taskType || 'general_engagement';
 }
 
+// Strip anything in a buyer's free-text instruction that would reveal where the
+// order came from, so a tasker can never be told to expose/comment the source.
+// The downstream task ALSO appends a hard "never mention the source" rule.
+function stripSourceMentions(s: string | null | undefined): string {
+  if (!s) return '';
+  return s
+    .replace(/gamer?z\s*360|gamerz\s*360|gamers\s*360|gamerz|\bg-?360\b/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
 export async function createSabiOrder(input: CreateOrderInput): Promise<OrderResponse> {
   try {
     // Check platform-wide minimum quantity from SABIAdminConfig (set by admin).
@@ -217,7 +228,7 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
           // so taskers/fulfilment know how long to hold viewers (no schema change).
           commentInstructions: [
             durationMinutes ? `Watch time: ${durationMinutes} min` : '',
-            input.commentInstructions || '',
+            stripSourceMentions(input.commentInstructions),
           ].filter(Boolean).join(' | ') || null,
           promoCodeId: input.promoCodeId || null,
           discountAmount: totalDiscountKobo,
@@ -249,7 +260,7 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
           commentGender: input.commentGender || null,
           commentInstructions: [
             durationMinutes ? `Watch time: ${durationMinutes} min` : '',
-            input.commentInstructions || '',
+            stripSourceMentions(input.commentInstructions),
           ].filter(Boolean).join(' | ') || null,
           promoCodeId: input.promoCodeId || null,
           clientId: input.clientId || null,

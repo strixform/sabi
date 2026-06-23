@@ -173,7 +173,7 @@ Get 10-20 thoughtful, natural comments on your posts from real people. Comments 
   // Comment Likes
   {
     id: 'ig_comment_likes',
-    name: 'Instagram Comment Likes',
+    name: 'Instagram — Likes on Your Comment',
     description: `👍 **VALIDATE CONVERSATIONS AND BOOST COMMENT VISIBILITY**
 
 Your comments on other people's posts deserve visibility too. Get 20-50 real likes on your comments and watch your profile get discovered from conversations happening all over Instagram. High-liked comments get pinned and seen by thousands.
@@ -202,8 +202,8 @@ Your comments on other people's posts deserve visibility too. Get 20-50 real lik
 **THE WIN:** Imagine being known as the person who always drops insightful, highly-liked comments. That's positioning. That's network building. That's how you become the person everyone wants to collaborate with.`,
     category: PLATFORMS.INSTAGRAM,
     action: 'Comment Likes',
-    pricePerUnit: 120,
-    minQuantity: 20,
+    pricePerUnit: 1000, // ₦10 per like
+    minQuantity: 10,
     maxQuantity: 10000,
     speed: 'fast',
     refillable: true,
@@ -479,7 +479,7 @@ Comments signal interest and engagement. Get 20-50 thoughtful comments on your T
   // Comment Likes
   {
     id: 'tiktok_comment_likes',
-    name: 'TikTok Comment Likes',
+    name: 'TikTok — Likes on Your Comment',
     description: `👍 **BECOME THE VOICE PEOPLE LISTEN TO ON TIKTOK**
 
 Your comments on trending TikToks are networking opportunities. Get 15-30 likes on your comments and they become "pinned" at the top, visible to everyone. Suddenly you're the face people see discussing hot topics.
@@ -508,8 +508,8 @@ Your comments on trending TikToks are networking opportunities. Get 15-30 likes 
 **THE WIN:** Imagine scrolling TikTok and seeing your comment at the top with 100+ likes. People are reading YOUR take. Respecting YOUR opinion. Following YOU because of how you show up. That's influence.`,
     category: PLATFORMS.TIKTOK,
     action: 'Comment Likes',
-    pricePerUnit: 110,
-    minQuantity: 50,
+    pricePerUnit: 1000, // ₦10 per like
+    minQuantity: 10,
     maxQuantity: 10000,
     speed: 'fast',
     refillable: true,
@@ -872,7 +872,7 @@ A post with liked comments looks alive — and Instagram rewards busy comment se
 **HOW IT WORKS:** Paste your post/Reel link and choose how many of the top comments to like. That many of the earliest comments each get a real like.`,
     category: PLATFORMS.INSTAGRAM,
     action: 'Post Comment Likes',
-    pricePerUnit: 200, // DRAFT — ₦2 per comment liked
+    pricePerUnit: 1000, // ₦10 per comment liked
     minQuantity: 10,
     maxQuantity: 1000,
     speed: 'fast',
@@ -895,7 +895,7 @@ TikTok pushes videos with active comment sections. Our real Nigerian taskers lik
 **HOW IT WORKS:** Paste your video link and choose how many top comments to like.`,
     category: PLATFORMS.TIKTOK,
     action: 'Post Comment Likes',
-    pricePerUnit: 200, // DRAFT — ₦2 per comment liked
+    pricePerUnit: 1000, // ₦10 per comment liked
     minQuantity: 10,
     maxQuantity: 1000,
     speed: 'fast',
@@ -918,7 +918,7 @@ A video with liked comments signals an engaged community — and YouTube favours
 **HOW IT WORKS:** Paste your video link and choose how many top comments to like.`,
     category: PLATFORMS.YOUTUBE,
     action: 'Post Comment Likes',
-    pricePerUnit: 200, // DRAFT — ₦2 per comment liked
+    pricePerUnit: 1000, // ₦10 per comment liked
     minQuantity: 10,
     maxQuantity: 1000,
     speed: 'fast',
@@ -941,7 +941,7 @@ A tweet with liked replies looks like a real conversation — and Twitter (X) re
 **HOW IT WORKS:** Paste your tweet link and choose how many top replies to like.`,
     category: PLATFORMS.TWITTER,
     action: 'Post Comment Likes',
-    pricePerUnit: 200, // DRAFT — ₦2 per reply liked
+    pricePerUnit: 1000, // ₦10 per reply liked
     minQuantity: 10,
     maxQuantity: 1000,
     speed: 'fast',
@@ -964,7 +964,7 @@ A Facebook post with liked comments looks active and trustworthy — and Faceboo
 **HOW IT WORKS:** Paste your post link and choose how many top comments to like.`,
     category: PLATFORMS.FACEBOOK,
     action: 'Post Comment Likes',
-    pricePerUnit: 200, // DRAFT — ₦2 per comment liked
+    pricePerUnit: 1000, // ₦10 per comment liked
     minQuantity: 10,
     maxQuantity: 1000,
     speed: 'fast',
@@ -987,11 +987,57 @@ Early engagement matters most on Threads. Our real Nigerian taskers like the fir
 **HOW IT WORKS:** Paste your thread link and choose how many top replies to like.`,
     category: PLATFORMS.THREADS,
     action: 'Post Comment Likes',
-    pricePerUnit: 200, // DRAFT — ₦2 per reply liked
+    pricePerUnit: 1000, // ₦10 per reply liked
     minQuantity: 10,
     maxQuantity: 1000,
     speed: 'fast',
     refillable: false,
+  },
+  // Likes on YOUR OWN comment made on someone else's post (Service B) — Facebook + Twitter
+  // (Instagram/TikTok/YouTube already have this above). ₦10 per like, same as A.
+  {
+    id: 'facebook_comment_likes',
+    name: 'Facebook — Likes on Your Comment',
+    description: `👍 **GET LIKES ON A COMMENT YOU MADE**
+
+You commented on someone else's Facebook post — get real reactions on YOUR comment so it rises to the top and gets seen. Our real Nigerian taskers like the exact comment you point us to.
+
+**WHAT YOU GET:**
+✓ Real reactions on the specific comment you made
+✓ Helps your comment become a "top comment"
+✓ More profile visits from people who see it
+✓ Works on your comment under any public post
+
+**HOW IT WORKS:** Paste the link to the post where you commented, tell us which comment is yours in the instructions, then choose how many likes.`,
+    category: PLATFORMS.FACEBOOK,
+    action: 'Comment Likes',
+    pricePerUnit: 1000, // ₦10 per like
+    minQuantity: 10,
+    maxQuantity: 10000,
+    speed: 'fast',
+    refillable: true,
+  },
+  {
+    id: 'twitter_comment_likes',
+    name: 'Twitter — Likes on Your Reply',
+    description: `👍 **GET LIKES ON A REPLY YOU MADE**
+
+You replied to someone else's tweet — get real likes on YOUR reply so it stands out in the thread and gets seen. Our real Nigerian taskers like the exact reply you point us to.
+
+**WHAT YOU GET:**
+✓ Real likes on the specific reply you made
+✓ Helps your reply rank higher in the thread
+✓ More profile visits from people who see it
+✓ Works on your reply under any public tweet
+
+**HOW IT WORKS:** Paste the link to the tweet you replied to, tell us which reply is yours in the instructions, then choose how many likes.`,
+    category: PLATFORMS.TWITTER,
+    action: 'Comment Likes',
+    pricePerUnit: 1000, // ₦10 per like
+    minQuantity: 10,
+    maxQuantity: 10000,
+    speed: 'fast',
+    refillable: true,
   },
 
   // ============ RUMBLE ============
@@ -1244,7 +1290,7 @@ YouTube's algorithm prioritizes videos with active comments. Get 15-30 meaningfu
   // Comment Likes
   {
     id: 'youtube_comment_likes',
-    name: 'YouTube Comment Likes',
+    name: 'YouTube — Likes on Your Comment',
     description: `👍 **MAKE YOUR VOICE HEARD IN YOUTUBE'S BIGGEST CONVERSATIONS**
 
 High-liked comments get pinned, get visibility, become discussion leaders. Get 20-50 likes on your YouTube comments and people start following you, DMing you, valuing your perspective. YouTube comment sections are networking goldmines.
@@ -1273,8 +1319,8 @@ High-liked comments get pinned, get visibility, become discussion leaders. Get 2
 **THE WIN:** Your voice matters. When people like your comments, upvote your perspective, follow you because of how intelligently you engage—that's respect. That's influence. That's becoming someone people listen to.`,
     category: PLATFORMS.YOUTUBE,
     action: 'Comment Likes',
-    pricePerUnit: 120,
-    minQuantity: 50,
+    pricePerUnit: 1000, // ₦10 per like
+    minQuantity: 10,
     maxQuantity: 10000,
     speed: 'fast',
     refillable: true,
