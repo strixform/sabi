@@ -1296,7 +1296,7 @@ export default function OrderPage() {
                           <p className="text-[11px] text-slate-400">
                             {commentBriefRequired
                               ? 'Required — the people commenting follow exactly this. Be specific so the comments fit your page and sound natural.'
-                              : 'SABI’s real people follow this. Don’t include anything that reveals where the order came from.'}
+                              : 'SABI’s real people follow this — be specific so it fits your page and sounds natural.'}
                           </p>
                           <p className="text-xs text-slate-400 shrink-0">{commentInstructions.length}/{COMMENT_MAX}</p>
                         </div>
