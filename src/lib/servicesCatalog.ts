@@ -3099,16 +3099,18 @@ export const ACTION_PRICE_KOBO: Record<string, number> = {
 
 // Apply central pricing + quantity limits to every service at module load time.
 // Done once here; SERVICES_CATALOG is the authoritative source for all code.
-const GLOBAL_MIN_QTY = 10;
+const GLOBAL_MIN_QTY = 50;   // platform-wide minimum order quantity for all SM services
 const GLOBAL_MAX_QTY = 10000;
 
-// Per-action minimum overrides — premium "per-piece" services are bought in small
-// counts (a few videos), so a min of 10 would force a ₦100k+ floor. These let buyers
-// order at the natural size.
+// Per-action minimum overrides — services that are naturally bought in smaller
+// counts. Premium "per-piece" services (a single video) and the comment-like
+// services (designed with 10 / 20 / 30 presets) keep their own small floors.
 const MIN_QTY_OVERRIDE: Record<string, number> = {
-  'Sound Use': 1,   // a single creator video
-  'UGC Video': 1,   // a single reaction/review video
-  'Watch Time': 100, // volume metric — small floor is fine
+  'Sound Use': 1,           // a single creator video
+  'UGC Video': 1,           // a single reaction/review video
+  'Watch Time': 100,        // volume metric — small floor is fine
+  'Comment Likes': 10,      // "likes on your comment" — 10/20/30 presets
+  'Post Comment Likes': 10, // "like the first 10/20/30 comments under your post"
 };
 
 (() => {
