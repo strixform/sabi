@@ -24,6 +24,54 @@ export async function GET(req: NextRequest) {
   }
 }
 
+/**
+ * PUT /api/sabi/admin/refills  body { orderId, quantity }
+ * Staff DIRECTLY create a refill for an order (no buyer request needed). Free
+ * top-up — buyer not charged; pushed to gamerz360 as a linked refill campaign
+ * that reaches fresh taskers.
+ */
+export async function PUT(req: NextRequest) {
+  const auth = await allowOwnerOrStaff(req);
+  if (!auth.ok) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+
+  const body = await req.json().catch(() => ({}));
+  const orderId = String(body.orderId || '').trim();
+  const quantity = Math.floor(Number(body.quantity) || 0);
+  if (!orderId || quantity < 1) return NextResponse.json({ error: 'Order ID and a positive quantity are required.' }, { status: 400 });
+
+  const orig = await prisma.sabiOrder.findUnique({
+    where: { id: orderId },
+    select: { id: true, userId: true, serviceType: true, targetUrl: true },
+  });
+  if (!orig) return NextResponse.json({ error: `Order ${orderId} not found.` }, { status: 404 });
+
+  const service = getService(orig.serviceType);
+  const pricePerUnit = service?.pricePerUnit ?? 0;
+  const pricing = computePricing(pricePerUnit, quantity);
+  const order = await prisma.sabiOrder.create({
+    data: {
+      userId: orig.userId,
+      serviceType: orig.serviceType,
+      targetUrl: orig.targetUrl,
+      quantity,
+      pricePerUnit,
+      totalPrice: pricing.baseKobo,
+      platformFee: pricing.platformFeeKobo + pricing.vatKobo,
+      paymentMethod: 'refill',
+      orderedVia: 'web',
+      customRef: `refill:${orderId}`,
+      discountAmount: pricing.totalKobo,
+      status: 'pending',
+    },
+  });
+  logStaffAction(auth.email || 'owner', 'refill:create-direct', orderId, `+${quantity}`);
+
+  return NextResponse.json({
+    success: true, refillOrderId: order.id, quantity,
+    message: `Refill of +${quantity.toLocaleString()} created for order ${orderId}. It will be pushed to fresh taskers shortly.`,
+  });
+}
+
 export async function POST(req: NextRequest) {
   const auth = await allowOwnerOrStaff(req);
   if (!auth.ok) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });

@@ -16,6 +16,25 @@ export default function AdminRefillsPage() {
   const [filter, setFilter] = useState('pending');
   const [busy, setBusy] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [newOrderId, setNewOrderId] = useState('');
+  const [newQty, setNewQty] = useState('');
+  const [createMsg, setCreateMsg] = useState('');
+  const [creating, setCreating] = useState(false);
+
+  const createDirect = async () => {
+    const q = Math.floor(Number(newQty) || 0);
+    if (!newOrderId.trim() || q < 1) { setCreateMsg('Enter an order ID and a quantity.'); return; }
+    setCreating(true); setCreateMsg('');
+    try {
+      const res = await fetch('/api/sabi/admin/refills', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: newOrderId.trim(), quantity: q }),
+      });
+      const d = await res.json().catch(() => ({}));
+      setCreateMsg(res.ok && d.success ? `✓ ${d.message}` : (d.error || 'Failed'));
+      if (res.ok) { setNewOrderId(''); setNewQty(''); }
+    } finally { setCreating(false); }
+  };
 
   const load = (status: string) => {
     setLoading(true);
@@ -45,6 +64,23 @@ export default function AdminRefillsPage() {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-black flex items-center gap-2">🔁 Refill Requests</h1>
           <Link href="/sabi/admin" className="text-sm text-blue-400 hover:underline">← Admin</Link>
+        </div>
+
+        {/* Staff direct-create refill (type order ID + quantity) */}
+        <div className="rounded-xl p-4 bg-emerald-500/5 border border-emerald-500/20 mb-5">
+          <div className="text-sm font-bold text-emerald-300 mb-2">🔄 Create a refill directly</div>
+          <div className="flex gap-2 flex-wrap items-center">
+            <input value={newOrderId} onChange={e => setNewOrderId(e.target.value)} placeholder="Order ID"
+              className="flex-1 min-w-[160px] bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200" />
+            <input type="number" min={1} value={newQty} onChange={e => setNewQty(e.target.value)} placeholder="Qty"
+              className="w-24 bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200" />
+            <button onClick={createDirect} disabled={creating}
+              className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-500 disabled:opacity-50">
+              {creating ? 'Creating…' : 'Create refill'}
+            </button>
+          </div>
+          <p className="text-[11px] text-slate-500 mt-2">Free top-up — buyer isn&apos;t charged. Goes to fresh, non-banned taskers (anyone who already did the order is blocked).</p>
+          {createMsg && <div className="text-xs mt-2 text-emerald-400">{createMsg}</div>}
         </div>
 
         <div className="flex gap-2 mb-5">
