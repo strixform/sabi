@@ -184,6 +184,57 @@ function CancelOrderButton({ orderId, serviceType, onDone, adminFetch }: {
   );
 }
 
+// ─── Refill Order button (staff create a refill for this order) ───────────────
+function RefillOrderButton({ orderId, onDone, adminFetch }: {
+  orderId: string; onDone: () => void;
+  adminFetch: (url: string, opts?: RequestInit) => Promise<Response>;
+}) {
+  const [open, setOpen]   = useState(false);
+  const [qty, setQty]     = useState('');
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg]     = useState('');
+
+  const submit = async () => {
+    const q = Math.floor(Number(qty) || 0);
+    if (q < 1) { setMsg('Enter a quantity'); return; }
+    setLoading(true);
+    try {
+      const res = await adminFetch('/api/sabi/admin/refills', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, quantity: q }),
+      });
+      const d = await res.json();
+      if (res.ok) { setMsg(`✅ ${d.message}`); setOpen(false); setQty(''); onDone(); }
+      else setMsg(`❌ ${d.error}`);
+    } catch { setMsg('❌ Network error'); }
+    finally { setLoading(false); setTimeout(() => setMsg(''), 8000); }
+  };
+
+  if (!open) return (
+    <button onClick={() => setOpen(true)}
+      className="px-2 py-1 bg-emerald-600/20 hover:bg-emerald-600/40 border border-emerald-600/30 text-emerald-400 text-[10px] font-bold rounded transition whitespace-nowrap">
+      🔄 Refill
+    </button>
+  );
+
+  return (
+    <div className="space-y-1.5 min-w-[160px]">
+      {msg && <div className={`text-[10px] ${msg.startsWith('✅') ? 'text-emerald-400' : 'text-red-400'}`}>{msg}</div>}
+      <div className="text-[10px] text-emerald-400 font-bold">Refill to new taskers — qty?</div>
+      <input type="number" min={1} placeholder="Qty" value={qty}
+        onChange={e => setQty(e.target.value)}
+        className="w-full bg-slate-800 border border-slate-700 text-white text-[10px] px-2 py-1 rounded focus:outline-none" />
+      <div className="flex gap-1">
+        <button onClick={submit} disabled={loading}
+          className="flex-1 px-2 py-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-[10px] font-bold rounded">
+          {loading ? '…' : 'Create Refill'}
+        </button>
+        <button onClick={() => { setOpen(false); setMsg(''); }} className="px-2 py-1 bg-slate-700 text-slate-400 text-[10px] rounded">✕</button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Update Order Status button ───────────────────────────────────────────────
 // Allows admin to move order through lifecycle: pending → processing → in_progress
 // → completed. Also supports failed and cancelled overrides.
@@ -1210,6 +1261,9 @@ export default function AdminPage() {
                               <CancelOrderButton orderId={o.id} serviceType={o.serviceType}
                                 onDone={() => { setOrders([]); setLoading(true); }} adminFetch={adminFetch} />
                             )}
+                            {/* Refill — top up this order with fresh taskers */}
+                            <RefillOrderButton orderId={o.id}
+                              onDone={() => { setOrders([]); setLoading(true); }} adminFetch={adminFetch} />
                           </div>
                         </td>
                       </tr>
