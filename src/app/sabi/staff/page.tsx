@@ -126,6 +126,43 @@ export default function StaffConsole() {
 }
 
 // ─── Orders & Proofs ─────────────────────────────────────────────────────────
+// Staff refill — type a quantity to top up THIS order with fresh, non-banned taskers.
+function StaffRefillControl({ orderId }: { orderId: string }) {
+  const [qty, setQty]   = useState('');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg]   = useState('');
+  const submit = async () => {
+    const q = Math.floor(Number(qty) || 0);
+    if (q < 1) { setMsg('Enter a quantity'); return; }
+    setBusy(true); setMsg('');
+    try {
+      const res = await af('/api/sabi/admin/refills', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, quantity: q }),
+      });
+      const d = await res.json().catch(() => ({}));
+      setMsg(res.ok && d.success ? `✅ ${d.message}` : `❌ ${d.error || 'Failed'}`);
+      if (res.ok) setQty('');
+    } catch { setMsg('❌ Network error'); }
+    finally { setBusy(false); }
+  };
+  return (
+    <div className="mt-3 bg-emerald-500/[0.07] border border-emerald-500/20 rounded-lg px-3 py-2">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-[11px] text-emerald-300 font-bold shrink-0">🔄 Refill to new taskers:</span>
+        <input type="number" min={1} value={qty} onChange={e => setQty(e.target.value)} placeholder="Qty"
+          className="w-20 bg-[#0F1420] border border-white/10 rounded px-2 py-1 text-xs" />
+        <button onClick={submit} disabled={busy}
+          className="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold disabled:opacity-50">
+          {busy ? '…' : 'Create refill'}
+        </button>
+      </div>
+      <div className="text-[10px] text-slate-500 mt-1">Free top-up — buyer not charged · goes to fresh taskers (anyone who did this order is blocked).</div>
+      {msg && <div className={`text-[10px] mt-1 ${msg.startsWith('✅') ? 'text-emerald-400' : 'text-red-400'}`}>{msg}</div>}
+    </div>
+  );
+}
+
 function ProofsTab() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -267,6 +304,7 @@ function ProofsTab() {
                       <button onClick={() => { navigator.clipboard?.writeText(o.targetUrl); }}
                         className="text-[10px] text-slate-400 hover:text-white shrink-0">Copy</button>
                     </div>
+                    <StaffRefillControl orderId={o.id} />
                     {!pf || pf.loading ? <p className="text-slate-500 text-sm py-4">Loading proofs…</p> : (
                       <>
                         <div className="text-[11px] text-slate-500 my-3">{pf.total} proof(s) · {pf.approved} approved</div>
