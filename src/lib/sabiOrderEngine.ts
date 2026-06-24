@@ -385,6 +385,16 @@ async function createGamesz360Campaign(
     if (t.commentInstructions) targetingParts.push(`Comment brief: ${t.commentInstructions}`);
     const targetingNote = targetingParts.length ? targetingParts.join(' | ') : undefined;
 
+    // If this is a refill order (customRef = 'refill:<parentOrderId>'), tell gamerz
+    // the parent order so the campaign is linked (shows as a refill, not a duplicate,
+    // and reaches fresh taskers).
+    let refillOfOrderId: string | undefined;
+    try {
+      const ord = await prisma.sabiOrder.findUnique({ where: { id: orderId }, select: { customRef: true } });
+      const ref = ord?.customRef || '';
+      if (ref.startsWith('refill:')) refillOfOrderId = ref.slice('refill:'.length);
+    } catch { /* customRef unavailable — push as a normal order */ }
+
     const payload = {
       sabiOrderId: orderId,
       serviceType: serviceId,
@@ -395,6 +405,7 @@ async function createGamesz360Campaign(
       sabiUserEmail: user.email,
       targetingNote,
       webhookUrl: `${process.env.SABI_BASE_URL || 'https://sability.io'}/api/webhooks/gamerz360`,
+      ...(refillOfOrderId ? { refillOfOrderId } : {}),
     };
 
     // 15s timeout — gamerz360 must respond before SABI's function times out
