@@ -677,18 +677,39 @@ export default function OrderPage() {
       {/* Order Header with Wallet & Progress */}
       <div className="relative z-20 border-b border-slate-700/50 bg-slate-900/40 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <div className="flex items-center justify-between mb-4 sm:mb-6">
-            <div className="flex items-center gap-3">
-              <h2 className="text-2xl sm:text-3xl font-black">New Order</h2>
-              <Link href="/sabi/order/bulk" className="text-xs font-bold text-blue-300 bg-blue-500/10 border border-blue-500/20 rounded-full px-3 py-1 hover:bg-blue-500/20 transition">⬆ Bulk upload</Link>
-              <Link href="/sabi/calculator" className="text-xs font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1 hover:bg-emerald-500/20 transition">🧮 Calculator</Link>
-            </div>
-            <div className="text-right text-sm sm:text-base">
-              <p className="text-xs sm:text-sm text-slate-400">Wallet Balance</p>
-              <p className="text-xl sm:text-2xl font-bold text-emerald-400">
+          {/* Title + wallet — each gets its own breathing room */}
+          <div className="flex items-start justify-between mb-3 sm:mb-4">
+            <h2 className="text-2xl sm:text-3xl font-black leading-tight">New Order</h2>
+            <div className="text-right shrink-0">
+              <p className="text-[11px] sm:text-sm text-slate-400 leading-none mb-1">Wallet Balance</p>
+              <p className="text-xl sm:text-2xl font-black text-emerald-400 leading-none">
                 ₦{(wallet.balance / 100).toLocaleString()}
               </p>
             </div>
+          </div>
+
+          {/* Quick actions — proper tiles, not cramped pills */}
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4 sm:mb-6">
+            <Link
+              href="/sabi/order/bulk"
+              className="group flex items-center gap-2.5 px-3 py-2.5 rounded-2xl bg-blue-500/10 border border-blue-500/25 hover:bg-blue-500/20 hover:border-blue-400/50 active:scale-[0.98] transition"
+            >
+              <span className="grid place-items-center w-9 h-9 rounded-xl bg-blue-500/20 text-blue-300 text-base shrink-0 group-hover:scale-110 transition">⬆</span>
+              <span className="min-w-0 text-left">
+                <span className="block text-sm font-bold text-blue-100 leading-tight truncate">Bulk upload</span>
+                <span className="block text-[10px] sm:text-[11px] text-blue-300/70 leading-tight truncate">Many links at once</span>
+              </span>
+            </Link>
+            <Link
+              href="/sabi/calculator"
+              className="group flex items-center gap-2.5 px-3 py-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 hover:bg-emerald-500/20 hover:border-emerald-400/50 active:scale-[0.98] transition"
+            >
+              <span className="grid place-items-center w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-300 text-base shrink-0 group-hover:scale-110 transition">🧮</span>
+              <span className="min-w-0 text-left">
+                <span className="block text-sm font-bold text-emerald-100 leading-tight truncate">Calculator</span>
+                <span className="block text-[10px] sm:text-[11px] text-emerald-300/70 leading-tight truncate">Cost before you fund</span>
+              </span>
+            </Link>
           </div>
 
           {/* Progress indicators */}
