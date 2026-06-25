@@ -33,9 +33,9 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
   metadataBase: new URL('https://sability.io'),
   icons: {
-    icon: '/sabi-favicon.png',
-    apple: '/sabi-favicon-maskable.png',
-    shortcut: '/sabi-favicon.png',
+    icon: '/favicon.ico?v=20260625',
+    apple: '/sabi-favicon-maskable.png?v=20260625',
+    shortcut: '/favicon.ico?v=20260625',
   },
 };
 
@@ -54,9 +54,10 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="SABI" />
         <meta name="application-name" content="SABI" />
         <meta name="description" content="Grow your social media with verified real Nigerian users" />
-        <link rel="icon" href="/sabi-favicon.png?v=2024060502" type="image/png" />
-        <link rel="apple-touch-icon" href="/sabi-favicon.png?v=2024060502" />
-        <link rel="shortcut icon" href="/sabi-favicon.png?v=2024060502" type="image/png" />
+        <link rel="icon" href="/favicon.ico?v=20260625" sizes="any" />
+        <link rel="icon" href="/sabi-favicon.png?v=20260625" type="image/png" />
+        <link rel="apple-touch-icon" href="/sabi-favicon.png?v=20260625" />
+        <link rel="shortcut icon" href="/sabi-favicon.png?v=20260625" type="image/png" />
         <link rel="manifest" href="/manifest.json" />
 
         {/* Google Analytics */}
