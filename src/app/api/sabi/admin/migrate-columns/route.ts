@@ -23,6 +23,8 @@ const MIGRATIONS: { table: string; column: string; type: string }[] = [
   { table: 'SabiOrder', column: 'dripIndex', type: 'INTEGER' },
   { table: 'SabiOrder', column: 'dripTotal', type: 'INTEGER' },
   { table: 'SabiOrder', column: 'dripMode', type: 'TEXT' },
+  // Custom comments (buyer-provided exact text, JSON array)
+  { table: 'SabiOrder', column: 'customComments', type: 'TEXT' },
 ];
 
 export async function GET(req: NextRequest) {

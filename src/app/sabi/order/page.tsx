@@ -24,7 +24,11 @@ import { AnimateInText } from '@/components/AnimateInText';
 import { ModernSabiHeader } from '@/components/ModernSabiHeader';
 import { LiveFulfillmentFeed } from '@/components/LiveFulfillmentFeed';
 import type { Service } from '@/lib/servicesCatalog';
-import { PLATFORMS, computeServicePricing, getServiceById } from '@/lib/servicesCatalog';
+import { PLATFORMS, computeServicePricing, computePricing, getServiceById } from '@/lib/servicesCatalog';
+
+// Custom comments: the buyer supplies the exact text for each comment. Premium —
+// ₦150 per comment (15,000 kobo), vs the much cheaper "random" comment services.
+const CUSTOM_COMMENT_KOBO = 15000;
 
 const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   instagram:  SiInstagram,
@@ -340,6 +344,8 @@ export default function OrderPage() {
       : audienceState;
   const [commentGender, setCommentGender] = useState<'both' | 'male' | 'female'>('both');
   const [commentInstructions, setCommentInstructions] = useState('');
+  const [customMode, setCustomMode] = useState(false);   // buyer provides exact comments
+  const [customComments, setCustomComments] = useState(''); // one comment per line
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -446,9 +452,33 @@ export default function OrderPage() {
     }
   };
 
+  // Custom comments — only for comment services, only when the buyer has typed/uploaded
+  // at least one. Quantity becomes the number of comments; price = ₦150 each.
+  const isCommentSvc = !!selectedService && COMMENT_ACTIONS.includes(selectedService.action);
+  const customList = customComments.split('\n').map(s => s.trim()).filter(Boolean);
+  const customActive = isCommentSvc && customMode && customList.length > 0;
+  const effectiveQuantity = customActive ? customList.length : quantity;
+
   const pricing = selectedService
-    ? computeServicePricing(selectedService, quantity, durationMins)
+    ? (customActive
+        ? computePricing(CUSTOM_COMMENT_KOBO, customList.length)
+        : computeServicePricing(selectedService, quantity, durationMins))
     : null;
+
+  // Parse an uploaded CSV/TXT of comments → one comment per line (strips wrapping
+  // quotes). Appended to whatever's already typed, so users can mix typing + upload.
+  const handleCommentFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = String(reader.result || '');
+      const lines = text.split(/\r?\n/).map(l => l.replace(/^["']|["']$/g, '').trim()).filter(Boolean);
+      setCustomComments(prev => {
+        const existing = prev.split('\n').map(s => s.trim()).filter(Boolean);
+        return [...existing, ...lines].join('\n');
+      });
+    };
+    reader.readAsText(file);
+  };
   const [promoCode, setPromoCode] = useState('');
   const [promoResult, setPromoResult] = useState<any>(null);
   const [promoLoading, setPromoLoading] = useState(false);
@@ -540,7 +570,10 @@ export default function OrderPage() {
   // for this buyer (and never improvise things like "coming from gamerz"). Enforced
   // before leaving the details step.
   const commentBriefRequired = !!selectedService && COMMENT_ACTIONS.includes(selectedService.action);
-  const commentBriefMissing = commentBriefRequired && commentInstructions.trim().length === 0;
+  // In custom mode the buyer supplies the exact comments, so the brief isn't needed —
+  // instead we require at least one custom comment.
+  const commentBriefMissing = commentBriefRequired && !customMode && commentInstructions.trim().length === 0;
+  const customCommentsMissing = commentBriefRequired && customMode && customList.length === 0;
   // Comment-like services (A = like first N comments under your post; B = likes on
   // your own comment elsewhere). Both bill ₦10/like and get the quantity presets.
   const isCommentLikeService = !!selectedService && (selectedService.action === 'Comment Likes' || selectedService.action === 'Post Comment Likes');
@@ -552,7 +585,7 @@ export default function OrderPage() {
       setCurrentStep('service');
     } else if (currentStep === 'service' && selectedService) {
       setCurrentStep('details');
-    } else if (currentStep === 'details' && targetUrl && quantity && !commentBriefMissing) {
+    } else if (currentStep === 'details' && targetUrl && quantity && !commentBriefMissing && !customCommentsMissing) {
       setCurrentStep('review');
     }
   };
@@ -629,11 +662,14 @@ export default function OrderPage() {
       const commonFields = {
         serviceId: selectedService.id,
         targetUrl,
-        quantity,
+        quantity: effectiveQuantity,
         paymentMethod: 'wallet',
         audienceGender,
         audienceLocation,
-        ...(COMMENT_ACTIONS.includes(selectedService.action)
+        // Custom comments: the exact list the buyer provided (one per comment). The
+        // engine prices these at ₦150 each and forwards them so each is posted once.
+        ...(customActive ? { customComments: customList } : {}),
+        ...(COMMENT_ACTIONS.includes(selectedService.action) && !customActive
           ? { commentGender, commentInstructions: commentInstructions.trim() || null }
           : {}),
         ...(selectedService.action === 'Post Comment Likes'
@@ -1325,6 +1361,42 @@ export default function OrderPage() {
                         </div>
                       </div>
                       )}
+                      {commentBriefRequired && (
+                        <div className="mb-3">
+                          <label className="block text-sm font-semibold text-slate-300 mb-2">Comment style</label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button type="button" onClick={() => setCustomMode(false)} className={`px-3 py-2 rounded-lg text-xs font-bold border transition ${!customMode ? 'bg-purple-600 border-purple-500 text-white' : 'bg-slate-800/50 border-slate-700 text-slate-300'}`}>
+                              We write natural comments
+                            </button>
+                            <button type="button" onClick={() => setCustomMode(true)} className={`px-3 py-2 rounded-lg text-xs font-bold border transition ${customMode ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-slate-800/50 border-slate-700 text-slate-300'}`}>
+                              I&apos;ll provide each · ₦150
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {commentBriefRequired && customMode && (
+                        <div className="mb-2">
+                          <label className="block text-sm font-semibold text-slate-300 mb-2">Your exact comments — one per line</label>
+                          <textarea
+                            value={customComments}
+                            onChange={(e) => setCustomComments(e.target.value)}
+                            rows={6}
+                            placeholder={"Nice product! 🔥\nWhere can I get this?\nJust ordered mine 😍\nThis is exactly what I needed"}
+                            className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white placeholder-slate-500 text-sm outline-none resize-y focus:border-emerald-500/50"
+                          />
+                          <div className="flex items-center justify-between gap-2 mt-1.5">
+                            <label className="text-[11px] font-bold text-emerald-400 cursor-pointer hover:text-emerald-300">
+                              ⬆ Upload CSV / TXT
+                              <input type="file" accept=".csv,.txt,text/csv,text/plain" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCommentFile(f); e.target.value = ''; }} />
+                            </label>
+                            <p className="text-[11px] text-slate-300"><b className="text-emerald-300">{customList.length}</b> comment(s) · ₦150 each = <b className="text-emerald-300">₦{(customList.length * 150).toLocaleString()}</b></p>
+                          </div>
+                          <p className="text-[10px] text-slate-500 mt-1">Each comment is posted once by a different real person. The order quantity = the number of comments you provide.</p>
+                        </div>
+                      )}
+
+                      {!customMode && (
                       <div>
                         <label className="block text-sm font-semibold text-slate-300 mb-2">
                           {commentBriefRequired
@@ -1352,6 +1424,7 @@ export default function OrderPage() {
                           <p className="text-[11px] text-red-400 mt-1">Please tell us what the comments should say before continuing.</p>
                         )}
                       </div>
+                      )}
                     </motion.div>
                   )}
 
@@ -1366,7 +1439,7 @@ export default function OrderPage() {
                       {selectedService.description.split('\n').slice(0, 3).join('\n')}...
                     </p>
                     <motion.button
-                      onClick={() => { if (!commentBriefMissing) setCurrentStep('review'); }}
+                      onClick={() => { if (!commentBriefMissing && !customCommentsMissing) setCurrentStep('review'); }}
                       className="mt-4 text-blue-400 hover:text-blue-300 text-sm font-semibold"
                       whileHover={{ x: 4 }}
                     >
@@ -1755,7 +1828,7 @@ export default function OrderPage() {
               disabled={
                 (currentStep === 'platform' && !selectedPlatform) ||
                 (currentStep === 'service' && !selectedService) ||
-                (currentStep === 'details' && (!targetUrl || !quantity || commentBriefMissing))
+                (currentStep === 'details' && (!targetUrl || !quantity || commentBriefMissing || customCommentsMissing))
               }
               className="ml-auto px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               whileHover={{ scale: 1.05 }}

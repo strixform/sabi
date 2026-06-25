@@ -1,6 +1,9 @@
 import { prisma } from './prisma';
 import { getService, validateOrder } from './sabiServices';
-import { computeServicePricing } from './servicesCatalog';
+import { computeServicePricing, computePricing } from './servicesCatalog';
+
+// Custom comments: buyer supplies the exact text for each comment, ₦150 each.
+const CUSTOM_COMMENT_KOBO = 15000;
 import { debitSabiWallet, refundSabiWallet } from './sabiWallet';
 import { sabiExecute } from './tursoClient';
 import crypto from 'crypto';
@@ -78,6 +81,8 @@ export interface CreateOrderInput {
   dripIndex?: number;
   dripTotal?: number;
   dripMode?: 'completion' | 'time';
+  // Custom comments: exact text per comment (one posted per real person, ₦150 each).
+  customComments?: string[];
 }
 
 export interface OrderResponse {
@@ -153,13 +158,24 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
         ? Number(input.durationMinutes)
         : (service.baseDurationMins ?? service.durationOptions[0]);
     }
+    // Custom comments: the buyer provides the exact text for each comment. Quantity
+    // is the number of comments, priced at ₦150 each (premium vs random comments).
+    const customComments = Array.isArray(input.customComments)
+      ? input.customComments.map(s => String(s || '').trim()).filter(Boolean).slice(0, 5000)
+      : [];
+    const isCustomComments = customComments.length > 0;
+
     // flat_duration services bill by watch-time and ship a fixed viewer pack —
     // force the stored quantity to the standard pack regardless of client input.
-    const effectiveQuantity = service.priceModel === 'flat_duration'
-      ? (service.standardPack ?? service.minQuantity)
-      : input.quantity;
+    const effectiveQuantity = isCustomComments
+      ? customComments.length
+      : service.priceModel === 'flat_duration'
+        ? (service.standardPack ?? service.minQuantity)
+        : input.quantity;
 
-    const pricing = computeServicePricing(service, effectiveQuantity, durationMinutes);
+    const pricing = isCustomComments
+      ? computePricing(CUSTOM_COMMENT_KOBO, customComments.length)
+      : computeServicePricing(service, effectiveQuantity, durationMinutes);
     const totalPrice = pricing.totalKobo;           // grand total before promo/welcome (volume discount applied)
     const basePrice = pricing.baseKobo;             // discounted base
     const platformFee = pricing.platformFeeKobo + pricing.vatKobo;
@@ -220,7 +236,7 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
           serviceType: input.serviceId,
           targetUrl: input.targetUrl,
           quantity: effectiveQuantity,
-          pricePerUnit: service.pricePerUnit,
+          pricePerUnit: isCustomComments ? CUSTOM_COMMENT_KOBO : service.pricePerUnit,
           totalPrice: basePrice,
           platformFee: platformFee,
           paymentMethod: input.paymentMethod,
@@ -230,12 +246,15 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
           audienceGender: input.audienceGender || null,
           audienceLocation: input.audienceLocation || null,
           commentGender: input.commentGender || null,
-          // For live-stream orders, fold the chosen watch-time into the instructions
-          // so taskers/fulfilment know how long to hold viewers (no schema change).
-          commentInstructions: [
-            durationMinutes ? `Watch time: ${durationMinutes} min` : '',
-            stripSourceMentions(input.commentInstructions),
-          ].filter(Boolean).join(' | ') || null,
+          // Custom comments: keep the brief GENERIC here (the specific text is stored
+          // separately and allocated one-per-tasker at job start). Otherwise fold the
+          // live-stream watch-time into the instructions.
+          commentInstructions: isCustomComments
+            ? '✍️ Custom comment — your exact text is shown when you start the job.'
+            : [
+                durationMinutes ? `Watch time: ${durationMinutes} min` : '',
+                stripSourceMentions(input.commentInstructions),
+              ].filter(Boolean).join(' | ') || null,
           promoCodeId: input.promoCodeId || null,
           discountAmount: totalDiscountKobo,
           scheduledAt: input.scheduledAt || null,
@@ -256,7 +275,7 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
           serviceType: input.serviceId,
           targetUrl: input.targetUrl,
           quantity: effectiveQuantity,
-          pricePerUnit: service.pricePerUnit,
+          pricePerUnit: isCustomComments ? CUSTOM_COMMENT_KOBO : service.pricePerUnit,
           totalPrice: basePrice,
           platformFee,
           paymentMethod: input.paymentMethod,
@@ -294,6 +313,11 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
     // completion hook find + release the next slice when this one finishes.
     if (input.dripChainId) {
       prisma.$executeRaw`UPDATE "SabiOrder" SET "dripChainId" = ${input.dripChainId}, "dripIndex" = ${input.dripIndex ?? 0}, "dripTotal" = ${input.dripTotal ?? 0}, "dripMode" = ${input.dripMode ?? 'completion'} WHERE id = ${order.id}`.catch(() => {});
+    }
+    // Custom comments — store the exact list as JSON (guarded column). gamers360
+    // reads this when the campaign is pushed and allocates one comment per tasker.
+    if (isCustomComments) {
+      prisma.$executeRaw`UPDATE "SabiOrder" SET "customComments" = ${JSON.stringify(customComments)} WHERE id = ${order.id}`.catch(() => {});
     }
 
     // Auto top-up check — if wallet fell below threshold, email user a payment link (fire-and-forget)
