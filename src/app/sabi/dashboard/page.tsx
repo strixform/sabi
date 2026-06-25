@@ -505,6 +505,16 @@ export default function DashboardPage() {
                 </motion.div>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <Link
+                    href="/sabi/ugc"
+                    className="block px-8 py-4 border-2 border-emerald-500/30 hover:border-emerald-400 text-emerald-200 font-bold rounded-xl transition hover:bg-emerald-500/[0.06] text-center"
+                  >
+                    <AnimateInText type="fade" delay={1.25}>
+                      🌟 Book UGC Creators
+                    </AnimateInText>
+                  </Link>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Link
                     href="/sabi/docs"
                     className="block px-8 py-4 border-2 border-white/[0.08] hover:border-blue-400 text-white font-bold rounded-xl transition hover:bg-white/[0.025] text-center"
                   >
