@@ -445,7 +445,8 @@ export default function OrderPage() {
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoError, setPromoError] = useState('');
   const [scheduledAt, setScheduledAt] = useState('');
-  const [dripDays, setDripDays] = useState(0); // 0 = deliver all at once
+  const [dripDays, setDripDays] = useState(0); // 0 = deliver all at once (else = number of drips)
+  const [dripIntervalHours, setDripIntervalHours] = useState(24); // gap between drips
   const [startShot, setStartShot] = useState('');
   const [shotUploading, setShotUploading] = useState(false);
   const [startCount, setStartCount] = useState('');
@@ -635,7 +636,7 @@ export default function OrderPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(
           isDrip
-            ? { ...commonFields, dripDays }
+            ? { ...commonFields, dripDays, dripIntervalHours }
             : {
                 ...commonFields,
                 ...(promoResult ? { promoCodeId: promoResult.promoId, discountAmount: promoResult.savedKobo } : {}),
@@ -1544,24 +1545,41 @@ export default function OrderPage() {
                         {scheduledAt && <p className="text-blue-400 text-xs mt-1">⏰ Will start at {new Date(scheduledAt).toLocaleString()}</p>}
                       </div>
 
-                      {/* Drip-feed delivery */}
+                      {/* Drip-feed delivery — choose how many drips AND how far apart */}
                       <div className="mb-4">
                         <label className="block text-xs text-slate-400 mb-1">Drip-feed delivery (optional)</label>
-                        <select
-                          value={dripDays}
-                          onChange={e => { const v = Number(e.target.value); setDripDays(v); if (v) setScheduledAt(''); }}
-                          className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:border-blue-500/50 outline-none [color-scheme:dark]"
-                        >
-                          <option value={0}>Deliver all at once</option>
-                          <option value={3}>Spread over 3 days</option>
-                          <option value={5}>Spread over 5 days</option>
-                          <option value={7}>Spread over 7 days</option>
-                          <option value={14}>Spread over 14 days</option>
-                          <option value={30}>Spread over 30 days</option>
-                        </select>
+                        <div className="grid grid-cols-2 gap-2">
+                          <select
+                            value={dripDays}
+                            onChange={e => { const v = Number(e.target.value); setDripDays(v); if (v) setScheduledAt(''); }}
+                            className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:border-blue-500/50 outline-none [color-scheme:dark]"
+                          >
+                            <option value={0}>Deliver all at once</option>
+                            <option value={2}>Split into 2 drips</option>
+                            <option value={3}>Split into 3 drips</option>
+                            <option value={5}>Split into 5 drips</option>
+                            <option value={7}>Split into 7 drips</option>
+                            <option value={10}>Split into 10 drips</option>
+                            <option value={20}>Split into 20 drips</option>
+                          </select>
+                          {dripDays >= 2 && (
+                            <select
+                              value={dripIntervalHours}
+                              onChange={e => setDripIntervalHours(Number(e.target.value))}
+                              className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:border-blue-500/50 outline-none [color-scheme:dark]"
+                            >
+                              <option value={1}>Every 1 hour</option>
+                              <option value={3}>Every 3 hours</option>
+                              <option value={6}>Every 6 hours</option>
+                              <option value={12}>Every 12 hours</option>
+                              <option value={24}>Every 24 hours</option>
+                              <option value={48}>Every 2 days</option>
+                            </select>
+                          )}
+                        </div>
                         {dripDays >= 2 && (
                           <p className="text-blue-400 text-xs mt-1">
-                            🌱 ~{Math.floor(quantity / dripDays).toLocaleString()}/day for {dripDays} days — looks natural, charged once now. (Promo codes &amp; scheduling don&apos;t apply to drip.)
+                            🌱 ~{Math.floor(quantity / dripDays).toLocaleString()} every {dripIntervalHours < 24 ? `${dripIntervalHours}h` : `${dripIntervalHours / 24} day${dripIntervalHours === 24 ? '' : 's'}`}, {dripDays} times — looks natural, charged once now. (Promo codes &amp; scheduling don&apos;t apply to drip.)
                           </p>
                         )}
                       </div>

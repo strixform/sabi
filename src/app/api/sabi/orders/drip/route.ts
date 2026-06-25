@@ -35,30 +35,35 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
   if (!Number.isFinite(dripDays) || dripDays < 2 || dripDays > 30) {
-    return NextResponse.json({ error: 'Drip days must be between 2 and 30' }, { status: 400 });
+    return NextResponse.json({ error: 'Number of drips must be between 2 and 30' }, { status: 400 });
   }
+  // How far apart each drip goes out. Defaults to 24h (the old daily behaviour) but
+  // the buyer can pick any gap — e.g. every 1h for faster pacing, every 12h, etc.
+  // Clamped to a sane 1–168h (1 week) window.
+  const dripIntervalHours = Math.min(168, Math.max(1, Number(body.dripIntervalHours) || 24));
 
   const service = getService(serviceId);
   if (!service) return NextResponse.json({ error: 'Service not found' }, { status: 400 });
 
-  // Each daily slice must still meet the service minimum.
+  // Each slice must still meet the service minimum.
   if (Math.floor(qty / dripDays) < service.minQuantity) {
     return NextResponse.json({
-      error: `Each day must be at least ${service.minQuantity}. Reduce the number of days or increase quantity.`,
+      error: `Each drip must be at least ${service.minQuantity}. Reduce the number of drips or increase quantity.`,
     }, { status: 400 });
   }
 
-  // Split quantity as evenly as possible (earlier days get the remainder).
+  // Split quantity as evenly as possible (earlier drips get the remainder).
   const base = Math.floor(qty / dripDays);
   const remainder = qty - base * dripDays;
   const slices = Array.from({ length: dripDays }, (_, i) => base + (i < remainder ? 1 : 0));
 
   const now = Date.now();
+  const intervalMs = dripIntervalHours * 60 * 60 * 1000;
   const created: string[] = [];
   let firstError: string | undefined;
 
   for (let i = 0; i < slices.length; i++) {
-    const scheduledAt = i === 0 ? undefined : new Date(now + i * 24 * 60 * 60 * 1000);
+    const scheduledAt = i === 0 ? undefined : new Date(now + i * intervalMs);
     const result = await createSabiOrder({
       userId: session.id,
       serviceId,
