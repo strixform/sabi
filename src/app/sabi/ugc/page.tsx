@@ -68,7 +68,7 @@ export default function UGCMarketplacePage() {
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-1">
           <h1 className="text-2xl font-black">🌟 UGC Creators</h1>
-          <Link href="/sabi/order" className="text-xs text-slate-400 hover:text-white">New order →</Link>
+          <Link href="/sabi/ugc/bookings" className="text-xs font-bold text-emerald-300 hover:text-emerald-200">My bookings →</Link>
         </div>
         <p className="text-sm text-slate-400 mb-4">Book real Nigerian creators for authentic shoutouts & content. Pick who you want, then request a booking.</p>
 
