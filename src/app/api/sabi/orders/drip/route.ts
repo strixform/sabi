@@ -3,6 +3,7 @@ import { getSabiSession } from '@/lib/sabiAuth';
 import { createSabiOrder } from '@/lib/sabiOrderEngine';
 import { getService } from '@/lib/sabiServices';
 import { getRateLimitKey, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit';
+import crypto from 'crypto';
 
 export const maxDuration = 30;
 export const preferredRegion = 'sfo1';
@@ -59,11 +60,23 @@ export async function POST(req: NextRequest) {
 
   const now = Date.now();
   const intervalMs = dripIntervalHours * 60 * 60 * 1000;
+  // Delivery mode:
+  //  • 'completion' (default): release the next drip when the previous one finishes.
+  //    All slices are created+charged upfront; slices 1..N-1 are HELD with a far-future
+  //    scheduledAt and released (scheduledAt → now) by the completion hook.
+  //  • 'time': each drip goes out on a fixed schedule (every dripIntervalHours).
+  const dripMode: 'completion' | 'time' = body.dripMode === 'time' ? 'time' : 'completion';
+  const HELD_FUTURE = new Date('2099-01-01T00:00:00Z'); // parked until the prior slice completes
+  const dripChainId = crypto.randomUUID();
   const created: string[] = [];
   let firstError: string | undefined;
 
   for (let i = 0; i < slices.length; i++) {
-    const scheduledAt = i === 0 ? undefined : new Date(now + i * intervalMs);
+    // Slice 0 always goes out now. For the rest: 'time' schedules by interval;
+    // 'completion' parks them (far future) until the prior slice completes.
+    const scheduledAt = i === 0
+      ? undefined
+      : dripMode === 'time' ? new Date(now + i * intervalMs) : HELD_FUTURE;
     const result = await createSabiOrder({
       userId: session.id,
       serviceId,
@@ -73,6 +86,7 @@ export async function POST(req: NextRequest) {
       audienceGender, audienceLocation, commentGender, commentInstructions,
       durationMinutes: durationMinutes !== undefined && durationMinutes !== null ? Number(durationMinutes) : undefined,
       scheduledAt,
+      dripChainId, dripIndex: i, dripTotal: slices.length, dripMode,
       startScreenshotUrl: i === 0 ? (startScreenshotUrl || undefined) : undefined,
       startCount: i === 0 && startCount !== undefined && startCount !== null && startCount !== '' && Number.isFinite(Number(startCount)) ? Number(startCount) : undefined,
       silent: i > 0,

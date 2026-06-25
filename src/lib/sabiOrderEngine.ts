@@ -72,6 +72,12 @@ export interface CreateOrderInput {
   startScreenshotUrl?: string; // buyer's "before" screenshot of the target page
   startCount?: number;         // buyer's count (followers/likes/…) at buying moment — real baseline
   silent?: boolean;            // suppress the placement email (used for drip-feed chunks 2..N)
+  // Completion-triggered drip chain: slices share a chainId; slice i+1 is released
+  // (scheduledAt → now) when slice i completes. All slices are created+charged upfront.
+  dripChainId?: string;
+  dripIndex?: number;
+  dripTotal?: number;
+  dripMode?: 'completion' | 'time';
 }
 
 export interface OrderResponse {
@@ -283,6 +289,11 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
     }
     if (typeof input.startCount === 'number' && Number.isFinite(input.startCount)) {
       prisma.$executeRaw`UPDATE "SabiOrder" SET "startCount" = ${Math.round(input.startCount)} WHERE id = ${order.id}`.catch(() => {});
+    }
+    // Drip-chain fields (guarded — columns may not exist in prod yet). Lets the
+    // completion hook find + release the next slice when this one finishes.
+    if (input.dripChainId) {
+      prisma.$executeRaw`UPDATE "SabiOrder" SET "dripChainId" = ${input.dripChainId}, "dripIndex" = ${input.dripIndex ?? 0}, "dripTotal" = ${input.dripTotal ?? 0}, "dripMode" = ${input.dripMode ?? 'completion'} WHERE id = ${order.id}`.catch(() => {});
     }
 
     // Auto top-up check — if wallet fell below threshold, email user a payment link (fire-and-forget)
@@ -549,6 +560,29 @@ export async function updateSabiOrderStatus(
       if (status === 'executing') sendOrderStartedEmail(order.user.email, order.user.name, orderId, svcName, order.quantity);
       else if (status === 'completed') sendOrderCompletedEmail(order.user.email, order.user.name, orderId, svcName, order.quantity);
       else if (status === 'failed') sendOrderFailedEmail(order.user.email, order.user.name, orderId, svcName);
+    }
+
+    // Completion-triggered drip: when a chain slice completes, RELEASE the next held
+    // slice (created+charged upfront with a far-future scheduledAt). Setting
+    // scheduledAt → now hands it to the process-scheduled cron, which pushes it out.
+    // Raw SQL because the drip columns are added via ALTER, not in the Prisma model.
+    if (status === 'completed') {
+      try {
+        const dr = await sabiExecute({
+          sql: `SELECT dripChainId, dripIndex, dripTotal, dripMode FROM SabiOrder WHERE id = ? LIMIT 1`,
+          args: [orderId],
+        }).catch(() => ({ rows: [] as any[] }));
+        const o = dr.rows[0] as any;
+        const idx = o?.dripIndex == null ? null : Number(o.dripIndex);
+        if (o?.dripMode === 'completion' && o?.dripChainId && idx != null && idx + 1 < Number(o.dripTotal || 0)) {
+          await sabiExecute({
+            sql: `UPDATE SabiOrder SET scheduledAt = datetime('now') WHERE dripChainId = ? AND dripIndex = ? AND status = 'pending'`,
+            args: [String(o.dripChainId), idx + 1],
+          });
+        }
+      } catch (e: any) {
+        console.error('[drip-chain] release next slice failed:', e?.message);
+      }
     }
 
     // Push notification

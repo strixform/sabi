@@ -18,6 +18,11 @@ const MIGRATIONS: { table: string; column: string; type: string }[] = [
   { table: 'SabiOrder', column: 'ratingComment', type: 'TEXT' },
   { table: 'SabiOrder', column: 'startCount', type: 'INTEGER' },
   { table: 'SabiUser', column: 'signupIp', type: 'TEXT' },
+  // Completion-triggered drip chain
+  { table: 'SabiOrder', column: 'dripChainId', type: 'TEXT' },
+  { table: 'SabiOrder', column: 'dripIndex', type: 'INTEGER' },
+  { table: 'SabiOrder', column: 'dripTotal', type: 'INTEGER' },
+  { table: 'SabiOrder', column: 'dripMode', type: 'TEXT' },
 ];
 
 export async function GET(req: NextRequest) {

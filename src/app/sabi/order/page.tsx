@@ -446,7 +446,8 @@ export default function OrderPage() {
   const [promoError, setPromoError] = useState('');
   const [scheduledAt, setScheduledAt] = useState('');
   const [dripDays, setDripDays] = useState(0); // 0 = deliver all at once (else = number of drips)
-  const [dripIntervalHours, setDripIntervalHours] = useState(24); // gap between drips
+  const [dripIntervalHours, setDripIntervalHours] = useState(24); // gap between drips (time mode)
+  const [dripMode, setDripMode] = useState<'completion' | 'time'>('completion'); // default: release next when prior finishes
   const [startShot, setStartShot] = useState('');
   const [shotUploading, setShotUploading] = useState(false);
   const [startCount, setStartCount] = useState('');
@@ -636,7 +637,7 @@ export default function OrderPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(
           isDrip
-            ? { ...commonFields, dripDays, dripIntervalHours }
+            ? { ...commonFields, dripDays, dripIntervalHours, dripMode }
             : {
                 ...commonFields,
                 ...(promoResult ? { promoCodeId: promoResult.promoId, discountAmount: promoResult.savedKobo } : {}),
@@ -1564,22 +1565,35 @@ export default function OrderPage() {
                           </select>
                           {dripDays >= 2 && (
                             <select
-                              value={dripIntervalHours}
-                              onChange={e => setDripIntervalHours(Number(e.target.value))}
+                              value={dripMode}
+                              onChange={e => setDripMode(e.target.value as 'completion' | 'time')}
                               className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:border-blue-500/50 outline-none [color-scheme:dark]"
                             >
-                              <option value={1}>Every 1 hour</option>
-                              <option value={3}>Every 3 hours</option>
-                              <option value={6}>Every 6 hours</option>
-                              <option value={12}>Every 12 hours</option>
-                              <option value={24}>Every 24 hours</option>
-                              <option value={48}>Every 2 days</option>
+                              <option value="completion">When the last finishes</option>
+                              <option value="time">On a time schedule</option>
                             </select>
                           )}
                         </div>
+                        {dripDays >= 2 && dripMode === 'time' && (
+                          <select
+                            value={dripIntervalHours}
+                            onChange={e => setDripIntervalHours(Number(e.target.value))}
+                            className="w-full mt-2 px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:border-blue-500/50 outline-none [color-scheme:dark]"
+                          >
+                            <option value={1}>Every 1 hour</option>
+                            <option value={3}>Every 3 hours</option>
+                            <option value={6}>Every 6 hours</option>
+                            <option value={12}>Every 12 hours</option>
+                            <option value={24}>Every 24 hours</option>
+                            <option value={48}>Every 2 days</option>
+                          </select>
+                        )}
                         {dripDays >= 2 && (
                           <p className="text-blue-400 text-xs mt-1">
-                            🌱 ~{Math.floor(quantity / dripDays).toLocaleString()} every {dripIntervalHours < 24 ? `${dripIntervalHours}h` : `${dripIntervalHours / 24} day${dripIntervalHours === 24 ? '' : 's'}`}, {dripDays} times — looks natural, charged once now. (Promo codes &amp; scheduling don&apos;t apply to drip.)
+                            {dripMode === 'completion'
+                              ? <>🌱 ~{Math.floor(quantity / dripDays).toLocaleString()} per drip, {dripDays} drips — the next drip starts only after the previous one finishes (most natural). Charged once now.</>
+                              : <>🌱 ~{Math.floor(quantity / dripDays).toLocaleString()} every {dripIntervalHours < 24 ? `${dripIntervalHours}h` : `${dripIntervalHours / 24} day${dripIntervalHours === 24 ? '' : 's'}`}, {dripDays} times — charged once now.</>}
+                            {' '}(Promo codes &amp; scheduling don&apos;t apply to drip.)
                           </p>
                         )}
                       </div>
