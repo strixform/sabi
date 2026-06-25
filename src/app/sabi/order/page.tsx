@@ -22,6 +22,7 @@ import { InteractiveCard } from '@/components/InteractiveCard';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
 import { AnimateInText } from '@/components/AnimateInText';
 import { ModernSabiHeader } from '@/components/ModernSabiHeader';
+import { LiveFulfillmentFeed } from '@/components/LiveFulfillmentFeed';
 import type { Service } from '@/lib/servicesCatalog';
 import { PLATFORMS, computeServicePricing, getServiceById } from '@/lib/servicesCatalog';
 
@@ -711,6 +712,9 @@ export default function OrderPage() {
               </span>
             </Link>
           </div>
+
+          {/* Live social proof — recent real deliveries */}
+          <LiveFulfillmentFeed className="mb-4 sm:mb-6" />
 
           {/* Progress indicators */}
           <div className="flex items-center justify-between gap-2">
