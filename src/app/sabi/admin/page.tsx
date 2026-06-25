@@ -93,7 +93,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 const fmt = (kobo: number | undefined | null) => `₦${Math.round((kobo ?? 0) / 100).toLocaleString()}`;
 const fmtDate = (d: string) => new Date(d).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' });
-const TABS = ['Users', 'Orders', 'Payments', 'Reconcile', 'Referrals', 'Requests', 'Partnerships', 'Settings'] as const;
+const TABS = ['Users', 'Orders', 'Payments', 'Reconcile', 'Referrals', 'Requests', 'Partnerships', 'UGC', 'Settings'] as const;
 
 interface PartnershipReq {
   id: string; brandName?: string | null; domain?: string | null;
@@ -867,6 +867,134 @@ function ReconcileTab({ adminFetch }: { adminFetch: (url: string, opts?: Request
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+// ─── UGC bookings oversight ─────────────────────────────────────────────────
+
+const UGC_STATUSES = ['pending_creator', 'negotiating', 'accepted', 'delivered', 'completed', 'cancelled'] as const;
+const UGC_STATUS_COLOR: Record<string, string> = {
+  pending_creator: 'bg-amber-500/15 text-amber-300',
+  negotiating:     'bg-blue-500/15 text-blue-300',
+  accepted:        'bg-indigo-500/15 text-indigo-300',
+  delivered:       'bg-purple-500/15 text-purple-300',
+  completed:       'bg-emerald-500/15 text-emerald-300',
+  cancelled:       'bg-slate-600/20 text-slate-400',
+};
+const ngn = (kobo: number) => '₦' + Math.round((Number(kobo) || 0) / 100).toLocaleString();
+
+function UGCTab({ adminFetch }: { adminFetch: (url: string, opts?: RequestInit) => Promise<Response> }) {
+  const [rows, setRows] = useState<any[]>([]);
+  const [tally, setTally] = useState<any[]>([]);
+  const [status, setStatus] = useState('');
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [needsMigration, setNeedsMigration] = useState(false);
+  const [err, setErr] = useState('');
+
+  const load = async () => {
+    setLoading(true); setErr('');
+    try {
+      const qs = new URLSearchParams();
+      if (status) qs.set('status', status);
+      if (search.trim()) qs.set('search', search.trim());
+      const r = await adminFetch(`/api/sabi/admin/ugc?${qs.toString()}`);
+      const d = await r.json();
+      if (!r.ok) { setErr(d.error || 'Failed to load'); return; }
+      setRows(d.bookings || []);
+      setTally(d.tally || []);
+      setNeedsMigration(!!d.needsMigration);
+    } catch (e: any) { setErr(String(e?.message || e)); }
+    finally { setLoading(false); }
+  };
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [status]);
+
+  // Escrow currently held = money sitting in not-yet-resolved bookings.
+  const heldKobo = tally.filter(t => ['pending_creator','negotiating','accepted','delivered'].includes(t.status))
+    .reduce((s, t) => s + Number(t.kobo || 0), 0);
+  const paidKobo = tally.filter(t => t.status === 'completed').reduce((s, t) => s + Number(t.kobo || 0), 0);
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-slate-800/40 rounded-lg p-3">
+          <div className="text-[11px] text-slate-500 uppercase tracking-wide">In escrow</div>
+          <div className="text-lg font-bold text-amber-300">{ngn(heldKobo)}</div>
+        </div>
+        <div className="bg-slate-800/40 rounded-lg p-3">
+          <div className="text-[11px] text-slate-500 uppercase tracking-wide">Paid to creators</div>
+          <div className="text-lg font-bold text-emerald-300">{ngn(paidKobo)}</div>
+        </div>
+        <div className="bg-slate-800/40 rounded-lg p-3">
+          <div className="text-[11px] text-slate-500 uppercase tracking-wide">Active</div>
+          <div className="text-lg font-bold text-white">{tally.filter(t => !['completed','cancelled'].includes(t.status)).reduce((s,t)=>s+Number(t.n||0),0)}</div>
+        </div>
+        <div className="bg-slate-800/40 rounded-lg p-3">
+          <div className="text-[11px] text-slate-500 uppercase tracking-wide">Total bookings</div>
+          <div className="text-lg font-bold text-white">{tally.reduce((s,t)=>s+Number(t.n||0),0)}</div>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <button onClick={() => setStatus('')}
+          className={`px-3 py-1.5 rounded-full text-xs font-medium ${status==='' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}>All</button>
+        {UGC_STATUSES.map(s => (
+          <button key={s} onClick={() => setStatus(s)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium ${status===s ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}>
+            {s.replace('_', ' ')}
+          </button>
+        ))}
+        <div className="flex items-center gap-2 ml-auto">
+          <input value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key==='Enter' && load()}
+            placeholder="Search id / brand / handle"
+            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white w-56" />
+          <button onClick={load} className="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">Search</button>
+        </div>
+      </div>
+
+      {needsMigration && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-sm text-amber-300">
+          UGCBooking table not found. Run <code className="font-mono">/api/sabi/admin/migrate-ugc</code> to create it.
+        </div>
+      )}
+      {err && <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-sm text-red-300">{err}</div>}
+
+      <div className="overflow-x-auto rounded-lg border border-slate-800">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-800/60 text-slate-400 text-xs uppercase">
+            <tr>
+              <th className="text-left px-3 py-2">Booking</th>
+              <th className="text-left px-3 py-2">Buyer</th>
+              <th className="text-left px-3 py-2">Creator</th>
+              <th className="text-left px-3 py-2">Brand</th>
+              <th className="text-right px-3 py-2">Escrow</th>
+              <th className="text-left px-3 py-2">Status</th>
+              <th className="text-left px-3 py-2">Proof</th>
+              <th className="text-left px-3 py-2">Created</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800">
+            {loading && <tr><td colSpan={8} className="px-3 py-6 text-center text-slate-500">Loading…</td></tr>}
+            {!loading && rows.length === 0 && <tr><td colSpan={8} className="px-3 py-6 text-center text-slate-500">No bookings.</td></tr>}
+            {!loading && rows.map(b => (
+              <tr key={b.id} className="hover:bg-slate-800/30">
+                <td className="px-3 py-2 font-mono text-[11px] text-slate-400">{String(b.id).slice(0, 10)}…</td>
+                <td className="px-3 py-2 text-slate-300">{b.buyerName || b.buyerEmail || b.buyerId}</td>
+                <td className="px-3 py-2 text-slate-300">{b.creatorHandle ? `@${b.creatorHandle}` : b.creatorId}{b.creatorPlatform ? <span className="text-slate-500"> · {b.creatorPlatform}</span> : null}</td>
+                <td className="px-3 py-2 text-slate-300">{b.brandUsername || <span className="text-slate-600">—</span>}</td>
+                <td className="px-3 py-2 text-right text-white">{ngn(b.agreedPriceKobo || b.escrowKobo || b.offeredPriceKobo)}</td>
+                <td className="px-3 py-2"><span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${UGC_STATUS_COLOR[b.status] || 'bg-slate-700 text-slate-300'}`}>{String(b.status).replace('_', ' ')}</span></td>
+                <td className="px-3 py-2">{b.proofUrl ? <a href={b.proofUrl} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline">view</a> : <span className="text-slate-600">—</span>}</td>
+                <td className="px-3 py-2 text-slate-500 text-xs">{b.createdAt ? new Date(b.createdAt).toLocaleDateString() : ''}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-xs text-slate-600">Read-only oversight. Escrow releases (payout / refund) happen automatically when the buyer confirms or cancels.</p>
     </div>
   );
 }
@@ -1647,6 +1775,8 @@ export default function AdminPage() {
 
         {/* ── SETTINGS tab ───────────────────────────────────────────────── */}
         {tab === 'Reconcile' && <ReconcileTab adminFetch={adminFetch} />}
+
+        {tab === 'UGC' && <UGCTab adminFetch={adminFetch} />}
 
         {tab === 'Settings' && (
           <div className="max-w-lg">
