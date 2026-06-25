@@ -1671,6 +1671,10 @@ export default function AdminPage() {
                   className="inline-flex items-center gap-2 px-5 py-3 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl transition">
                   🧾 Staff Console
                 </Link>
+                <Link href="/sabi/admin/order-taskers"
+                  className="inline-flex items-center gap-2 px-5 py-3 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl transition">
+                  🔎 Tasker Traceability
+                </Link>
               </div>
             </div>
           </div>
