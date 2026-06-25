@@ -212,21 +212,35 @@ export async function loginSabiUser(
     // connected → DB_TIMEOUT → "Server is busy". sabiExecute is raw HTTP (no cold
     // start) with 429 retry backoff. Same fix as the Google callback.
     let user: any = null;
-    try {
-      const res = await sabiExecute({
-        // LOWER(email) so login is case-insensitive even for legacy rows stored
-        // with mixed-case emails (which a plain `email = ?` lowercased arg misses).
-        sql: `SELECT id, email, name, passwordHash, status, emailVerified, businessName
-              FROM SabiUser WHERE LOWER(email) = ? LIMIT 1`,
-        args: [(email || "").trim().toLowerCase()],
-      }, 6000);
-      user = res.rows[0] ?? null;
-    } catch (e: any) {
-      const m = e?.message || '';
-      if (m.includes('429') || m.toLowerCase().includes('rate') || m.includes('timeout')) {
-        return { success: false, error: 'Server is busy — please try again in a moment' };
+    let lookupErr = '';
+    // Retry the lookup on TRANSIENT Turso errors. Under load Turso throws
+    // "operation was aborted" (and 429/timeout/busy) — these were previously
+    // mislabeled as a generic "Login failed", locking real users out. Retry with
+    // backoff and only give up after 3 tries.
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const res = await sabiExecute({
+          // LOWER(email) so login is case-insensitive even for legacy rows stored
+          // with mixed-case emails (which a plain `email = ?` lowercased arg misses).
+          sql: `SELECT id, email, name, passwordHash, status, emailVerified, businessName
+                FROM SabiUser WHERE LOWER(email) = ? LIMIT 1`,
+          args: [(email || "").trim().toLowerCase()],
+        }, 6000);
+        user = res.rows[0] ?? null;
+        lookupErr = '';
+        break;
+      } catch (e: any) {
+        lookupErr = (e?.message || '').toLowerCase();
+        const transient = lookupErr.includes('429') || lookupErr.includes('rate') || lookupErr.includes('timeout')
+          || lookupErr.includes('abort') || lookupErr.includes('busy') || lookupErr.includes('fetch') || lookupErr.includes('econn');
+        if (!transient || attempt === 3) break;
+        await new Promise(r => setTimeout(r, 500 * attempt)); // back off, then retry
       }
-      return { success: false, error: 'Login failed' };
+    }
+    if (lookupErr) {
+      // Every attempt hit a transient DB error — tell the user to retry, never
+      // imply their password is wrong.
+      return { success: false, error: 'Server is busy — please try again in a moment' };
     }
 
     if (!user || !user.passwordHash) {
