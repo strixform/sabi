@@ -418,6 +418,12 @@ export default function OrderPage() {
     setQuantity(Math.max(svc.minQuantity, Math.min(svc.maxQuantity, q)));
     const url = sp.get('url');
     if (url) setTargetUrl(url);
+    // Recovery re-order from a refunded targeted order — widen to the fastest audience.
+    if (sp.get('audience') === 'all') {
+      setAudienceState('All Nigeria');
+      setAudienceCity('');
+      setAudienceGender('both');
+    }
     setCurrentStep('details');
   }, []);
 

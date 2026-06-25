@@ -238,9 +238,17 @@ export default function OrdersPage() {
 
                       {/* Failed / refunded — show why (e.g. no taskers in targeted region) */}
                       {order.status === 'failed' && order.refundReason && (
-                        <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/25 px-3 py-2">
-                          <span className="text-sm shrink-0">↩️</span>
-                          <p className="text-[11px] text-amber-200/90 leading-relaxed">{order.refundReason} <span className="text-amber-300/70">Your wallet was fully refunded.</span></p>
+                        <div className="rounded-lg bg-amber-500/10 border border-amber-500/25 px-3 py-2.5 space-y-2">
+                          <div className="flex items-start gap-2">
+                            <span className="text-sm shrink-0">↩️</span>
+                            <p className="text-[11px] text-amber-200/90 leading-relaxed">{order.refundReason} <span className="text-amber-300/70">Your wallet was fully refunded.</span></p>
+                          </div>
+                          {/* One-click recovery — re-order widened to All Nigeria / Both (fastest fill). */}
+                          <Link
+                            href={`/sabi/order?reorder=1&serviceId=${encodeURIComponent(order.serviceType)}&quantity=${order.quantity}&url=${encodeURIComponent(order.targetUrl)}&audience=all`}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-bold hover:bg-emerald-500/25 transition">
+                            <FiRepeat className="w-3.5 h-3.5" /> Re-order as All Nigeria (faster)
+                          </Link>
                         </div>
                       )}
 
