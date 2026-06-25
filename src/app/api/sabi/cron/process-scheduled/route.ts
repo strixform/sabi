@@ -122,6 +122,9 @@ export async function GET(req: NextRequest) {
         targetUrl: order.targetUrl,
         quantity: order.quantity,
         totalPrice: order.totalPrice,
+        // Custom-comment orders are priced at ₦150/comment (15000 kobo) — flag them so
+        // gamerz360 pays taskers the custom-comment rate (200 pts each).
+        isCustomComments: order.pricePerUnit === 15000,
         sabiUserId: order.userId,
         sabiUserEmail: order.user.email,
         webhookUrl: `${process.env.SABI_BASE_URL || 'https://sability.io'}/api/webhooks/gamerz360`,
