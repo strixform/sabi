@@ -85,6 +85,7 @@ export default function OrderTrackingPage() {
   const [proofsLoading, setProofsLoading] = useState(true);
   const [startShot, setStartShot] = useState<string | null>(null);
   const [startCount, setStartCount] = useState<number | null>(null);
+  const [certCopied, setCertCopied] = useState(false);
 
   // Order rating & feedback (completed orders only)
   const [rating, setRating] = useState<number>(0);
@@ -707,6 +708,77 @@ export default function OrderTrackingPage() {
             </div>
           </InteractiveCard>
         </motion.div>
+
+        {/* ── AUTHENTICITY CERTIFICATE — shareable proof for brands (completed only) ─ */}
+        {order.status === 'completed' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.46 }}
+            className="mt-8"
+          >
+            <InteractiveCard glowColor="emerald">
+              <div className="p-1">
+                {/* The certificate card itself — screenshot-ready */}
+                <div
+                  className="relative overflow-hidden rounded-2xl p-6 sm:p-8 text-center"
+                  style={{
+                    background: 'linear-gradient(135deg, #0b1220 0%, #0f1b2e 100%)',
+                    border: '1px solid rgba(16,185,129,0.35)',
+                    boxShadow: 'inset 0 0 60px rgba(16,185,129,0.06)',
+                  }}
+                >
+                  {/* corner seal */}
+                  <div className="absolute top-4 right-4 grid place-items-center w-14 h-14 rounded-full text-2xl"
+                       style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.4)' }}>✅</div>
+
+                  <div className="text-[11px] font-black tracking-[0.25em] text-emerald-400/80 uppercase mb-1">SABI</div>
+                  <h3 className="text-lg sm:text-2xl font-black text-white mb-1">Certificate of Authentic Engagement</h3>
+                  <p className="text-xs text-slate-400 mb-5">This order was delivered by real Nigerian users — 100% human, zero bots.</p>
+
+                  <div className="inline-flex flex-wrap items-center justify-center gap-x-6 gap-y-3 mb-5">
+                    <div>
+                      <div className="text-2xl sm:text-3xl font-black text-emerald-400">{Number(order.completedQuantity ?? order.quantity).toLocaleString()}</div>
+                      <div className="text-[10px] uppercase tracking-wider text-slate-500">Delivered</div>
+                    </div>
+                    {proofMeta && proofMeta.approved > 0 && (
+                      <div>
+                        <div className="text-2xl sm:text-3xl font-black text-white">{proofMeta.approved.toLocaleString()}</div>
+                        <div className="text-[10px] uppercase tracking-wider text-slate-500">Verified real actions</div>
+                      </div>
+                    )}
+                    {proofMeta && proofMeta.withScreenshot > 0 && (
+                      <div>
+                        <div className="text-2xl sm:text-3xl font-black text-purple-300">{proofMeta.withScreenshot.toLocaleString()}</div>
+                        <div className="text-[10px] uppercase tracking-wider text-slate-500">Photo receipts</div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="text-xs text-slate-400 space-y-0.5 mb-1">
+                    <p>{order.serviceName || String(order.serviceType || '').replace(/_/g, ' ')}</p>
+                    <p>Issued {new Date(order.completedAt || order.updatedAt || order.createdAt || Date.now()).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                  </div>
+                  <p className="text-[10px] text-slate-600 tracking-wider">Verification ID · {String(orderId).slice(0, 8).toUpperCase()}</p>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
+                  <button
+                    onClick={() => {
+                      const link = `${window.location.origin}/sabi/orders/${orderId}`;
+                      navigator.clipboard?.writeText(link).then(() => { setCertCopied(true); setTimeout(() => setCertCopied(false), 1800); }).catch(() => {});
+                    }}
+                    className="px-4 py-2 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-500 transition"
+                  >
+                    {certCopied ? '✓ Link copied' : '🔗 Copy verification link'}
+                  </button>
+                  <span className="text-[11px] text-slate-500">📸 Screenshot to share with brands & sponsors</span>
+                </div>
+              </div>
+            </InteractiveCard>
+          </motion.div>
+        )}
 
         {/* ── AUTO-REORDER — keep this order running on a schedule ─────────────── */}
         {order.status !== 'cancelled' && order.status !== 'failed' && (
