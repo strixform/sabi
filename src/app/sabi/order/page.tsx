@@ -580,23 +580,30 @@ export default function OrderPage() {
     // Smart link-type checking is enforced only for the big 4 platforms. For
     // every other platform we accept any valid URL (and show a "double-check"
     // warning instead), since their link formats vary too much to auto-verify.
-    if (!STRICT_LINK_PLATFORMS.includes(selectedPlatform)) return null;
-
-    // Broad acceptance: parse the host and accept ANY link on this platform's
-    // domains (incl. short/share links). We no longer block on link "type"
-    // (profile vs post) — short links are ambiguous and fulfilment resolves them.
-    // The only hard block is a link that's clearly a DIFFERENT platform.
-    let host = '';
-    try { host = new URL(targetUrl.trim()).hostname.toLowerCase().replace(/^www\./, ''); }
-    catch { return 'Please paste a full link starting with https://'; }
-
-    const domains = PLATFORM_DOMAINS[selectedPlatform] || [];
-    const onPlatform = domains.some(d => host === d || host.endsWith('.' + d));
-    if (!onPlatform) {
-      const platformLabel = selectedPlatform.charAt(0).toUpperCase() + selectedPlatform.slice(1);
-      return `This doesn't look like a ${platformLabel} link — paste the link copied from ${platformLabel}.`;
+    // ACCEPT-ALL: every platform gives many link formats (profiles, posts, reels,
+    // shorts, share/app-deep links, m./mobile subdomains, country TLDs, etc.) that
+    // are impossible to enumerate. We no longer block on platform/type at all — we
+    // only require a parseable URL. Odd-looking links still get the soft
+    // "double-check this link" hint below, but nothing blocks the order.
+    const u = targetUrl.trim();
+    try {
+      const parsed = new URL(u.includes('://') ? u : `https://${u}`);
+      if (!parsed.hostname.includes('.')) return 'Please paste a full link (e.g. https://...).';
+    } catch {
+      return 'Please paste a full link (e.g. https://...).';
     }
     return null;
+  };
+
+  // Soft, non-blocking hint: true when the link doesn't obviously match the chosen
+  // platform's domains. Shows a "double-check" note but never stops the order.
+  const linkLooksOffPlatform = (): boolean => {
+    if (!STRICT_LINK_PLATFORMS.includes(selectedPlatform) || !targetUrl) return false;
+    try {
+      const host = new URL(targetUrl.trim()).hostname.toLowerCase().replace(/^www\./, '');
+      const domains = PLATFORM_DOMAINS[selectedPlatform] || [];
+      return !domains.some(d => host === d || host.endsWith('.' + d));
+    } catch { return false; }
   };
 
   const handlePlaceOrder = async () => {
@@ -1006,10 +1013,16 @@ export default function OrderPage() {
                         {validateTargetUrl()}
                       </motion.p>
                     )}
-                    {targetUrl && !validateTargetUrl() && selectedPlatform && STRICT_LINK_PLATFORMS.includes(selectedPlatform) && (
+                    {targetUrl && !validateTargetUrl() && selectedPlatform && STRICT_LINK_PLATFORMS.includes(selectedPlatform) && !linkLooksOffPlatform() && (
                       <motion.p className="text-xs text-emerald-400 mt-2 flex items-center gap-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                         <FiCheck className="w-4 h-4" />
-                        URL is valid for {platformLabel}
+                        Link accepted for {platformLabel}
+                      </motion.p>
+                    )}
+                    {targetUrl && !validateTargetUrl() && selectedPlatform && STRICT_LINK_PLATFORMS.includes(selectedPlatform) && linkLooksOffPlatform() && (
+                      <motion.p className="text-xs text-yellow-400 mt-2 flex items-start gap-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                        <FiAlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                        Double-check this is your {platformLabel} link — we&apos;ll still accept it.
                       </motion.p>
                     )}
                     {targetUrl && !validateTargetUrl() && selectedPlatform && !STRICT_LINK_PLATFORMS.includes(selectedPlatform) && (

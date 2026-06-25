@@ -829,20 +829,20 @@ Reactions streaming across your Facebook Live tell the algorithm your broadcast 
   // ============ WHATSAPP ============
   {
     id: 'whatsapp_story_views',
-    name: 'WhatsApp Story Views',
-    description: `👀 **REAL VIEWS ON YOUR WHATSAPP STATUS — FROM REAL NIGERIANS**
+    name: 'WhatsApp Contacts',
+    description: `📇 **REAL NIGERIANS SAVE YOUR WHATSAPP NUMBER — SO YOUR STATUS ALWAYS REACHES THEM**
 
-Post your WhatsApp Status (promo, flyer, product, announcement) and get real people viewing it. Perfect for vendors and creators who run their business on WhatsApp — a busy Status with lots of viewers builds instant trust.
+Get real people to add you as a contact on WhatsApp. Once they save your number, every WhatsApp Status you post (promos, flyers, products, announcements) shows up for them — building a real audience that sees your updates again and again.
 
 **HOW IT WORKS:**
-1. You enter your WhatsApp number at checkout (kept private — only shown to the viewer assigned to you).
-2. Each real viewer reaches out with a short friendly note like “👋 Here for promotions — save this number for your story view 🙌”, so you know it’s genuine.
-3. They view your current Status. One-time view per person.
+1. You enter your WhatsApp number at checkout (kept private — only shared with the people assigned to you).
+2. Each real person reaches out with a short friendly note like “👋 Here for promotions — saving your number so I catch your updates 🙌”, so you know it’s genuine.
+3. They save you as a contact. One genuine save per person.
 
-**TIP:** Save the numbers that message you (and post your Status as usual) — that locks in the views and means future statuses get seen too. Your number is never shown publicly.`,
+**TIP:** Post your Status as usual right after ordering — your new contacts will start seeing it immediately, and every future Status too. Your number is never shown publicly.`,
     category: PLATFORMS.WHATSAPP,
-    action: 'Story Views',
-    pricePerUnit: 1000, // ₦10 per story view
+    action: 'Contacts',
+    pricePerUnit: 1000, // ₦10 per contact saved
     minQuantity: 50,
     maxQuantity: 5000,
     speed: 'medium',
