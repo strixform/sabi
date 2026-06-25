@@ -1326,6 +1326,16 @@ export default function OrderPage() {
                           <span className="text-blue-400 ml-1">Targeting: {audienceLocation}</span>
                         )}
                       </p>
+
+                      {/* Availability advisory — narrow targeting can slow or block pick-up */}
+                      {(audienceState !== 'All Nigeria' || audienceGender !== 'both') && (
+                        <div className="mt-2 flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/25 px-3 py-2">
+                          <span className="text-sm shrink-0">⚡</span>
+                          <p className="text-[11px] text-amber-200/90 leading-relaxed">
+                            <b>Faster completion tip:</b> choose <b>All Nigeria</b>{audienceGender !== 'both' ? ' and Both genders' : ''} for the quickest pick-up. Narrow targeting (specific {audienceGender !== 'both' ? 'gender, ' : ''}state or city) limits who can fulfil your order — if we don&apos;t have members there, the order is auto-refunded and you&apos;ll be asked to re-order with a wider audience.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </motion.div>
 

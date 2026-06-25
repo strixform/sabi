@@ -236,6 +236,14 @@ export default function OrdersPage() {
                         </div>
                       )}
 
+                      {/* Failed / refunded — show why (e.g. no taskers in targeted region) */}
+                      {order.status === 'failed' && order.refundReason && (
+                        <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/25 px-3 py-2">
+                          <span className="text-sm shrink-0">↩️</span>
+                          <p className="text-[11px] text-amber-200/90 leading-relaxed">{order.refundReason} <span className="text-amber-300/70">Your wallet was fully refunded.</span></p>
+                        </div>
+                      )}
+
                       {/* Actions row — full width on mobile */}
                       <div className="flex items-center gap-2 pt-1 border-t border-white/[0.04]">
                         <button

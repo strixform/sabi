@@ -125,6 +125,10 @@ export async function GET(req: NextRequest) {
         // Custom-comment orders are priced at ₦150/comment (15000 kobo) — flag them so
         // gamerz360 pays taskers the custom-comment rate (200 pts each).
         isCustomComments: order.pricePerUnit === 15000,
+        // Structured audience targeting — gamerz360 gates task visibility to taskers
+        // matching this gender + region (and refunds if none exist there).
+        audienceGender: order.audienceGender || null,
+        audienceLocation: order.audienceLocation || null,
         sabiUserId: order.userId,
         sabiUserEmail: order.user.email,
         webhookUrl: `${process.env.SABI_BASE_URL || 'https://sability.io'}/api/webhooks/gamerz360`,
@@ -173,12 +177,20 @@ export async function GET(req: NextRequest) {
         });
         results.push({ id: order.id, success: true });
       } else {
-        // Refund and fail
+        // Refund and fail. If gamerz360 rejected because we have no taskers in the
+        // targeted gender/region, store its advisory message as the refund reason so
+        // the buyer sees exactly why and is told to re-order with "All Nigeria".
+        let reason = `gamerz360 returned ${response.status}`;
+        try {
+          const errBody = await response.json();
+          if (errBody?.code === 'no_taskers_in_region' && errBody?.error) reason = String(errBody.error);
+          else if (errBody?.error) reason = String(errBody.error);
+        } catch {}
         await prisma.$transaction([
-          prisma.sabiOrder.update({ where: { id: order.id }, data: { status: 'failed' } }),
+          prisma.sabiOrder.update({ where: { id: order.id }, data: { status: 'failed', refundReason: reason } }),
           prisma.sabiWallet.update({ where: { userId: order.userId }, data: { balance: { increment: order.totalPrice + order.platformFee - (order.discountAmount || 0) }, totalSpent: { decrement: order.totalPrice + order.platformFee - (order.discountAmount || 0) } } }),
         ]);
-        results.push({ id: order.id, success: false, error: `gamerz360 returned ${response.status}` });
+        results.push({ id: order.id, success: false, error: reason });
       }
     } catch (err: any) {
       results.push({ id: order.id, success: false, error: err?.message });
