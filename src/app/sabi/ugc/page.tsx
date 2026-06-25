@@ -25,6 +25,28 @@ export default function UGCMarketplacePage() {
   const [creators, setCreators] = useState<Creator[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Creator | null>(null);
+  const [brief, setBrief] = useState('');
+  const [brandUsername, setBrandUsername] = useState('');
+  const [offer, setOffer] = useState(''); // naira; blank = book at list price
+  const [booking, setBooking] = useState(false);
+  const [bookMsg, setBookMsg] = useState('');
+
+  const submitBooking = async () => {
+    if (!selected) return;
+    setBooking(true); setBookMsg('');
+    try {
+      const res = await fetch('/api/sabi/ugc/bookings', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+        body: JSON.stringify({
+          creatorId: selected.id, brief: brief.trim(), brandUsername: brandUsername.trim(),
+          offeredPriceKobo: offer.trim() ? Math.round(Number(offer) * 100) : 0,
+        }),
+      });
+      const d = await res.json().catch(() => ({}));
+      setBookMsg(d.message || d.error || 'Could not place booking.');
+      if (d.success) { setBrief(''); setBrandUsername(''); setOffer(''); }
+    } finally { setBooking(false); }
+  };
 
   const load = useCallback(() => {
     setLoading(true);
@@ -106,8 +128,19 @@ export default function UGCMarketplacePage() {
                 {selected.analyticsScreenshotUrl && <a href={selected.analyticsScreenshotUrl} target="_blank" rel="noreferrer">{/* eslint-disable-next-line @next/next/no-img-element */}<img src={selected.analyticsScreenshotUrl} alt="analytics" className="w-full h-28 object-cover rounded-lg" /></a>}
               </div>
               <div className="text-sm font-black mb-3">{selected.priceNaira > 0 ? `₦${selected.priceNaira.toLocaleString()} / post` : 'Price on request'}</div>
-              <button disabled className="w-full py-2.5 rounded-xl bg-emerald-600/40 text-white/70 font-black text-sm cursor-not-allowed">Booking coming soon</button>
-              <p className="text-[10px] text-slate-500 text-center mt-1.5">Secure booking + escrow is rolling out next.</p>
+
+              <label className="block text-[11px] font-bold text-slate-400 mb-1">What do you want them to post?</label>
+              <textarea value={brief} onChange={e => setBrief(e.target.value)} rows={3} placeholder="e.g. Post my product flyer to your story and feed, tag my page, mention the 20% launch discount." className="w-full mb-2 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm outline-none focus:border-emerald-500" />
+              <label className="block text-[11px] font-bold text-slate-400 mb-1">Your brand username to tag (optional)</label>
+              <input value={brandUsername} onChange={e => setBrandUsername(e.target.value)} placeholder="@yourbrand" className="w-full mb-2 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm outline-none focus:border-emerald-500" />
+              <label className="block text-[11px] font-bold text-slate-400 mb-1">Offer a price (optional — leave blank to book at ₦{selected.priceNaira.toLocaleString()})</label>
+              <input value={offer} onChange={e => setOffer(e.target.value.replace(/[^0-9]/g, ''))} inputMode="numeric" placeholder={`₦${selected.priceNaira.toLocaleString()}`} className="w-full mb-3 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm outline-none focus:border-emerald-500" />
+
+              <button onClick={submitBooking} disabled={booking || !brief.trim()} className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-black text-sm">
+                {booking ? 'Placing…' : offer.trim() && Number(offer) * 100 < selected.priceNaira * 100 ? `Send offer · ₦${Number(offer || 0).toLocaleString()}` : `Book · ₦${(offer.trim() ? Number(offer) : selected.priceNaira).toLocaleString()}`}
+              </button>
+              {bookMsg && <p className="text-[11px] text-emerald-300 text-center mt-2">{bookMsg}</p>}
+              <p className="text-[10px] text-slate-500 text-center mt-1.5">Your payment is held in escrow and only released when you confirm the post.</p>
             </div>
           </div>
         )}
