@@ -681,6 +681,7 @@ export default function OrderPage() {
             <div className="flex items-center gap-3">
               <h2 className="text-2xl sm:text-3xl font-black">New Order</h2>
               <Link href="/sabi/order/bulk" className="text-xs font-bold text-blue-300 bg-blue-500/10 border border-blue-500/20 rounded-full px-3 py-1 hover:bg-blue-500/20 transition">⬆ Bulk upload</Link>
+              <Link href="/sabi/calculator" className="text-xs font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1 hover:bg-emerald-500/20 transition">🧮 Calculator</Link>
             </div>
             <div className="text-right text-sm sm:text-base">
               <p className="text-xs sm:text-sm text-slate-400">Wallet Balance</p>
