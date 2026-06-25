@@ -23,6 +23,25 @@ export default function WalletPage() {
   const [showBalance, setShowBalance] = useState(true);
   const [fundLoading, setFundLoading] = useState(false);
   const [fundAmount, setFundAmount] = useState('');
+  const [requeryLoading, setRequeryLoading] = useState(false);
+  const [requeryMsg, setRequeryMsg] = useState('');
+
+  // Self-service funding re-check — verifies the user's recent tx_ref(s) directly
+  // and credits any successful payment the webhook hasn't reflected yet.
+  const recheckFunding = async () => {
+    setRequeryLoading(true); setRequeryMsg('');
+    try {
+      let txRefs: string[] = [];
+      try { txRefs = JSON.parse(localStorage.getItem('sabi_fund_refs') || '[]'); } catch {}
+      const res = await fetch('/api/sabi/wallet/requery', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ txRefs }), credentials: 'include',
+      });
+      const d = await res.json().catch(() => ({}));
+      setRequeryMsg(d.message || (d.error || 'Could not re-check right now — try again shortly.'));
+      if (d.success && d.found > 0) { try { router.refresh(); } catch {} location.reload(); }
+    } finally { setRequeryLoading(false); }
+  };
   const [showFundPanel, setShowFundPanel] = useState(false);
   const QUICK_AMOUNTS = [1000, 2000, 5000, 10000, 20000, 50000];
 
@@ -168,6 +187,14 @@ export default function WalletPage() {
                         body: JSON.stringify({ amount }), credentials: 'include',
                       });
                       const data = await res.json();
+                      // Remember this tx_ref so the user can self-re-check if the
+                      // webhook is delayed (no need to message support).
+                      if (data.txRef) {
+                        try {
+                          const prev = JSON.parse(localStorage.getItem('sabi_fund_refs') || '[]');
+                          localStorage.setItem('sabi_fund_refs', JSON.stringify([data.txRef, ...prev].slice(0, 8)));
+                        } catch {}
+                      }
                       if (data.paymentLink) window.location.href = data.paymentLink;
                     } finally { setFundLoading(false); }
                   }}
@@ -175,6 +202,17 @@ export default function WalletPage() {
                   {fundLoading ? <><FiLoader className="w-4 h-4 animate-spin" /> Processing...</> : <>Pay via Flutterwave →</>}
                 </button>
                 <p className="text-xs text-slate-500 text-center">Minimum ₦500 · Secure payment via Flutterwave</p>
+                {/* Self-service: paid but not showing? re-check instead of messaging support */}
+                <div className="text-center">
+                  <button
+                    onClick={recheckFunding}
+                    disabled={requeryLoading}
+                    className="text-xs font-bold text-emerald-400 hover:text-emerald-300 underline disabled:opacity-40"
+                  >
+                    {requeryLoading ? 'Re-checking…' : 'Paid but not showing? Re-check now'}
+                  </button>
+                  {requeryMsg && <p className="text-[11px] text-slate-400 mt-1">{requeryMsg}</p>}
+                </div>
               </motion.div>
             )}
           </div>

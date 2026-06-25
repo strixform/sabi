@@ -299,6 +299,15 @@ const COMMENT_ACTIONS = ['Comments', 'Replies', 'Chat Comments'];
 // fb.me, share/permalink URLs) vary too much to auto-verify, so we accept any
 // valid URL and show a "double-check" warning instead of blocking the order.
 const STRICT_LINK_PLATFORMS = ['instagram', 'twitter', 'tiktok'];
+// Broad domain acceptance — ANY link on one of a platform's domains is accepted
+// (profiles, posts, reels, short/share links like vm.tiktok.com, x.com, instagr.am,
+// app deep links, etc.). We only block a link that's clearly the WRONG platform.
+// This replaces the old strict path-regex that rejected valid short links.
+const PLATFORM_DOMAINS: Record<string, string[]> = {
+  instagram: ['instagram.com', 'instagr.am', 'ig.me', 'l.instagram.com', 'instagram.com.'],
+  twitter:   ['twitter.com', 'x.com', 't.co', 'mobile.twitter.com'],
+  tiktok:    ['tiktok.com', 'vm.tiktok.com', 'vt.tiktok.com', 'm.tiktok.com', 'tiktokv.com', 'tiktok.com.'],
+};
 const COMMENT_MAX = 300;
 
 type Step = 'platform' | 'service' | 'details' | 'review';
@@ -573,22 +582,20 @@ export default function OrderPage() {
     // warning instead), since their link formats vary too much to auto-verify.
     if (!STRICT_LINK_PLATFORMS.includes(selectedPlatform)) return null;
 
-    // Detect URL type using intelligent pattern matching
-    const detection = detectURLType(targetUrl, selectedPlatform);
+    // Broad acceptance: parse the host and accept ANY link on this platform's
+    // domains (incl. short/share links). We no longer block on link "type"
+    // (profile vs post) — short links are ambiguous and fulfilment resolves them.
+    // The only hard block is a link that's clearly a DIFFERENT platform.
+    let host = '';
+    try { host = new URL(targetUrl.trim()).hostname.toLowerCase().replace(/^www\./, ''); }
+    catch { return 'Please paste a full link starting with https://'; }
 
-    if (!detection.isValid) {
+    const domains = PLATFORM_DOMAINS[selectedPlatform] || [];
+    const onPlatform = domains.some(d => host === d || host.endsWith('.' + d));
+    if (!onPlatform) {
       const platformLabel = selectedPlatform.charAt(0).toUpperCase() + selectedPlatform.slice(1);
-      return `URL must be a valid ${platformLabel} link`;
+      return `This doesn't look like a ${platformLabel} link — paste the link copied from ${platformLabel}.`;
     }
-
-    // Check if URL type matches service requirements
-    const requiredTypes = SERVICE_URL_REQUIREMENTS[selectedService.action];
-    if (requiredTypes && !requiredTypes.includes(detection.type)) {
-      const typeNames = requiredTypes.join(', ').replace(/_/g, ' ');
-      const detectedTypeName = detection.type.replace(/_/g, ' ');
-      return `This service requires a ${typeNames} link, not a ${detectedTypeName} link`;
-    }
-
     return null;
   };
 
