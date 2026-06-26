@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPrismaClient } from '@/lib/prisma';
 import { SignJWT } from 'jose';
-
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'your-secret-key-change-in-production'
-);
+import { jwtSecret } from '@/lib/jwtSecret';
 
 export async function POST(request: NextRequest) {
   try {
@@ -57,7 +54,7 @@ export async function POST(request: NextRequest) {
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
       .setExpirationTime('30d')
-      .sign(JWT_SECRET);
+      .sign(jwtSecret());
 
     // Update last login
     await prisma.reseller.update({

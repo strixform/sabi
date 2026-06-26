@@ -1,9 +1,6 @@
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
-
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'your-secret-key-change-in-production'
-);
+import { jwtSecret } from './jwtSecret';
 
 interface ResellerPayload {
   resellerId: string;
@@ -22,7 +19,7 @@ export async function verifyResellerToken(): Promise<ResellerPayload | null> {
       return null;
     }
 
-    const verified = await jwtVerify(token, JWT_SECRET);
+    const verified = await jwtVerify(token, jwtSecret());
     return verified.payload as unknown as ResellerPayload;
   } catch (error) {
     console.error('Token verification failed:', error);
