@@ -657,6 +657,17 @@ export default function OrderPage() {
       return;
     }
 
+    // Start count + "before" screenshot are COMPULSORY — they're the baseline we
+    // (and staff) use to verify delivery and handle disputes fairly.
+    if (startCount === '' || !Number.isFinite(Number(startCount)) || Number(startCount) < 0) {
+      setError('Enter your current count (followers/likes/views) before ordering.');
+      return;
+    }
+    if (!startShot) {
+      setError('Upload a screenshot of your current count before ordering.');
+      return;
+    }
+
     if (wallet.balance < totalCost * 100) {
       setError('Insufficient wallet balance. Please fund your wallet first.');
       return;
@@ -1084,9 +1095,9 @@ export default function OrderPage() {
                   </motion.div>
                   )}
 
-                  {/* Start screenshot (optional but recommended) */}
+                  {/* Start screenshot + count — REQUIRED (the verified baseline) */}
                   <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}>
-                    <label className="block text-sm font-semibold text-slate-300 mb-1.5">📸 Current screenshot <span className="text-slate-500 font-normal">(optional, recommended)</span></label>
+                    <label className="block text-sm font-semibold text-slate-300 mb-1.5">📸 Current screenshot <span className="text-red-400 font-bold">* required</span></label>
                     <p className="text-xs text-slate-500 mb-2">Snap your page now — your current follower/view/play count. We keep it on record as the verified <span className="text-slate-300">starting point</span>, so growth is always clear and disputes are impossible.</p>
                     {startShot ? (
                       <div className="flex items-center gap-3">
@@ -1103,7 +1114,7 @@ export default function OrderPage() {
                     {/* Current count at buying moment — the real numeric baseline */}
                     <div className="mt-3">
                       <label className="block text-sm font-semibold text-slate-300 mb-1.5">
-                        🔢 Current {selectedService.action.toLowerCase()} count <span className="text-slate-500 font-normal">(optional, recommended)</span>
+                        🔢 Current {selectedService.action.toLowerCase()} count <span className="text-red-400 font-bold">* required</span>
                       </label>
                       <input
                         type="number"
