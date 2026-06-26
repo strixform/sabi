@@ -35,6 +35,9 @@ const MIGRATIONS: { table: string; column: string; type: string }[] = [
   { table: 'SabiOrder', column: 'staffChecked', type: 'INTEGER' },
   { table: 'SabiOrder', column: 'staffCheckedAt', type: 'TEXT' },
   { table: 'SabiOrder', column: 'staffCheckedBy', type: 'TEXT' },
+  // Live-watch services: the watch-time (minutes) the buyer chose — drives the
+  // tasker's tranche reward on gamerz360.
+  { table: 'SabiOrder', column: 'durationMinutes', type: 'INTEGER' },
 ];
 
 export async function GET(req: NextRequest) {

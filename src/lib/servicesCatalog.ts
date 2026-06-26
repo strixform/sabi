@@ -19,10 +19,16 @@ export interface Service {
   //  - 'per_unit' (default): price = pricePerUnit × quantity (× duration multiplier)
   //  - 'flat_duration': price = pricePerUnit (per MINUTE) × chosen minutes; viewer
   //    count is a fixed standard pack and does NOT affect price.
-  priceModel?: 'per_unit' | 'flat_duration';
+  //  - 'live_watch': base = viewers × minutes × pricePerViewerMinKobo. Buyer picks
+  //    BOTH the viewer count and the watch-time. Fulfilled by taskers who watch the
+  //    live in 10-min tranches (see gamerz360 watch-tranche flow).
+  priceModel?: 'per_unit' | 'flat_duration' | 'live_watch';
   // flat_duration services: the standard viewer pack delivered (stored as the
   // order quantity; the buyer doesn't pick it).
   standardPack?: number;
+  // live_watch services: buyer price per viewer PER MINUTE (kobo). Tasker earns a
+  // separate, server-side rate per minute — never derived from this.
+  pricePerViewerMinKobo?: number;
   // What the buyer must provide as the target:
   //  - 'url' (default): a link
   //  - 'phone_whatsapp': their WhatsApp number (we turn it into a wa.me link)
@@ -649,15 +655,15 @@ Go live and instantly show a crowd. Real Nigerian viewers join your TikTok LIVE 
 **HOW IT WORKS:** Start your LIVE first, paste the LIVE link, pick your viewer count and watch-time, and the crowd builds up and holds for the full session.`,
     category: PLATFORMS.TIKTOK,
     action: 'LIVE Views',
-    pricePerUnit: 1000, // ₦10 per MINUTE (flat — viewer count is a standard pack)
-    minQuantity: 100,
-    maxQuantity: 100,
+    pricePerUnit: 800, // legacy field; live_watch prices off pricePerViewerMinKobo
+    pricePerViewerMinKobo: 800, // ₦8 per viewer per minute (BASE; 7.5%+7.5% fees on top)
+    minQuantity: 5,    // min viewers the buyer can order
+    maxQuantity: 5000, // max viewers
     speed: 'instant',
     refillable: false,
-    durationOptions: [30, 60, 120, 180, 240],
-    baseDurationMins: 60,
-    priceModel: 'flat_duration',
-    standardPack: 100, // viewers delivered (fixed) — price is by watch-time, not count
+    durationOptions: [15, 30, 45, 60, 90, 120], // watch-time minutes (15 min – 2 hours)
+    baseDurationMins: 30,
+    priceModel: 'live_watch',
   },
   {
     id: 'instagram_live_views',
@@ -676,15 +682,15 @@ Nothing kills a LIVE like an empty room. Real Nigerian viewers join your Instagr
 **HOW IT WORKS:** Go live, paste your LIVE link, choose viewers + watch-time, and the audience builds and holds for the whole session.`,
     category: PLATFORMS.INSTAGRAM,
     action: 'LIVE Views',
-    pricePerUnit: 1000, // ₦10 per MINUTE (flat — viewer count is a standard pack)
-    minQuantity: 100,
-    maxQuantity: 100,
+    pricePerUnit: 800, // legacy field; live_watch prices off pricePerViewerMinKobo
+    pricePerViewerMinKobo: 800, // ₦8 per viewer per minute (BASE; 7.5%+7.5% fees on top)
+    minQuantity: 5,    // min viewers the buyer can order
+    maxQuantity: 5000, // max viewers
     speed: 'instant',
     refillable: false,
-    durationOptions: [30, 60, 120, 180, 240],
-    baseDurationMins: 60,
-    priceModel: 'flat_duration',
-    standardPack: 100, // viewers delivered (fixed) — price is by watch-time, not count
+    durationOptions: [15, 30, 45, 60, 90, 120], // watch-time minutes (15 min – 2 hours)
+    baseDurationMins: 30,
+    priceModel: 'live_watch',
   },
   {
     id: 'youtube_live_views',
@@ -703,15 +709,15 @@ YouTube ranks lives by concurrent viewers and watch-time. Real Nigerian viewers 
 **HOW IT WORKS:** Start your live, paste the watch link, pick viewers + watch-time, and the audience holds for the full session.`,
     category: PLATFORMS.YOUTUBE,
     action: 'Live Views',
-    pricePerUnit: 1000, // ₦10 per MINUTE (flat — viewer count is a standard pack)
-    minQuantity: 100,
-    maxQuantity: 100,
+    pricePerUnit: 800, // legacy field; live_watch prices off pricePerViewerMinKobo
+    pricePerViewerMinKobo: 800, // ₦8 per viewer per minute (BASE; 7.5%+7.5% fees on top)
+    minQuantity: 5,    // min viewers the buyer can order
+    maxQuantity: 5000, // max viewers
     speed: 'instant',
     refillable: false,
-    durationOptions: [30, 60, 120, 180, 240],
-    baseDurationMins: 60,
-    priceModel: 'flat_duration',
-    standardPack: 100, // viewers delivered (fixed) — price is by watch-time, not count
+    durationOptions: [15, 30, 45, 60, 90, 120], // watch-time minutes (15 min – 2 hours)
+    baseDurationMins: 30,
+    priceModel: 'live_watch',
   },
   {
     id: 'facebook_live_views',
@@ -730,15 +736,15 @@ Facebook pushes lives with active, steady audiences to more feeds. Real Nigerian
 **HOW IT WORKS:** Go live, paste your live link, choose viewers + watch-time, and the audience builds and holds for the whole session.`,
     category: PLATFORMS.FACEBOOK,
     action: 'Live Views',
-    pricePerUnit: 1000, // ₦10 per MINUTE (flat — viewer count is a standard pack)
-    minQuantity: 100,
-    maxQuantity: 100,
+    pricePerUnit: 800, // legacy field; live_watch prices off pricePerViewerMinKobo
+    pricePerViewerMinKobo: 800, // ₦8 per viewer per minute (BASE; 7.5%+7.5% fees on top)
+    minQuantity: 5,    // min viewers the buyer can order
+    maxQuantity: 5000, // max viewers
     speed: 'instant',
     refillable: false,
-    durationOptions: [30, 60, 120, 180, 240],
-    baseDurationMins: 60,
-    priceModel: 'flat_duration',
-    standardPack: 100, // viewers delivered (fixed) — price is by watch-time, not count
+    durationOptions: [15, 30, 45, 60, 90, 120], // watch-time minutes (15 min – 2 hours)
+    baseDurationMins: 30,
+    priceModel: 'live_watch',
   },
   // Live stream LIKES / reactions — one-time engagement during a live broadcast.
   {
@@ -3190,6 +3196,17 @@ export function computeLivePricing(pricePerMinuteKobo: number, durationMins: num
 /** Single entry point both UI and backend use, so they always agree on price.
  *  Routes to the right model (flat watch-time vs per-unit ± duration multiplier). */
 export function computeServicePricing(service: Service, quantity: number, durationMins?: number): PricingBreakdown {
+  if (service.priceModel === 'live_watch') {
+    // base = viewers (quantity) × minutes × ₦8/viewer/min, then the standard
+    // 7.5% + 7.5% fees apply on top (consistent with every order).
+    const mins = service.durationOptions?.includes(Number(durationMins))
+      ? Number(durationMins)
+      : (service.baseDurationMins ?? service.durationOptions?.[0] ?? 0);
+    const unit = service.pricePerViewerMinKobo ?? service.pricePerUnit;
+    // No volume discount on live (tasker pay is fixed per minute — a discount would
+    // eat the margin). base = viewers × minutes × unit, then 7.5% + 7.5% on top.
+    return computeLivePricing(unit * Math.max(0, quantity), mins);
+  }
   if (service.priceModel === 'flat_duration') {
     const mins = service.durationOptions?.includes(Number(durationMins))
       ? Number(durationMins)

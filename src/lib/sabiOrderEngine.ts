@@ -319,6 +319,11 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
     if (isCustomComments) {
       prisma.$executeRaw`UPDATE "SabiOrder" SET "customComments" = ${JSON.stringify(customComments)} WHERE id = ${order.id}`.catch(() => {});
     }
+    // Live-watch: persist the chosen watch-time (guarded column) so the cron can
+    // forward it and gamerz360 can size the tasker's per-minute tranche reward.
+    if (durationMinutes && service.priceModel === 'live_watch') {
+      prisma.$executeRaw`UPDATE "SabiOrder" SET "durationMinutes" = ${durationMinutes} WHERE id = ${order.id}`.catch(() => {});
+    }
 
     // Auto top-up check — if wallet fell below threshold, email user a payment link (fire-and-forget)
     prisma.sabiWallet.findUnique({ where: { userId: input.userId }, select: { balance: true, autoTopupEnabled: true, autoTopupThreshold: true, autoTopupAmount: true } })

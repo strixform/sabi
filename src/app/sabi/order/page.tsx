@@ -403,6 +403,9 @@ export default function OrderPage() {
     }
     if (selectedService?.priceModel === 'flat_duration') {
       setQuantity(selectedService.standardPack ?? selectedService.minQuantity);
+    } else if (selectedService?.priceModel === 'live_watch') {
+      // Buyer picks the viewer count — default to a sensible starting pack.
+      setQuantity(Math.max(selectedService.minQuantity, Math.min(selectedService.maxQuantity, 50)));
     }
   }, [selectedService]);
 
@@ -1154,9 +1157,12 @@ export default function OrderPage() {
                     transition={{ delay: 0.2 }}
                   >
                     <label className="block text-sm font-semibold text-slate-300 mb-2">
-                      {isCommentLikeService
+                      {selectedService.priceModel === 'live_watch'
+                        ? 'How many live viewers?'
+                        : isCommentLikeService
                         ? (selectedService.action === 'Post Comment Likes' ? 'How many comments to like?' : 'How many likes on your comment?')
                         : `Quantity (${selectedService.action})`}
+                      {selectedService.priceModel === 'live_watch' && <span className="text-slate-500 font-normal"> — concurrent viewers who stay for the watch-time</span>}
                       {isCommentLikeService && <span className="text-slate-500 font-normal"> — ₦10 each</span>}
                     </label>
                     {isCommentLikeService && (

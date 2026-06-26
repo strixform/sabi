@@ -42,6 +42,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { sabiExecute } from '@/lib/tursoClient';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 25;
@@ -103,6 +104,21 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ processed: 0, message: 'No scheduled orders due' });
   }
 
+  // durationMinutes is a guarded column (not in the Prisma model) — raw-read it for
+  // the due orders so we can forward the live-watch time to gamerz360.
+  const watchMinsById = new Map<string, number>();
+  try {
+    const ids = due.map(o => o.id);
+    const r = await sabiExecute({
+      sql: `SELECT id, durationMinutes FROM SabiOrder WHERE id IN (${ids.map(() => '?').join(',')})`,
+      args: ids,
+    });
+    for (const row of (r.rows as any[])) {
+      const m = Number(row.durationMinutes);
+      if (Number.isFinite(m) && m > 0) watchMinsById.set(String(row.id), m);
+    }
+  } catch {/* column may not exist yet — non-fatal */}
+
   const results: { id: string; success: boolean; error?: string }[] = [];
 
   for (const order of due) {
@@ -129,6 +145,9 @@ export async function GET(req: NextRequest) {
         // gamerz360 links it AND blocks anyone who did the parent (fresh taskers only).
         refillOfOrderId: typeof order.customRef === 'string' && order.customRef.startsWith('refill:')
           ? order.customRef.slice('refill:'.length) : undefined,
+        // Live-watch services: minutes the viewer must watch. gamerz360 turns this into
+        // a tranche task and pays the tasker 20 pts/min in 10-min blocks.
+        watchMinutes: watchMinsById.get(order.id) || undefined,
         // Structured audience targeting — gamerz360 gates task visibility to taskers
         // matching this gender + region (and refunds if none exist there).
         audienceGender: order.audienceGender || null,
