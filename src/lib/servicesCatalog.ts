@@ -1179,6 +1179,35 @@ YouTube's algorithm is subscriber-obsessed. Get 100-500 real subscribers and wat
     speed: 'medium',
     refillable: true,
   },
+  // Watch Time — real people watch your VIDEO for a chosen length (builds the
+  // watch-hours YouTube counts toward monetisation). Same watch model as live.
+  {
+    id: 'youtube_watch_time',
+    name: 'YouTube Watch Time',
+    description: `⏱️ **BUILD REAL YOUTUBE WATCH-TIME HOURS**
+
+Watch-time is the metric YouTube cares about most — it decides ranking, recommendations, and monetisation (the 4,000-hour bar). Real Nigerian viewers open your video and watch it for the length you choose, stacking genuine watch-hours that count.
+
+**WHAT YOU GET:**
+✓ Real viewers who actually watch your video (not bot pings)
+✓ You choose how long each watches (15 min – 2 hours)
+✓ Builds watch-time hours toward the 4,000-hour monetisation bar
+✓ Natural, retained watch — strong signal to the algorithm
+✓ Higher average view duration across the channel
+
+**HOW IT WORKS:** Paste the video link, choose how many viewers and how long each watches. Each viewer watches in timed segments, so the watch-time is real and verified — never skipped.`,
+    category: PLATFORMS.YOUTUBE,
+    action: 'Watch Time',
+    pricePerUnit: 800, // legacy field; priced off pricePerViewerMinKobo
+    pricePerViewerMinKobo: 800, // ₦8 per viewer per minute (BASE; 7.5%+7.5% on top)
+    minQuantity: 5,    // min viewers
+    maxQuantity: 5000, // max viewers
+    speed: 'instant',
+    refillable: false,
+    durationOptions: [15, 30, 45, 60, 90, 120], // 15 min – 2 hours
+    baseDurationMins: 30,
+    priceModel: 'live_watch',
+  },
   // Views
   {
     id: 'youtube_views',
