@@ -40,6 +40,51 @@ const STATUS_ICON: Record<string, React.ReactNode> = {
   cancelled:  <FiX className="w-3 h-3" />,
 };
 
+// Friendly ETA tied to the 72h delivery-guarantee window (from order creation).
+function etaLabel(_est: string | null | undefined, createdAt: string | null | undefined): string {
+  const created = createdAt ? new Date(createdAt).getTime() : Date.now();
+  const ms = created + 72 * 3600 * 1000 - Date.now();
+  if (ms <= 0) return 'any moment now';
+  const h = Math.ceil(ms / 3600000);
+  if (h <= 48) return `within ~${h} hr${h !== 1 ? 's' : ''}`;
+  return `within ~${Math.ceil(h / 24)} day${Math.ceil(h / 24) !== 1 ? 's' : ''}`;
+}
+
+// Inline star rating for a completed order. Submits once, then shows the result.
+function OrderRating({ order }: { order: any }) {
+  const [rating, setRating] = useState<number>(Number(order.rating) || 0);
+  const [hover, setHover] = useState(0);
+  const [done, setDone] = useState<boolean>(Number(order.rating) > 0);
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (r: number) => {
+    if (done || busy) return;
+    setRating(r); setBusy(true);
+    try {
+      const res = await fetch('/api/sabi/orders/rate', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: order.id, rating: r }),
+      });
+      if (res.ok) setDone(true);
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="flex items-center gap-2 rounded-lg bg-white/[0.02] border border-white/[0.06] px-3 py-2">
+      <span className="text-[11px] text-slate-400">{done ? 'You rated this delivery' : 'Rate this delivery:'}</span>
+      <div className="flex items-center gap-0.5">
+        {[1, 2, 3, 4, 5].map(n => (
+          <button key={n} type="button" disabled={done || busy}
+            onClick={() => submit(n)} onMouseEnter={() => !done && setHover(n)} onMouseLeave={() => setHover(0)}
+            className="text-base leading-none disabled:cursor-default transition"
+            style={{ color: (hover || rating) >= n ? '#FBBF24' : '#475569' }}>★</button>
+        ))}
+      </div>
+      {done && <span className="text-[10px] text-emerald-400">Thanks! 🙏</span>}
+    </div>
+  );
+}
+
 export default function OrdersPage() {
   const router = useRouter();
   const [orders, setOrders] = useState<any[]>([]);
@@ -233,6 +278,23 @@ export default function OrdersPage() {
                             <div className={`h-full rounded-full transition-all ${order.status === 'completed' ? 'bg-gradient-to-r from-emerald-500 to-green-400' : 'bg-gradient-to-r from-blue-500 to-purple-500'}`}
                               style={{ width: `${order.completionPercentage || 0}%` }} />
                           </div>
+                          {/* ETA for active orders — sets expectations */}
+                          {['processing','executing'].includes(order.status) && (
+                            <div className="flex items-center gap-1.5 mt-1.5 text-[10px] text-slate-500">
+                              <span>⏱️</span>
+                              <span>Est. completion {etaLabel(order.estimatedCompletion, order.createdAt)}</span>
+                              <span className="text-slate-600">·</span>
+                              <span className="text-emerald-500/80">covered by our delivery guarantee</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Partial delivery — completed with a refund note (SLA guarantee paid out) */}
+                      {order.status === 'completed' && order.refundReason && (
+                        <div className="flex items-start gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/25 px-3 py-2">
+                          <span className="text-sm shrink-0">✅</span>
+                          <p className="text-[11px] text-emerald-200/90 leading-relaxed">{order.refundReason}</p>
                         </div>
                       )}
 
@@ -251,6 +313,9 @@ export default function OrdersPage() {
                           </Link>
                         </div>
                       )}
+
+                      {/* Rate completed deliveries — feeds tasker quality scores */}
+                      {order.status === 'completed' && <OrderRating order={order} />}
 
                       {/* Actions row — full width on mobile */}
                       <div className="flex items-center gap-2 pt-1 border-t border-white/[0.04]">

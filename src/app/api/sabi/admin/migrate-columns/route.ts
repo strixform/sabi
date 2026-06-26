@@ -25,6 +25,9 @@ const MIGRATIONS: { table: string; column: string; type: string }[] = [
   { table: 'SabiOrder', column: 'dripMode', type: 'TEXT' },
   // Custom comments (buyer-provided exact text, JSON array)
   { table: 'SabiOrder', column: 'customComments', type: 'TEXT' },
+  // Buyer rating of the delivered order (1-5) + optional note
+  { table: 'SabiOrder', column: 'rating', type: 'INTEGER' },
+  { table: 'SabiOrder', column: 'ratingNote', type: 'TEXT' },
 ];
 
 export async function GET(req: NextRequest) {
