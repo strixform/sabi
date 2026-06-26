@@ -59,6 +59,52 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, message: 'Booking cancelled and refunded.' });
   }
 
+  // ── CONFIRM delivery → release escrow to the creator (the payout) ──────────
+  if (body.action === 'confirm') {
+    const bookingId = String(body.bookingId || '');
+    const r = await sabiExecute({ sql: `SELECT id, creatorId, escrowKobo, status FROM UGCBooking WHERE id = ? AND buyerId = ? LIMIT 1`, args: [bookingId, session.id] });
+    const b = r.rows[0] as any;
+    if (!b) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+    if (String(b.status) !== 'delivered') return NextResponse.json({ error: 'This booking is not delivered yet.' }, { status: 400 });
+    // Atomic flip delivered→completed: only the winning update triggers the payout.
+    const upd = await sabiExecute({ sql: `UPDATE UGCBooking SET status='completed', updatedAt=CURRENT_TIMESTAMP WHERE id=? AND status='delivered'`, args: [bookingId] });
+    if (Number((upd as any).rowsAffected || 0) === 0) return NextResponse.json({ error: 'Already confirmed.' }, { status: 409 });
+    // Release escrow to the creator (their side is also idempotent on bookingId).
+    const token = process.env.SABI_INTEGRATION_TOKEN;
+    try {
+      await fetch(`${G360_URL}/api/admin/sabi/ugc-credit-creator`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0 (compatible; SABI-Integration/1.0)' },
+        body: JSON.stringify({ creatorId: b.creatorId, amountKobo: Number(b.escrowKobo || 0), bookingId }),
+      });
+    } catch (e) { console.error('[ugc-confirm] payout call failed (booking completed; retry payout):', e); }
+    return NextResponse.json({ success: true, message: 'Confirmed! The creator has been paid.' });
+  }
+
+  // ── ACCEPT a creator's counter-offer → pay the difference, then it's accepted ─
+  if (body.action === 'accept_counter') {
+    const bookingId = String(body.bookingId || '');
+    const r = await sabiExecute({ sql: `SELECT id, escrowKobo, counterPriceKobo, status FROM UGCBooking WHERE id = ? AND buyerId = ? LIMIT 1`, args: [bookingId, session.id] });
+    const b = r.rows[0] as any;
+    if (!b) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+    if (String(b.status) !== 'negotiating' || !b.counterPriceKobo) return NextResponse.json({ error: 'No counter offer to accept.' }, { status: 400 });
+    const diff = Number(b.counterPriceKobo) - Number(b.escrowKobo || 0);
+    if (diff > 0) {
+      const d = await debitSabiWallet(session.id, diff, `ugc-counter-${bookingId}`);
+      if (!d.success) return NextResponse.json({ error: d.error || 'Fund your wallet to accept this price.' }, { status: 400 });
+    }
+    const upd = await sabiExecute({
+      sql: `UPDATE UGCBooking SET escrowKobo = counterPriceKobo, agreedPriceKobo = counterPriceKobo, status='accepted', updatedAt=CURRENT_TIMESTAMP WHERE id=? AND status='negotiating'`,
+      args: [bookingId],
+    });
+    if (Number((upd as any).rowsAffected || 0) === 0) {
+      // Lost the race — refund the diff we just took.
+      if (diff > 0) await refundSabiWallet(session.id, diff, `ugc-counter-refund-${bookingId}`, 'UGC counter no longer valid — refunded').catch(() => {});
+      return NextResponse.json({ error: 'This offer is no longer valid.' }, { status: 409 });
+    }
+    return NextResponse.json({ success: true, message: 'Price agreed. The creator will deliver next.' });
+  }
+
   // ── CREATE → validate creator, hold escrow ────────────────────────────────
   const creatorId = String(body.creatorId || '');
   const brief = String(body.brief || '').trim().slice(0, 1000);
