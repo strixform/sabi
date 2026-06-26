@@ -93,7 +93,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 const fmt = (kobo: number | undefined | null) => `₦${Math.round((kobo ?? 0) / 100).toLocaleString()}`;
 const fmtDate = (d: string) => new Date(d).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' });
-const TABS = ['Users', 'Orders', 'Payments', 'Reconcile', 'Referrals', 'Requests', 'Partnerships', 'UGC', 'Health', 'Settings'] as const;
+const TABS = ['Users', 'Orders', 'Payments', 'Reconcile', 'Referrals', 'Requests', 'Partnerships', 'UGC', 'Health', 'Refunds', 'Settings'] as const;
 
 interface PartnershipReq {
   id: string; brandName?: string | null; domain?: string | null;
@@ -1074,6 +1074,93 @@ function HealthTab({ adminFetch }: { adminFetch: (url: string, opts?: RequestIni
   );
 }
 
+// ─── Refunds desk (customer complaints) ─────────────────────────────────────
+
+function RefundOrderCard({ o }: { o: any }) {
+  const st: Record<string, string> = {
+    failed: 'bg-red-500/15 text-red-300', completed: 'bg-emerald-500/15 text-emerald-300',
+    executing: 'bg-blue-500/15 text-blue-300', processing: 'bg-blue-500/15 text-blue-300',
+  };
+  return (
+    <div className="rounded-lg bg-slate-800/40 p-3 text-xs">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="font-mono text-[10px] text-violet-300">#{o.id}</span>
+        <span className={`px-1.5 py-0.5 rounded text-[10px] ${st[o.status] || 'bg-slate-700 text-slate-300'}`}>{o.status}</span>
+        <span className="text-slate-300 capitalize">{String(o.serviceType).replace(/_/g, ' ')}</span>
+        <span className="text-slate-500">· {o.delivered.toLocaleString()}/{o.quantity.toLocaleString()} · ₦{o.totalNaira.toLocaleString()}</span>
+        <span className="ml-auto text-slate-600">{o.createdAt ? new Date(o.createdAt).toLocaleDateString() : ''}</span>
+      </div>
+      {(o.email || o.name) && <div className="text-[10px] text-slate-500 mt-1">{o.name || ''} {o.email ? `· ${o.email}` : ''}</div>}
+      {o.refundReason && <p className="text-[11px] text-amber-200/90 mt-1 leading-relaxed">{o.refundReason}</p>}
+    </div>
+  );
+}
+
+function RefundsTab({ adminFetch }: { adminFetch: (url: string, opts?: RequestInit) => Promise<Response> }) {
+  const [d, setD] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [results, setResults] = useState<any[] | null>(null);
+  const [searching, setSearching] = useState(false);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    adminFetch('/api/sabi/admin/refunds').then(r => r.json()).then(setD).catch(() => {}).finally(() => setLoading(false));
+  }, [adminFetch]);
+  useEffect(() => { load(); }, [load]);
+
+  const runSearch = async () => {
+    if (!search.trim()) { setResults(null); return; }
+    setSearching(true);
+    try {
+      const r = await adminFetch(`/api/sabi/admin/refunds?search=${encodeURIComponent(search.trim())}`);
+      const j = await r.json();
+      setResults(j.results || []);
+    } catch { setResults([]); } finally { setSearching(false); }
+  };
+
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-slate-500">When a customer complains about a refund, search their order id or email to see its exact status and reason.</p>
+      <div className="flex items-center gap-2">
+        <input value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && runSearch()}
+          placeholder="Order id or customer email…"
+          className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none" />
+        <button onClick={runSearch} disabled={searching} className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold disabled:opacity-40">{searching ? '…' : 'Search'}</button>
+        {results !== null && <button onClick={() => { setSearch(''); setResults(null); }} className="px-3 py-2 rounded-lg bg-slate-700 text-slate-300 text-sm">Clear</button>}
+      </div>
+
+      {results !== null ? (
+        <div>
+          <div className="text-[11px] font-bold text-slate-400 mb-2">{results.length} result{results.length !== 1 ? 's' : ''}</div>
+          {results.length === 0 ? <p className="text-sm text-slate-500">No matching orders.</p> : (
+            <div className="space-y-2">{results.map(o => <RefundOrderCard key={o.id} o={o} />)}</div>
+          )}
+        </div>
+      ) : loading ? (
+        <div className="rounded-lg bg-slate-800/40 p-6 text-center text-sm text-slate-500">Loading…</div>
+      ) : (
+        <>
+          <div className="rounded-lg border border-amber-500/20 overflow-hidden">
+            <div className="px-3 py-2 bg-amber-500/10 text-xs font-bold text-amber-300">⏳ About to partial-refund (stalled past 72h) · {d?.pending?.length ?? 0}</div>
+            <div className="p-2 space-y-2">
+              {(d?.pending?.length ?? 0) === 0 ? <p className="px-1 py-2 text-center text-xs text-slate-500">Nothing stalled. ✅</p>
+                : d.pending.map((o: any) => <RefundOrderCard key={o.id} o={o} />)}
+            </div>
+          </div>
+          <div className="rounded-lg border border-white/10 overflow-hidden">
+            <div className="px-3 py-2 bg-slate-800/60 text-xs font-bold text-slate-300">↩️ Recent auto-refunds · {d?.recent?.length ?? 0}</div>
+            <div className="p-2 space-y-2 max-h-[28rem] overflow-y-auto">
+              {(d?.recent?.length ?? 0) === 0 ? <p className="px-1 py-2 text-center text-xs text-slate-500">No refunds. ✅</p>
+                : d.recent.map((o: any) => <RefundOrderCard key={o.id} o={o} />)}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
@@ -1854,6 +1941,8 @@ export default function AdminPage() {
         {tab === 'UGC' && <UGCTab adminFetch={adminFetch} />}
 
         {tab === 'Health' && <HealthTab adminFetch={adminFetch} />}
+
+        {tab === 'Refunds' && <RefundsTab adminFetch={adminFetch} />}
 
         {tab === 'Settings' && (
           <div className="max-w-lg">
