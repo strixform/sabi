@@ -93,7 +93,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 const fmt = (kobo: number | undefined | null) => `₦${Math.round((kobo ?? 0) / 100).toLocaleString()}`;
 const fmtDate = (d: string) => new Date(d).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' });
-const TABS = ['Users', 'Orders', 'Payments', 'Reconcile', 'Referrals', 'Requests', 'Partnerships', 'UGC', 'Settings'] as const;
+const TABS = ['Users', 'Orders', 'Payments', 'Reconcile', 'Referrals', 'Requests', 'Partnerships', 'UGC', 'Health', 'Settings'] as const;
 
 interface PartnershipReq {
   id: string; brandName?: string | null; domain?: string | null;
@@ -999,6 +999,81 @@ function UGCTab({ adminFetch }: { adminFetch: (url: string, opts?: RequestInit) 
   );
 }
 
+// ─── Operations health (refunds + escrow) ──────────────────────────────────
+
+function HealthTab({ adminFetch }: { adminFetch: (url: string, opts?: RequestInit) => Promise<Response> }) {
+  const [d, setD] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    adminFetch('/api/sabi/admin/health').then(r => r.json()).then(setD).catch(() => {}).finally(() => setLoading(false));
+  }, [adminFetch]);
+  useEffect(() => { load(); }, [load]);
+
+  if (loading) return <div className="rounded-lg bg-slate-800/40 p-6 text-center text-sm text-slate-500">Loading health…</div>;
+  if (!d) return <div className="rounded-lg bg-slate-800/40 p-6 text-center text-sm text-slate-500">No data.</div>;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: 'Pending SLA refunds', value: d.pendingPartialRefunds?.total ?? 0, sub: 'stall past 72h', color: (d.pendingPartialRefunds?.total ?? 0) > 0 ? 'text-amber-300' : 'text-emerald-300' },
+          { label: 'Escrow held', value: `₦${(d.escrow?.heldNaira ?? 0).toLocaleString()}`, sub: `${d.escrow?.active ?? 0} active bookings`, color: 'text-blue-300' },
+          { label: 'Escrow paid', value: `₦${(d.escrow?.paidNaira ?? 0).toLocaleString()}`, sub: 'to creators', color: 'text-emerald-300' },
+          { label: 'Recent refunds', value: d.recentRefunds?.length ?? 0, sub: 'last 25 with reason', color: 'text-purple-300' },
+        ].map(t => (
+          <div key={t.label} className="rounded-lg bg-slate-800/40 p-3">
+            <div className="text-[11px] text-slate-500 uppercase tracking-wide">{t.label}</div>
+            <div className={`text-lg font-bold ${t.color}`}>{t.value}</div>
+            <div className="text-[10px] text-slate-600">{t.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Pending SLA partial-refunds */}
+      <div className="rounded-lg border border-amber-500/20 overflow-hidden">
+        <div className="px-3 py-2 bg-amber-500/10 text-xs font-bold text-amber-300">⏳ About to partial-refund (stalled past 72h)</div>
+        {(d.pendingPartialRefunds?.sample?.length ?? 0) === 0 ? (
+          <p className="px-3 py-4 text-center text-xs text-slate-500">Nothing stalled. ✅</p>
+        ) : (
+          <div className="divide-y divide-white/[0.04]">
+            {d.pendingPartialRefunds.sample.map((o: any) => (
+              <div key={o.id} className="flex items-center gap-2 px-3 py-2 text-xs">
+                <span className="font-mono text-[10px] text-slate-500">{o.id.slice(0, 8)}…</span>
+                <span className="flex-1 text-slate-300 capitalize">{String(o.serviceType).replace(/_/g, ' ')}</span>
+                <span className="text-slate-400">{o.done.toLocaleString()}/{o.quantity.toLocaleString()}</span>
+                <span className="text-slate-600">{o.createdAt ? new Date(o.createdAt).toLocaleDateString() : ''}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Recent auto-refunds */}
+      <div className="rounded-lg border border-white/10 overflow-hidden">
+        <div className="px-3 py-2 bg-slate-800/60 text-xs font-bold text-slate-300">↩️ Recent auto-refunds</div>
+        {(d.recentRefunds?.length ?? 0) === 0 ? (
+          <p className="px-3 py-4 text-center text-xs text-slate-500">No refunds. ✅</p>
+        ) : (
+          <div className="divide-y divide-white/[0.04] max-h-72 overflow-y-auto">
+            {d.recentRefunds.map((o: any) => (
+              <div key={o.id} className="px-3 py-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] ${o.status === 'failed' ? 'bg-red-500/15 text-red-300' : 'bg-emerald-500/15 text-emerald-300'}`}>{o.status}</span>
+                  <span className="flex-1 text-slate-300 capitalize truncate">{String(o.serviceType).replace(/_/g, ' ')}</span>
+                  <span className="text-slate-600">{o.createdAt ? new Date(o.createdAt).toLocaleDateString() : ''}</span>
+                </div>
+                {o.reason && <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">{o.reason}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
@@ -1777,6 +1852,8 @@ export default function AdminPage() {
         {tab === 'Reconcile' && <ReconcileTab adminFetch={adminFetch} />}
 
         {tab === 'UGC' && <UGCTab adminFetch={adminFetch} />}
+
+        {tab === 'Health' && <HealthTab adminFetch={adminFetch} />}
 
         {tab === 'Settings' && (
           <div className="max-w-lg">
