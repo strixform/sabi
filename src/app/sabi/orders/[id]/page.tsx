@@ -99,6 +99,8 @@ export default function OrderTrackingPage() {
   const [refillQty, setRefillQty] = useState('');
   const [refillReason, setRefillReason] = useState('');
   const [refillOpen, setRefillOpen] = useState(false);
+  const [refillUnlocked, setRefillUnlocked] = useState(true);
+  const [refillUnlockAt, setRefillUnlockAt] = useState<string | null>(null);
   const [refillSubmitting, setRefillSubmitting] = useState(false);
   const [refillError, setRefillError] = useState('');
 
@@ -126,7 +128,7 @@ export default function OrderTrackingPage() {
   useEffect(() => {
     fetch(`/api/sabi/orders/${orderId}/refill`)
       .then(r => (r.ok ? r.json() : null))
-      .then(d => { if (d?.success) setRefillReq(d.request || null); })
+      .then(d => { if (d?.success) { setRefillReq(d.request || null); setRefillUnlocked(d.refillUnlocked !== false); setRefillUnlockAt(d.unlockAt || null); } })
       .catch(() => {});
   }, [orderId]);
 
@@ -568,6 +570,10 @@ export default function OrderTrackingPage() {
                       {refillReq.status === 'approved' && `Approved — ${Number(refillReq.refillQuantity).toLocaleString()} is being delivered, free of charge.`}
                       {refillReq.status === 'rejected' && `This refill request wasn't approved.${refillReq.adminNote ? ` (${refillReq.adminNote})` : ''}`}
                     </p>
+                  </div>
+                ) : !refillUnlocked ? (
+                  <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-4 py-3">
+                    <p className="text-xs text-slate-400">⏳ Refills unlock <b className="text-slate-200">36 hours after purchase</b>{refillUnlockAt ? ` (around ${new Date(refillUnlockAt).toLocaleString()})` : ''}. This short window lets us verify every delivery first, so a refill always goes to fresh members — never the same ones.</p>
                   </div>
                 ) : !refillOpen ? (
                   <>

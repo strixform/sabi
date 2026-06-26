@@ -12,6 +12,7 @@ interface Order {
   completedQuantity: number | null; status: string; createdAt: string;
   staffChecked?: boolean; staffCheckedAt?: string | null; staffCheckedBy?: string | null;
   startCount?: number | null; startScreenshotUrl?: string | null;
+  refillOf?: string | null;
   user?: { email: string; name: string } | null;
 }
 interface ProofFlag { status: string; reason: string | null; reuploadedAt: string | null; }
@@ -146,37 +147,43 @@ export default function StaffConsole() {
 
 // ─── Orders & Proofs ─────────────────────────────────────────────────────────
 // Staff refill — type a quantity to top up THIS order with fresh, non-banned taskers.
-function StaffRefillControl({ orderId }: { orderId: string }) {
+// Manual refill — staff top up ANY order by id, straight to fresh taskers. Lives on
+// the Refill page (no longer embedded in Orders & Proofs).
+function ManualRefillTool() {
+  const [orderId, setOrderId] = useState('');
   const [qty, setQty]   = useState('');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg]   = useState('');
   const submit = async () => {
     const q = Math.floor(Number(qty) || 0);
-    if (q < 1) { setMsg('Enter a quantity'); return; }
+    if (!orderId.trim()) { setMsg('❌ Enter the order id'); return; }
+    if (q < 1) { setMsg('❌ Enter a quantity'); return; }
     setBusy(true); setMsg('');
     try {
       const res = await af('/api/sabi/admin/refills', {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId, quantity: q }),
+        body: JSON.stringify({ orderId: orderId.trim(), quantity: q }),
       });
       const d = await res.json().catch(() => ({}));
       setMsg(res.ok && d.success ? `✅ ${d.message}` : `❌ ${d.error || 'Failed'}`);
-      if (res.ok) setQty('');
+      if (res.ok) { setQty(''); setOrderId(''); }
     } catch { setMsg('❌ Network error'); }
     finally { setBusy(false); }
   };
   return (
-    <div className="mt-3 bg-emerald-500/[0.07] border border-emerald-500/20 rounded-lg px-3 py-2">
+    <div className="mb-4 bg-emerald-500/[0.07] border border-emerald-500/20 rounded-xl px-3 py-3">
+      <div className="text-[11px] text-emerald-300 font-bold mb-2">🔄 Manual refill (any order → fresh taskers)</div>
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-[11px] text-emerald-300 font-bold shrink-0">🔄 Refill to new taskers:</span>
+        <input value={orderId} onChange={e => setOrderId(e.target.value)} placeholder="Order id"
+          className="flex-1 min-w-[140px] bg-[#0F1420] border border-white/10 rounded-lg px-3 py-2 text-sm" />
         <input type="number" min={1} value={qty} onChange={e => setQty(e.target.value)} placeholder="Qty"
-          className="w-20 bg-[#0F1420] border border-white/10 rounded px-2 py-1 text-xs" />
+          className="w-24 bg-[#0F1420] border border-white/10 rounded-lg px-3 py-2 text-sm" />
         <button onClick={submit} disabled={busy}
-          className="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold disabled:opacity-50">
+          className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold disabled:opacity-50">
           {busy ? '…' : 'Create refill'}
         </button>
       </div>
-      <div className="text-[10px] text-slate-500 mt-1">Free top-up — buyer not charged · goes to fresh taskers (anyone who did this order is blocked).</div>
+      <div className="text-[10px] text-slate-500 mt-1.5">Free top-up — buyer not charged · goes to fresh taskers (anyone who did this order is blocked).</div>
       {msg && <div className={`text-[10px] mt-1 ${msg.startsWith('✅') ? 'text-emerald-400' : 'text-red-400'}`}>{msg}</div>}
     </div>
   );
@@ -356,7 +363,10 @@ function ProofsTab() {
               <div key={o.id} className="rounded-xl bg-white/[0.025] border border-white/[0.07] overflow-hidden">
                 <button onClick={() => toggle(o.id)} className="w-full text-left p-4 flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="text-[10px] font-mono text-violet-300 mb-0.5">SABI #{o.id}</div>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-[10px] font-mono text-violet-300">SABI #{o.id}</span>
+                      {o.refillOf && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">↻ REFILL of #{o.refillOf}</span>}
+                    </div>
                     <div className="font-bold capitalize text-sm">{fmtSvc(o.serviceType)} · <span className="text-cyan-400">{(o.completedQuantity ?? 0).toLocaleString()}/{o.quantity.toLocaleString()}</span></div>
                     <span role="link" tabIndex={0}
                       onClick={(e) => { e.stopPropagation(); window.open(o.targetUrl, '_blank', 'noopener,noreferrer'); }}
@@ -393,7 +403,6 @@ function ProofsTab() {
                         {o.startScreenshotUrl && <a href={o.startScreenshotUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] font-bold text-blue-400 hover:underline ml-auto shrink-0">view before-shot ↗</a>}
                       </div>
                     )}
-                    <StaffRefillControl orderId={o.id} />
                     {!pf || pf.loading ? <p className="text-slate-500 text-sm py-4">Loading proofs…</p> : (
                       <>
                         <div className="flex items-center justify-between gap-2 my-3 flex-wrap">
@@ -621,7 +630,10 @@ function CheckedOrdersTab() {
           {orders.map(o => (
             <div key={o.id} className="rounded-xl bg-white/[0.025] border border-white/[0.07] p-3 flex items-center gap-3">
               <div className="min-w-0 flex-1">
-                <div className="text-[10px] font-mono text-violet-300">SABI #{o.id}</div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono text-violet-300">SABI #{o.id}</span>
+                  {o.refillOf && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">↻ REFILL of #{o.refillOf}</span>}
+                </div>
                 <div className="text-sm font-bold capitalize truncate">{fmtSvc(o.serviceType)} · <span className="text-cyan-400">{(o.completedQuantity ?? 0).toLocaleString()}/{o.quantity.toLocaleString()}</span></div>
                 <div className="text-[10px] text-slate-500">{o.user?.email || '—'} · checked {o.staffCheckedAt ? new Date(o.staffCheckedAt).toLocaleDateString() : ''}{o.staffCheckedBy ? ` by ${o.staffCheckedBy}` : ''}</div>
               </div>
@@ -720,10 +732,10 @@ function RefillsTab() {
   };
 
   if (loading) return <p className="text-slate-500 py-10 text-center">Loading…</p>;
-  if (refills.length === 0) return <p className="text-slate-500 py-10 text-center">No pending refill requests.</p>;
   return (
     <div className="space-y-3">
-      {refills.map(r => (
+      <ManualRefillTool />
+      {refills.length === 0 ? <p className="text-slate-500 py-8 text-center">No pending refill requests.</p> : refills.map(r => (
         <div key={r.id} className="rounded-xl p-4 bg-white/[0.025] border border-white/[0.07]">
           <div className="text-[10px] font-mono text-violet-300">SABI #{r.orderId}</div>
           <div className="font-bold capitalize text-sm mt-0.5">{fmtSvc(r.serviceType)} · <span className="text-cyan-400">buyer asked {r.refillQuantity.toLocaleString()}</span></div>

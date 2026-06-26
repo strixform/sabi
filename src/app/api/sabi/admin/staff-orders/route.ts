@@ -33,22 +33,27 @@ export async function GET(req: NextRequest) {
     const r = await sabiExecute({
       sql: `SELECT o.id, o.serviceType, o.targetUrl, o.quantity, o.completedQuantity, o.status, o.createdAt,
                    COALESCE(o.staffChecked,0) AS staffChecked, o.staffCheckedAt, o.staffCheckedBy,
-                   o.startCount, o.startScreenshotUrl,
+                   o.startCount, o.startScreenshotUrl, o.customRef,
                    u.email AS userEmail, u.name AS userName
             FROM SabiOrder o LEFT JOIN SabiUser u ON u.id = o.userId
             WHERE ${where.join(' AND ')}
             ORDER BY o.createdAt DESC LIMIT ?`,
       args: [...args, limit],
     });
-    const orders = (r.rows as any[]).map(o => ({
-      id: String(o.id), serviceType: o.serviceType, targetUrl: o.targetUrl,
-      quantity: Number(o.quantity), completedQuantity: Number(o.completedQuantity || 0),
-      status: o.status, createdAt: o.createdAt,
-      staffChecked: Number(o.staffChecked) === 1, staffCheckedAt: o.staffCheckedAt || null, staffCheckedBy: o.staffCheckedBy || null,
-      startCount: o.startCount === null || o.startCount === undefined ? null : Number(o.startCount),
-      startScreenshotUrl: o.startScreenshotUrl || null,
-      user: { email: o.userEmail || null, name: o.userName || null },
-    }));
+    const orders = (r.rows as any[]).map(o => {
+      const customRef = o.customRef || null;
+      const refillOf = typeof customRef === 'string' && customRef.startsWith('refill:') ? customRef.slice('refill:'.length) : null;
+      return {
+        id: String(o.id), serviceType: o.serviceType, targetUrl: o.targetUrl,
+        quantity: Number(o.quantity), completedQuantity: Number(o.completedQuantity || 0),
+        status: o.status, createdAt: o.createdAt,
+        staffChecked: Number(o.staffChecked) === 1, staffCheckedAt: o.staffCheckedAt || null, staffCheckedBy: o.staffCheckedBy || null,
+        startCount: o.startCount === null || o.startCount === undefined ? null : Number(o.startCount),
+        startScreenshotUrl: o.startScreenshotUrl || null,
+        refillOf,
+        user: { email: o.userEmail || null, name: o.userName || null },
+      };
+    });
     return NextResponse.json({ success: true, orders });
   } catch (e: any) {
     return NextResponse.json({ success: true, orders: [], needsMigration: true });

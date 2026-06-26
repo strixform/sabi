@@ -242,6 +242,9 @@ export default function OrdersPage() {
                           {order.status}
                         </div>
                         <p className="text-white font-bold truncate flex-1">{svc?.name || order.serviceType.replace(/_/g, ' ')}</p>
+                        {typeof order.customRef === 'string' && order.customRef.startsWith('refill:') && (
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 shrink-0">↻ REFILL of #{order.customRef.slice('refill:'.length).slice(-6)}</span>
+                        )}
                         <span className="text-slate-500 text-xs shrink-0">#{order.id.slice(-6)}</span>
                       </div>
 

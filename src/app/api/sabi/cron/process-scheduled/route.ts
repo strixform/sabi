@@ -125,6 +125,10 @@ export async function GET(req: NextRequest) {
         // Custom-comment orders are priced at ₦150/comment (15000 kobo) — flag them so
         // gamerz360 pays taskers the custom-comment rate (200 pts each).
         isCustomComments: order.pricePerUnit === 15000,
+        // Refill orders carry customRef "refill:<parentId>" — forward the parent so
+        // gamerz360 links it AND blocks anyone who did the parent (fresh taskers only).
+        refillOfOrderId: typeof order.customRef === 'string' && order.customRef.startsWith('refill:')
+          ? order.customRef.slice('refill:'.length) : undefined,
         // Structured audience targeting — gamerz360 gates task visibility to taskers
         // matching this gender + region (and refunds if none exist there).
         audienceGender: order.audienceGender || null,
