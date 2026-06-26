@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}));
   const completionId = String(body.completionId || '');
-  const action = body.action === 'clear' ? 'clear' : 'flag';
+  const action = body.action === 'clear' ? 'clear' : body.action === 'approve' ? 'approve' : 'flag';
   const reason = String(body.reason || '').slice(0, 300);
   if (!completionId) return NextResponse.json({ error: 'completionId required' }, { status: 400 });
 
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     });
     const d = await res.json().catch(() => ({}));
     if (!res.ok || d?.error) return NextResponse.json({ error: d?.error || 'Flag failed' }, { status: 400 });
-    logStaffAction(auth.email || 'owner', action === 'clear' ? 'proof:clear' : 'proof:flag', completionId, reason);
+    logStaffAction(auth.email || 'owner', action === 'clear' ? 'proof:clear' : action === 'approve' ? 'proof:approve' : 'proof:flag', completionId, reason);
     return NextResponse.json({
       success: true,
       suspended: d?.suspended || false,

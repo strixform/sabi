@@ -28,6 +28,13 @@ const MIGRATIONS: { table: string; column: string; type: string }[] = [
   // Buyer rating of the delivered order (1-5) + optional note
   { table: 'SabiOrder', column: 'rating', type: 'INTEGER' },
   { table: 'SabiOrder', column: 'ratingNote', type: 'TEXT' },
+  // Buyer's "before" starting count + screenshot (now compulsory at order time)
+  { table: 'SabiOrder', column: 'startCount', type: 'INTEGER' },
+  { table: 'SabiOrder', column: 'startScreenshotUrl', type: 'TEXT' },
+  // Staff review: order marked fully checked → moves to "Checked Orders"
+  { table: 'SabiOrder', column: 'staffChecked', type: 'INTEGER' },
+  { table: 'SabiOrder', column: 'staffCheckedAt', type: 'TEXT' },
+  { table: 'SabiOrder', column: 'staffCheckedBy', type: 'TEXT' },
 ];
 
 export async function GET(req: NextRequest) {
