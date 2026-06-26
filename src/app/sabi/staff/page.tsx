@@ -5,15 +5,21 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 
-type Tab = 'proofs' | 'refills' | 'requests' | 'partnerships';
+type Tab = 'proofs' | 'reuploads' | 'checked' | 'refunds' | 'refills' | 'requests' | 'partnerships';
 
 interface Order {
   id: string; serviceType: string; targetUrl: string; quantity: number;
   completedQuantity: number | null; status: string; createdAt: string;
+  staffChecked?: boolean; staffCheckedAt?: string | null; staffCheckedBy?: string | null;
+  startCount?: number | null; startScreenshotUrl?: string | null;
   user?: { email: string; name: string } | null;
 }
 interface ProofFlag { status: string; reason: string | null; reuploadedAt: string | null; }
-interface Proof { id: string; proofUrl: string | null; proofText: string | null; status: string; createdAt: string; flag?: ProofFlag | null; }
+interface Proof {
+  id: string; proofUrl: string | null; proofText: string | null; status: string; createdAt: string;
+  flag?: ProofFlag | null; staffApproved?: boolean;
+  username?: string | null; bankName?: string | null; accountName?: string | null;
+}
 interface Refill {
   id: string; orderId: string; serviceType: string; targetUrl: string;
   refillQuantity: number; reason: string | null; status: string; createdAt: string;
@@ -98,17 +104,25 @@ export default function StaffConsole() {
         <p className="text-xs text-slate-500 mb-4">Review delivery proofs, confirm coherence, and handle refill & custom requests.</p>
 
         {resub > 0 && (
-          <button onClick={() => setTab('proofs')}
+          <button onClick={() => setTab('reuploads')}
             className="w-full text-left mb-4 rounded-xl px-4 py-3 flex items-center gap-2 transition hover:brightness-110"
             style={{ background: 'rgba(234,179,8,0.12)', border: '1px solid rgba(234,179,8,0.4)' }}>
             <span className="text-lg">🔁</span>
             <span className="text-sm font-bold text-yellow-300">{resub} re-upload{resub > 1 ? 's' : ''} waiting for re-review</span>
-            <span className="text-xs text-yellow-200/70 ml-auto">Open Orders &amp; Proofs →</span>
+            <span className="text-xs text-yellow-200/70 ml-auto">Open Re-uploads →</span>
           </button>
         )}
 
-        <div className="flex gap-2 mb-5">
-          {([['proofs', '🧾 Orders & Proofs'], ['refills', '🔁 Refills'], ['requests', '📋 Requests'], ['partnerships', '🤝 Partnerships']] as [Tab, string][]).map(([k, label]) => (
+        <div className="flex gap-2 mb-5 flex-wrap">
+          {([
+            ['proofs', '🧾 Orders & Proofs'],
+            ['reuploads', `🔁 Re-uploads${resub > 0 ? ` (${resub})` : ''}`],
+            ['checked', '✅ Checked Orders'],
+            ['refunds', '↩️ Refunds'],
+            ['refills', '🔁 Refills'],
+            ['requests', '📋 Requests'],
+            ['partnerships', '🤝 Partnerships'],
+          ] as [Tab, string][]).map(([k, label]) => (
             <button key={k} onClick={() => setTab(k)}
               className={`px-3 py-2 rounded-lg text-xs font-bold transition ${tab === k ? 'bg-blue-600 text-white' : 'bg-white/[0.04] text-slate-400 hover:text-slate-200'}`}>
               {label}
@@ -117,6 +131,9 @@ export default function StaffConsole() {
         </div>
 
         {tab === 'proofs' && <ProofsTab />}
+        {tab === 'reuploads' && <ReuploadsTab />}
+        {tab === 'checked' && <CheckedOrdersTab />}
+        {tab === 'refunds' && <StaffRefundsTab />}
         {tab === 'refills' && <RefillsTab />}
         {tab === 'requests' && <RequestsTab />}
         {tab === 'partnerships' && <PartnershipsTab />}
@@ -181,13 +198,42 @@ function ProofsTab() {
     setLoading(true);
     const q = status === 'all' ? '' : `&status=${status}`;
     const s = search.trim() ? `&search=${encodeURIComponent(search.trim())}` : '';
-    af(`/api/sabi/admin/orders?limit=50${q}${s}`)
+    // Only orders NOT yet marked checked — checked ones live in the "Checked Orders" tab.
+    af(`/api/sabi/admin/staff-orders?checked=0&limit=50${q}${s}`)
       .then(r => (r.ok ? r.json() : null))
       .then(d => setOrders(d?.orders || []))
       .catch(() => setOrders([]))
       .finally(() => setLoading(false));
   }, [status, search]);
   useEffect(() => { load(); }, [load]);
+
+  // Approve a single proof (staff confirms it's correct → won't be re-checked).
+  const approveProof = async (orderId: string, completionId: string) => {
+    setProofBusy(completionId);
+    try {
+      const res = await af('/api/sabi/admin/flag-proof', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completionId, action: 'approve' }),
+      });
+      if (res.ok) setProofs(p => {
+        const cur = p[orderId]; if (!cur) return p;
+        return { ...p, [orderId]: { ...cur, items: cur.items.map(it => it.id === completionId ? { ...it, staffApproved: true } : it) } };
+      });
+    } finally { setProofBusy(null); }
+  };
+
+  // Mark the whole order reviewed → it leaves this list and moves to Checked Orders.
+  const [checking, setChecking] = useState<string | null>(null);
+  const markChecked = async (orderId: string) => {
+    setChecking(orderId);
+    try {
+      const res = await af('/api/sabi/admin/order-check', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, checked: true }),
+      });
+      if (res.ok) setOrders(prev => prev.filter(o => o.id !== orderId));
+    } finally { setChecking(null); }
+  };
 
   const loadProofs = (id: string) => {
     setProofs(p => ({ ...p, [id]: { loading: true, items: [], total: 0, approved: 0 } }));
@@ -276,12 +322,13 @@ function ProofsTab() {
               <div key={o.id} className="rounded-xl bg-white/[0.025] border border-white/[0.07] overflow-hidden">
                 <button onClick={() => toggle(o.id)} className="w-full text-left p-4 flex items-start justify-between gap-3">
                   <div className="min-w-0">
+                    <div className="text-[10px] font-mono text-violet-300 mb-0.5">SABI #{o.id}</div>
                     <div className="font-bold capitalize text-sm">{fmtSvc(o.serviceType)} · <span className="text-cyan-400">{(o.completedQuantity ?? 0).toLocaleString()}/{o.quantity.toLocaleString()}</span></div>
                     <span role="link" tabIndex={0}
                       onClick={(e) => { e.stopPropagation(); window.open(o.targetUrl, '_blank', 'noopener,noreferrer'); }}
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); window.open(o.targetUrl, '_blank', 'noopener,noreferrer'); } }}
                       className="block text-xs text-blue-400 hover:underline cursor-pointer truncate max-w-[240px]">{o.targetUrl} ↗</span>
-                    <div className="text-[11px] text-slate-500 mt-0.5">{o.user?.email || '—'} · {o.id.slice(0, 8)} · {new Date(o.createdAt).toLocaleDateString()}</div>
+                    <div className="text-[11px] text-slate-500 mt-0.5">{o.user?.email || '—'} · {new Date(o.createdAt).toLocaleDateString()}</div>
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${o.status === 'completed' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-yellow-500/15 text-yellow-300'}`}>{o.status}</span>
@@ -304,6 +351,14 @@ function ProofsTab() {
                       <button onClick={() => { navigator.clipboard?.writeText(o.targetUrl); }}
                         className="text-[10px] text-slate-400 hover:text-white shrink-0">Copy</button>
                     </div>
+                    {/* Buyer's starting count + "before" screenshot (compulsory at order time). */}
+                    {(o.startCount != null || o.startScreenshotUrl) && (
+                      <div className="mt-3 flex items-center gap-2 bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2">
+                        <span className="text-[11px] text-slate-400 shrink-0">📊 Start count:</span>
+                        <span className="text-xs font-bold text-white">{o.startCount != null ? o.startCount.toLocaleString() : '—'}</span>
+                        {o.startScreenshotUrl && <a href={o.startScreenshotUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] font-bold text-blue-400 hover:underline ml-auto shrink-0">view before-shot ↗</a>}
+                      </div>
+                    )}
                     <StaffRefillControl orderId={o.id} />
                     {!pf || pf.loading ? <p className="text-slate-500 text-sm py-4">Loading proofs…</p> : (
                       <>
@@ -322,8 +377,20 @@ function ProofsTab() {
                                   <a href={p.proofUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center h-24 text-[10px] text-blue-400 hover:underline px-1 text-center break-all">View ↗</a>
                                 ) : <div className="flex items-center justify-center h-24 text-xl">✅</div>}
                                 <div className="px-1.5 py-1 text-[9px] text-slate-400 truncate">{p.proofText || p.status}</div>
+                                {/* Tasker identity — spot two screenshots from the SAME person (double account) */}
+                                {(p.username || p.bankName) && (
+                                  <div className="px-1.5 pb-1 text-[8.5px] leading-tight text-slate-500">
+                                    {p.username && <div className="truncate">👤 {p.username}</div>}
+                                    {(p.bankName || p.accountName) && <div className="truncate text-amber-400/80">🏦 {[p.bankName, p.accountName].filter(Boolean).join(' · ')}</div>}
+                                  </div>
+                                )}
+                                {p.staffApproved && !fl && <div className="px-1.5 text-[9px] font-bold text-emerald-400">✓ approved</div>}
                                 {fl && <div className={`px-1.5 text-[9px] font-bold ${resub ? 'text-yellow-300' : 'text-red-300'}`}>{resub ? '🔁 re-uploaded' : '⚠️ flagged'}{fl.reason ? ` · ${fl.reason}` : ''}</div>}
                                 <div className="p-1.5 flex gap-1">
+                                  {!fl && !p.staffApproved && (
+                                    <button onClick={() => approveProof(o.id, p.id)} disabled={proofBusy === p.id}
+                                      className="flex-1 py-1 rounded bg-emerald-600/80 hover:bg-emerald-500 text-white text-[10px] font-bold disabled:opacity-50">✓ Approve</button>
+                                  )}
                                   {!fl && (
                                     <button onClick={() => openFlag(o.id, p.id)} disabled={proofBusy === p.id}
                                       className="flex-1 py-1 rounded bg-red-600/80 hover:bg-red-500 text-white text-[10px] font-bold disabled:opacity-50">⚠️ Flag</button>
@@ -341,7 +408,14 @@ function ProofsTab() {
                             );})}
                           </div>
                         )}
-                        <button onClick={() => loadProofs(o.id)} className="text-[10px] text-blue-400 hover:underline mt-2">↻ Refresh proofs</button>
+                        <div className="flex items-center gap-3 mt-3 pt-3 border-t border-white/[0.05]">
+                          <button onClick={() => loadProofs(o.id)} className="text-[10px] text-blue-400 hover:underline">↻ Refresh proofs</button>
+                          {/* Done reviewing this order → moves it to Checked Orders, shrinking the queue */}
+                          <button onClick={() => markChecked(o.id)} disabled={checking === o.id}
+                            className="ml-auto px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-black disabled:opacity-50">
+                            {checking === o.id ? 'Saving…' : '✓ Mark order checked'}
+                          </button>
+                        </div>
                       </>
                     )}
                   </div>
@@ -379,6 +453,171 @@ function ProofsTab() {
             </div>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Re-uploads (flagged → resubmitted, awaiting re-review) ─────────────────────
+function ReuploadsTab() {
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [msg, setMsg] = useState('');
+
+  const load = useCallback(() => {
+    setLoading(true);
+    af('/api/sabi/admin/resubmitted').then(r => (r.ok ? r.json() : null))
+      .then(d => setItems(d?.items || [])).catch(() => setItems([])).finally(() => setLoading(false));
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const act = async (completionId: string, action: 'clear' | 'flag', reason = '') => {
+    setBusy(completionId); setMsg('');
+    try {
+      const res = await af('/api/sabi/admin/flag-proof', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completionId, action, reason }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d?.success) { setItems(prev => prev.filter(i => i.completionId !== completionId)); setMsg(action === 'clear' ? 'Approved.' : 'Flagged again — tasker must re-upload.'); }
+      else setMsg(d?.error || 'Action failed');
+    } finally { setBusy(null); }
+  };
+
+  return (
+    <div>
+      <p className="text-xs text-slate-400 mb-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
+        🔁 Proofs taskers RE-UPLOADED after you flagged them — review each one here as it comes. <b className="text-emerald-300">✅ Re-verify</b> if it&apos;s now correct, or <b className="text-red-300">⚠️ Flag again</b> if still wrong. They stay out of the main &quot;Orders &amp; Proofs&quot; list so nothing gets buried.
+      </p>
+      {loading ? <p className="text-slate-500 py-10 text-center">Loading…</p> : items.length === 0 ? (
+        <p className="text-slate-500 py-10 text-center">No re-uploads waiting. ✅</p>
+      ) : (
+        <div className="space-y-2.5">
+          {msg && <p className="text-[11px] font-bold text-emerald-300">{msg}</p>}
+          {items.map(it => (
+            <div key={it.completionId} className="rounded-xl bg-white/[0.025] border border-yellow-500/30 p-3.5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  {it.sabiOrderId && <div className="text-[10px] font-mono text-violet-300">SABI #{it.sabiOrderId}</div>}
+                  <div className="text-sm font-bold text-white truncate mt-0.5">{fmtSvc(it.campaignTitle) || 'Re-uploaded proof'}</div>
+                  {it.reason && <p className="text-[11px] mt-1 text-red-300/90">Original flag: {it.reason}</p>}
+                  <div className="text-[10px] text-slate-600 mt-1">re-uploaded {it.reuploadedAt ? new Date(it.reuploadedAt).toLocaleString() : '—'}</div>
+                </div>
+                {it.newProofUrl && (isImg(it.newProofUrl)
+                  // eslint-disable-next-line @next/next/no-img-element
+                  ? <a href={it.newProofUrl} target="_blank" rel="noreferrer" className="shrink-0"><img src={it.newProofUrl} alt="re-upload" loading="lazy" className="w-20 h-20 object-cover rounded-lg" /></a>
+                  : <a href={it.newProofUrl} target="_blank" rel="noreferrer" className="text-xs font-bold text-blue-400 hover:underline shrink-0">view ↗</a>)}
+              </div>
+              <div className="flex gap-2 mt-2.5">
+                <button disabled={busy === it.completionId} onClick={() => act(it.completionId, 'clear')} className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold disabled:opacity-50">✅ Re-verify (approve)</button>
+                <button disabled={busy === it.completionId} onClick={() => { const r = prompt('Why is it still wrong? (tasker sees this)'); if (r) act(it.completionId, 'flag', r); }} className="px-3 py-1.5 rounded-lg bg-red-600/80 text-white text-xs font-bold disabled:opacity-50">⚠️ Flag again</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Checked Orders (already reviewed) ──────────────────────────────────────────
+function CheckedOrdersTab() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    const s = search.trim() ? `&search=${encodeURIComponent(search.trim())}` : '';
+    af(`/api/sabi/admin/staff-orders?checked=1&limit=100${s}`).then(r => (r.ok ? r.json() : null))
+      .then(d => setOrders(d?.orders || [])).catch(() => setOrders([])).finally(() => setLoading(false));
+  }, [search]);
+  useEffect(() => { load(); }, [load]);
+
+  const undo = async (orderId: string) => {
+    setBusy(orderId);
+    try {
+      const res = await af('/api/sabi/admin/order-check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId, checked: false }) });
+      if (res.ok) setOrders(prev => prev.filter(o => o.id !== orderId));
+    } finally { setBusy(null); }
+  };
+
+  return (
+    <div>
+      <p className="text-xs text-slate-400 mb-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">✅ Orders you&apos;ve marked fully checked. Use &quot;Re-open&quot; to send one back to the to-review list.</p>
+      <div className="flex gap-2 mb-3">
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search order id / email…" className="flex-1 bg-[#0F1420] border border-white/[0.08] rounded-lg px-3 py-2 text-sm outline-none" />
+      </div>
+      {loading ? <p className="text-slate-500 py-10 text-center">Loading…</p> : orders.length === 0 ? (
+        <p className="text-slate-500 py-10 text-center">No checked orders yet.</p>
+      ) : (
+        <div className="space-y-2">
+          {orders.map(o => (
+            <div key={o.id} className="rounded-xl bg-white/[0.025] border border-white/[0.07] p-3 flex items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] font-mono text-violet-300">SABI #{o.id}</div>
+                <div className="text-sm font-bold capitalize truncate">{fmtSvc(o.serviceType)} · <span className="text-cyan-400">{(o.completedQuantity ?? 0).toLocaleString()}/{o.quantity.toLocaleString()}</span></div>
+                <div className="text-[10px] text-slate-500">{o.user?.email || '—'} · checked {o.staffCheckedAt ? new Date(o.staffCheckedAt).toLocaleDateString() : ''}{o.staffCheckedBy ? ` by ${o.staffCheckedBy}` : ''}</div>
+              </div>
+              <button disabled={busy === o.id} onClick={() => undo(o.id)} className="px-3 py-1.5 rounded-lg bg-white/10 text-slate-300 text-xs font-bold hover:bg-white/20 disabled:opacity-50 shrink-0">↩ Re-open</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Refunds (customer complaints) ──────────────────────────────────────────────
+function StaffRefundsTab() {
+  const [d, setD] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [results, setResults] = useState<any[] | null>(null);
+
+  useEffect(() => { af('/api/sabi/admin/refunds').then(r => (r.ok ? r.json() : null)).then(setD).catch(() => {}).finally(() => setLoading(false)); }, []);
+  const runSearch = async () => {
+    if (!search.trim()) { setResults(null); return; }
+    const r = await af(`/api/sabi/admin/refunds?search=${encodeURIComponent(search.trim())}`);
+    const j = await r.json().catch(() => ({}));
+    setResults(j.results || []);
+  };
+  const card = (o: any) => (
+    <div key={o.id} className="rounded-lg bg-white/[0.03] border border-white/[0.06] p-3 text-xs">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="font-mono text-[10px] text-violet-300">SABI #{o.id}</span>
+        <span className={`px-1.5 py-0.5 rounded text-[10px] ${o.status === 'failed' ? 'bg-red-500/15 text-red-300' : o.status === 'completed' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-blue-500/15 text-blue-300'}`}>{o.status}</span>
+        <span className="text-slate-300 capitalize">{fmtSvc(o.serviceType)}</span>
+        <span className="text-slate-500">· {o.delivered.toLocaleString()}/{o.quantity.toLocaleString()} · ₦{o.totalNaira.toLocaleString()}</span>
+      </div>
+      {(o.email || o.name) && <div className="text-[10px] text-slate-500 mt-1">{o.name || ''} {o.email ? `· ${o.email}` : ''}</div>}
+      {o.refundReason && <p className="text-[11px] text-amber-200/90 mt-1">{o.refundReason}</p>}
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-slate-400 bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2">When a customer complains about a refund, search their order id or email to see its exact status &amp; reason.</p>
+      <div className="flex gap-2">
+        <input value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && runSearch()} placeholder="Order id or customer email…" className="flex-1 bg-[#0F1420] border border-white/[0.08] rounded-lg px-3 py-2 text-sm outline-none" />
+        <button onClick={runSearch} className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold">Search</button>
+        {results !== null && <button onClick={() => { setSearch(''); setResults(null); }} className="px-3 py-2 rounded-lg bg-white/10 text-slate-300 text-sm">Clear</button>}
+      </div>
+      {results !== null ? (
+        <div className="space-y-2">{results.length === 0 ? <p className="text-sm text-slate-500">No matching orders.</p> : results.map(card)}</div>
+      ) : loading ? <p className="text-slate-500 py-6 text-center">Loading…</p> : (
+        <>
+          <div>
+            <div className="text-[11px] font-bold text-amber-300 mb-2">⏳ About to partial-refund (stalled past 72h) · {d?.pending?.length ?? 0}</div>
+            <div className="space-y-2">{(d?.pending?.length ?? 0) === 0 ? <p className="text-xs text-slate-500">Nothing stalled. ✅</p> : d.pending.map(card)}</div>
+          </div>
+          <div>
+            <div className="text-[11px] font-bold text-slate-300 mb-2">↩️ Recent auto-refunds · {d?.recent?.length ?? 0}</div>
+            <div className="space-y-2 max-h-[28rem] overflow-y-auto">{(d?.recent?.length ?? 0) === 0 ? <p className="text-xs text-slate-500">No refunds. ✅</p> : d.recent.map(card)}</div>
+          </div>
+        </>
       )}
     </div>
   );
