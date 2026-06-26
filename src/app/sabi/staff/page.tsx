@@ -23,6 +23,8 @@ interface Proof {
 interface Refill {
   id: string; orderId: string; serviceType: string; targetUrl: string;
   refillQuantity: number; reason: string | null; status: string; createdAt: string;
+  startCount?: number | null; startScreenshotUrl?: string | null;
+  originalQuantity?: number | null; completedQuantity?: number | null; estimatedCount?: number | null;
 }
 interface CustomReq {
   id: string; category?: string; status: string; description: string;
@@ -222,6 +224,38 @@ function ProofsTab() {
     } finally { setProofBusy(null); }
   };
 
+  // Bulk selection per order → approve or flag many proofs at once.
+  const [selected, setSelected] = useState<Record<string, Set<string>>>({});
+  const toggleSel = (orderId: string, cid: string) => setSelected(s => {
+    const cur = new Set(s[orderId] || []);
+    cur.has(cid) ? cur.delete(cid) : cur.add(cid);
+    return { ...s, [orderId]: cur };
+  });
+  const selCount = (orderId: string) => (selected[orderId]?.size || 0);
+  const setAllSel = (orderId: string, ids: string[]) => setSelected(s => ({ ...s, [orderId]: new Set(ids) }));
+  const clearSel = (orderId: string) => setSelected(s => ({ ...s, [orderId]: new Set() }));
+
+  const bulkAct = async (orderId: string, action: 'approve' | 'flag') => {
+    const ids = [...(selected[orderId] || [])];
+    if (!ids.length) return;
+    let reason = '';
+    if (action === 'flag') { reason = prompt('Flag reason for the selected proofs (tasker sees this):') || ''; if (!reason) return; }
+    setProofBusy('bulk:' + orderId);
+    try {
+      await Promise.all(ids.map(cid => af('/api/sabi/admin/flag-proof', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completionId: cid, action, reason }),
+      })));
+      setProofs(p => {
+        const cur = p[orderId]; if (!cur) return p;
+        return { ...p, [orderId]: { ...cur, items: cur.items.map(it => !ids.includes(it.id) ? it
+          : action === 'approve' ? { ...it, staffApproved: true }
+          : { ...it, flag: { status: 'flagged', reason, reuploadedAt: null } }) } };
+      });
+      clearSel(orderId);
+    } finally { setProofBusy(null); }
+  };
+
   // Mark the whole order reviewed → it leaves this list and moves to Checked Orders.
   const [checking, setChecking] = useState<string | null>(null);
   const markChecked = async (orderId: string) => {
@@ -362,14 +396,36 @@ function ProofsTab() {
                     <StaffRefillControl orderId={o.id} />
                     {!pf || pf.loading ? <p className="text-slate-500 text-sm py-4">Loading proofs…</p> : (
                       <>
-                        <div className="text-[11px] text-slate-500 my-3">{pf.total} proof(s) · {pf.approved} approved</div>
+                        <div className="flex items-center justify-between gap-2 my-3 flex-wrap">
+                          <div className="text-[11px] text-slate-500">{pf.total} proof(s) · {pf.approved} approved{selCount(o.id) > 0 ? ` · ${selCount(o.id)} selected` : ''}</div>
+                          {pf.items.length > 0 && (() => {
+                            const selectable = pf.items.filter(it => !(it.flag && it.flag.status !== 'cleared')).map(it => it.id);
+                            const allSel = selectable.length > 0 && selectable.every(id => selected[o.id]?.has(id));
+                            return (
+                              <div className="flex items-center gap-1.5">
+                                <button onClick={() => allSel ? clearSel(o.id) : setAllSel(o.id, selectable)}
+                                  className="px-2 py-1 rounded bg-white/10 text-slate-300 text-[10px] font-bold hover:bg-white/20">{allSel ? 'Unselect all' : 'Select all'}</button>
+                                <button disabled={selCount(o.id) === 0 || !!proofBusy} onClick={() => bulkAct(o.id, 'approve')}
+                                  className="px-2 py-1 rounded bg-emerald-600/80 text-white text-[10px] font-bold disabled:opacity-40">✓ Approve sel.</button>
+                                <button disabled={selCount(o.id) === 0 || !!proofBusy} onClick={() => bulkAct(o.id, 'flag')}
+                                  className="px-2 py-1 rounded bg-red-600/80 text-white text-[10px] font-bold disabled:opacity-40">⚠️ Flag sel.</button>
+                              </div>
+                            );
+                          })()}
+                        </div>
                         {pf.items.length === 0 ? <p className="text-slate-600 text-xs pb-2">No proof uploaded yet.</p> : (
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-1">
                             {pf.items.map(p => {
                               const fl = p.flag && p.flag.status !== 'cleared' ? p.flag : null;
                               const resub = fl?.status === 'resubmitted';
                               return (
-                              <div key={p.id} className={`rounded-lg overflow-hidden bg-black/30 border ${fl ? (resub ? 'border-yellow-500/40' : 'border-red-500/40') : 'border-white/[0.06]'}`}>
+                              <div key={p.id} className={`relative rounded-lg overflow-hidden bg-black/30 border ${selected[o.id]?.has(p.id) ? 'border-blue-500/70 ring-1 ring-blue-500/40' : fl ? (resub ? 'border-yellow-500/40' : 'border-red-500/40') : 'border-white/[0.06]'}`}>
+                                {!fl && (
+                                  <label className="absolute top-1 left-1 z-10 cursor-pointer" onClick={e => e.stopPropagation()}>
+                                    <input type="checkbox" checked={!!selected[o.id]?.has(p.id)} onChange={() => toggleSel(o.id, p.id)}
+                                      className="w-4 h-4 accent-blue-500" />
+                                  </label>
+                                )}
                                 {isImg(p.proofUrl) ? (
                                   // eslint-disable-next-line @next/next/no-img-element
                                   <a href={p.proofUrl!} target="_blank" rel="noopener noreferrer"><img src={p.proofUrl!} alt="proof" loading="lazy" className="w-full h-24 object-cover hover:opacity-90" /></a>
@@ -501,6 +557,14 @@ function ReuploadsTab() {
                 <div className="min-w-0">
                   {it.sabiOrderId && <div className="text-[10px] font-mono text-violet-300">SABI #{it.sabiOrderId}</div>}
                   <div className="text-sm font-bold text-white truncate mt-0.5">{fmtSvc(it.campaignTitle) || 'Re-uploaded proof'}</div>
+                  {/* Target link — staff cross-check the re-upload against THIS account */}
+                  {it.targetUrl && (
+                    <div className="flex items-center gap-2 mt-1 bg-blue-500/[0.07] border border-blue-500/20 rounded-lg px-2.5 py-1.5">
+                      <span className="text-[10px] text-slate-400 shrink-0">🎯</span>
+                      <a href={it.targetUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-400 hover:underline break-all flex-1 min-w-0">{it.targetUrl}</a>
+                      <a href={it.targetUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold text-blue-300 shrink-0">Open ↗</a>
+                    </div>
+                  )}
                   {it.reason && <p className="text-[11px] mt-1 text-red-300/90">Original flag: {it.reason}</p>}
                   <div className="text-[10px] text-slate-600 mt-1">re-uploaded {it.reuploadedAt ? new Date(it.reuploadedAt).toLocaleString() : '—'}</div>
                 </div>
@@ -629,23 +693,27 @@ function RefillsTab() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [qty, setQty] = useState<Record<string, string>>({}); // staff-decided top-up
 
   const load = () => {
     setLoading(true);
     af('/api/sabi/admin/refills?status=pending')
       .then(r => (r.ok ? r.json() : null))
-      .then(d => setRefills(d?.refills || []))
+      .then(d => { const list = d?.refills || []; setRefills(list); setQty(Object.fromEntries(list.map((r: Refill) => [r.id, String(r.refillQuantity)]))); })
       .catch(() => setRefills([]))
       .finally(() => setLoading(false));
   };
   useEffect(() => { load(); }, []);
 
   const act = async (id: string, action: 'approve' | 'reject') => {
+    // Approving uses the EXACT quantity the staff typed — nothing else gets topped up.
+    const q = Math.floor(Number(qty[id]) || 0);
+    if (action === 'approve' && q < 1) { alert('Enter the refill quantity to approve.'); return; }
     setBusy(id);
     try {
       const res = await af('/api/sabi/admin/refills', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, action, note: notes[id] || '' }),
+        body: JSON.stringify({ id, action, note: notes[id] || '', quantity: q }),
       });
       if (res.ok) setRefills(prev => prev.filter(r => r.id !== id));
     } finally { setBusy(null); }
@@ -657,17 +725,43 @@ function RefillsTab() {
     <div className="space-y-3">
       {refills.map(r => (
         <div key={r.id} className="rounded-xl p-4 bg-white/[0.025] border border-white/[0.07]">
-          <div className="font-bold capitalize text-sm">{fmtSvc(r.serviceType)} · <span className="text-cyan-400">{r.refillQuantity.toLocaleString()}</span> refill</div>
-          <a href={r.targetUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:underline break-all">{r.targetUrl}</a>
-          <div className="text-[11px] text-slate-500 mt-0.5">Order {r.orderId.slice(0, 8)} · {new Date(r.createdAt).toLocaleString()}</div>
+          <div className="text-[10px] font-mono text-violet-300">SABI #{r.orderId}</div>
+          <div className="font-bold capitalize text-sm mt-0.5">{fmtSvc(r.serviceType)} · <span className="text-cyan-400">buyer asked {r.refillQuantity.toLocaleString()}</span></div>
+          <a href={r.targetUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:underline break-all">{r.targetUrl} ↗</a>
+          <div className="text-[11px] text-slate-500 mt-0.5">{new Date(r.createdAt).toLocaleString()}</div>
+
+          {/* Original-order baseline so staff can size the top-up correctly */}
+          <div className="mt-2.5 grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {[
+              { l: 'Start count', v: r.startCount != null ? r.startCount.toLocaleString() : '—' },
+              { l: 'Bought', v: r.originalQuantity != null ? r.originalQuantity.toLocaleString() : '—' },
+              { l: 'Est. final', v: r.estimatedCount != null ? r.estimatedCount.toLocaleString() : '—' },
+              { l: 'Delivered', v: r.completedQuantity != null ? r.completedQuantity.toLocaleString() : '—' },
+            ].map(s => (
+              <div key={s.l} className="rounded-lg bg-black/30 px-2.5 py-1.5">
+                <div className="text-[9px] text-slate-500 uppercase">{s.l}</div>
+                <div className="text-sm font-bold text-white">{s.v}</div>
+              </div>
+            ))}
+          </div>
+          {r.startScreenshotUrl && <a href={r.startScreenshotUrl} target="_blank" rel="noopener noreferrer" className="inline-block text-[11px] font-bold text-blue-400 hover:underline mt-1.5">📸 view buyer&apos;s before-shot ↗</a>}
           {r.reason && <div className="text-sm text-slate-300 mt-2 bg-black/30 rounded-lg p-2">“{r.reason}”</div>}
-          <div className="mt-3 flex flex-col sm:flex-row gap-2">
-            <input value={notes[r.id] || ''} onChange={e => setNotes(p => ({ ...p, [r.id]: e.target.value }))}
-              placeholder="Optional note to buyer…"
-              className="flex-1 bg-[#0F1420] border border-white/[0.08] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500/40" />
-            <div className="flex gap-2">
-              <button onClick={() => act(r.id, 'approve')} disabled={busy === r.id} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-sm disabled:opacity-50">Approve</button>
-              <button onClick={() => act(r.id, 'reject')} disabled={busy === r.id} className="px-4 py-2 bg-red-600/80 hover:bg-red-500 text-white font-bold rounded-lg text-sm disabled:opacity-50">Reject</button>
+
+          <div className="mt-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <label className="text-[11px] font-bold text-slate-400 shrink-0">Refill to approve:</label>
+              <input type="number" min={1} value={qty[r.id] ?? ''} onChange={e => setQty(p => ({ ...p, [r.id]: e.target.value }))}
+                className="w-28 bg-[#0F1420] border border-emerald-500/30 rounded-lg px-3 py-2 text-sm font-bold text-emerald-300 focus:outline-none focus:border-emerald-500/60" />
+              <span className="text-[10px] text-slate-500">only this exact amount is topped up</span>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input value={notes[r.id] || ''} onChange={e => setNotes(p => ({ ...p, [r.id]: e.target.value }))}
+                placeholder="Optional note to buyer…"
+                className="flex-1 bg-[#0F1420] border border-white/[0.08] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500/40" />
+              <div className="flex gap-2">
+                <button onClick={() => act(r.id, 'approve')} disabled={busy === r.id} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-sm disabled:opacity-50">Approve {qty[r.id] ? Number(qty[r.id]).toLocaleString() : ''}</button>
+                <button onClick={() => act(r.id, 'reject')} disabled={busy === r.id} className="px-4 py-2 bg-red-600/80 hover:bg-red-500 text-white font-bold rounded-lg text-sm disabled:opacity-50">Reject</button>
+              </div>
             </div>
           </div>
         </div>
