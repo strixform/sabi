@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { sabiExecute } from '@/lib/tursoClient';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 25;
@@ -29,19 +30,26 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const cutoff = new Date(Date.now() - SLA_HOURS * 3600 * 1000);
+  const cutoff = new Date(Date.now() - SLA_HOURS * 3600 * 1000).toISOString();
 
-  const stalled = await prisma.sabiOrder.findMany({
-    where: {
-      status: { in: ['executing', 'processing'] },
-      createdAt: { lt: cutoff },
-    },
-    take: MAX_PER_RUN,
-    orderBy: { createdAt: 'asc' },
+  // Raw read so we can reference dripChainId (a guarded column not in the Prisma
+  // model). Drip orders are paced slowly ON PURPOSE — exclude them.
+  const r = await sabiExecute({
+    sql: `SELECT id, userId, quantity, completedQuantity, totalPrice, gamesz360CampaignId
+          FROM SabiOrder
+          WHERE status IN ('executing','processing')
+            AND createdAt < ?
+            AND (dripChainId IS NULL OR dripChainId = '')
+            AND COALESCE(completedQuantity,0) < quantity
+          ORDER BY createdAt ASC LIMIT ?`,
+    args: [cutoff, MAX_PER_RUN],
   });
-
-  const due = stalled.filter(o => (o.completedQuantity || 0) < o.quantity);
-  if (due.length === 0) return NextResponse.json({ checked: stalled.length, refunded: 0 });
+  const due = (r.rows as any[]).map(o => ({
+    id: String(o.id), userId: String(o.userId),
+    quantity: Number(o.quantity), completedQuantity: Number(o.completedQuantity || 0),
+    totalPrice: Number(o.totalPrice), gamesz360CampaignId: o.gamesz360CampaignId ? String(o.gamesz360CampaignId) : null,
+  }));
+  if (due.length === 0) return NextResponse.json({ checked: due.length, refunded: 0 });
 
   const results: { id: string; refundKobo: number; delivered: number; quantity: number }[] = [];
 
@@ -93,5 +101,5 @@ export async function GET(req: NextRequest) {
 
   const totalRefundedKobo = results.reduce((s, r) => s + r.refundKobo, 0);
   console.log(`[partial-refund] closed ${results.length} stalled orders, refunded ₦${Math.round(totalRefundedKobo / 100)}`);
-  return NextResponse.json({ checked: stalled.length, refunded: results.length, totalRefundedNaira: Math.round(totalRefundedKobo / 100), results });
+  return NextResponse.json({ checked: due.length, refunded: results.length, totalRefundedNaira: Math.round(totalRefundedKobo / 100), results });
 }
