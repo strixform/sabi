@@ -45,6 +45,8 @@ interface Proof {
   countBefore?: string | null; countAfter?: string | null;
   // Auto-triage: this exact screenshot was reused on other proofs.
   duplicateImage?: boolean; duplicateCount?: number; duplicateCrossUser?: boolean;
+  // Auto-triage: OCR ran and the tasker's @username was NOT visible in the screenshot.
+  handleMissing?: boolean;
 }
 interface Refill {
   id: string; orderId: string; serviceType: string; targetUrl: string;
@@ -77,6 +79,7 @@ const numbersDown = (p: Proof): boolean => {
 const suspScore = (p: Proof): number =>
   (p.duplicateImage && p.duplicateCrossUser ? 3 : 0) +
   (p.duplicateImage ? 2 : 0) +
+  (p.handleMissing ? 2 : 0) +
   (numbersDown(p) ? 1 : 0);
 const fmtSvc = (s?: string | null) => (s || 'request').replace(/_/g, ' ');
 
@@ -476,7 +479,8 @@ function ProofsTab() {
                               const resub = fl?.status === 'resubmitted';
                               const badNums = numbersDown(p); // after ≤ before → no gain
                               const dupImg = !!p.duplicateImage; // same screenshot reused elsewhere
-                              const suspicious = badNums || dupImg;
+                              const noHandle = !!p.handleMissing; // OCR: @username not in the shot
+                              const suspicious = badNums || dupImg || noHandle;
                               return (
                               <div key={p.id} className={`relative rounded-lg overflow-hidden bg-black/30 border ${selected[o.id]?.has(p.id) ? 'border-blue-500/70 ring-1 ring-blue-500/40' : fl ? (resub ? 'border-yellow-500/40' : 'border-red-500/40') : suspicious ? 'border-red-500/60 ring-1 ring-red-500/30' : 'border-white/[0.06]'}`}>
                                 {!fl && (
@@ -524,6 +528,13 @@ function ProofsTab() {
                                     <div className="text-[8px] font-bold text-red-400">
                                       {p.duplicateCrossUser ? 'same shot used by other taskers — reuse ring' : 'same shot reused on another proof'}
                                     </div>
+                                  </div>
+                                )}
+                                {/* Auto-triage: OCR couldn't find the tasker's handle in the screenshot */}
+                                {noHandle && (
+                                  <div className="px-1.5 py-1 text-center bg-amber-500/20">
+                                    <div className="text-[9px] font-black text-amber-300">⚠️ @HANDLE NOT IN SHOT</div>
+                                    <div className="text-[8px] font-bold text-amber-400/90">typed username isn&apos;t visible in the image — verify</div>
                                   </div>
                                 )}
                                 {/* The account the tasker used for the action */}
