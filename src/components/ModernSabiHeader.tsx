@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiLogOut, FiHome, FiShoppingCart, FiKey, FiBook, FiMenu, FiX, FiCreditCard, FiDownload, FiInbox, FiUser, FiGift, FiRefreshCw, FiBookmark, FiZap, FiGrid, FiStar, FiTrendingUp } from 'react-icons/fi';
+import { FiLogOut, FiHome, FiShoppingCart, FiKey, FiBook, FiMenu, FiX, FiCreditCard, FiDownload, FiInbox, FiUser, FiGift, FiRefreshCw, FiBookmark, FiZap, FiGrid, FiStar, FiTrendingUp, FiUsers } from 'react-icons/fi';
 import { SiWhatsapp } from 'react-icons/si';
 import { LogoImage } from './LogoImage';
 
@@ -23,6 +23,7 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
   const [isIOS, setIsIOS] = useState(false);
   // WhatsApp support number — fetched from admin config
   const [waNumber, setWaNumber] = useState<string | null>(null);
+  const [acting, setActing] = useState<{ name: string; role: string } | null>(null);
 
   useEffect(() => {
     // Detect iOS Safari
@@ -77,6 +78,20 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
     checkSession();
   }, [pathname]);
 
+  // Acting-as indicator — when a teammate has switched into someone else's
+  // workspace, every order/wallet action affects THAT account, so show it everywhere.
+  useEffect(() => {
+    fetch('/api/sabi/team/acting', { credentials: 'include' })
+      .then((r) => r.json())
+      .then((d) => setActing(d?.acting ? { name: d.acting.name, role: d.acting.role } : null))
+      .catch(() => setActing(null));
+  }, [pathname]);
+
+  const switchBack = async () => {
+    await fetch('/api/sabi/team/switch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ownerId: null }) }).catch(() => {});
+    window.location.href = '/sabi/dashboard';
+  };
+
   const handleLogout = async () => {
     try {
       await fetch('/api/sabi/auth/logout', { method: 'POST' });
@@ -88,6 +103,7 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
 
   const navItems = [
     { href: '/sabi/dashboard', label: 'Dashboard', icon: FiHome, badge: null },
+    { href: '/sabi/order/group', label: 'Group Order', icon: FiGrid, badge: 'New' },
     { href: '/sabi/order', label: 'New Order', icon: FiShoppingCart, badge: 'Quick' },
     { href: '/sabi/ugc', label: 'Book Creators', icon: FiStar, badge: 'UGC' },
     { href: '/sabi/services', label: 'Services', icon: FiGrid, badge: null },
@@ -96,6 +112,7 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
     { href: '/sabi/growth', label: 'My Growth', icon: FiTrendingUp, badge: null },
     { href: '/sabi/subscriptions', label: 'Auto-Reorders', icon: FiRefreshCw, badge: null },
     { href: '/sabi/profiles', label: 'My Profiles', icon: FiBookmark, badge: null },
+    { href: '/sabi/team', label: 'Team', icon: FiUsers, badge: null },
     { href: '/sabi/partnership', label: 'Partnership', icon: FiKey, badge: 'Resell' },
     { href: '/sabi/referral', label: 'Refer & Earn', icon: FiGift, badge: '₦100' },
     { href: '/sabi/profile', label: 'Profile', icon: FiUser, badge: null },
@@ -106,6 +123,13 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
   const isActive = (href: string) => pathname === href;
 
   return (
+    <>
+    {acting && (
+      <div className="sticky top-0 z-[60] flex flex-wrap items-center justify-center gap-2 bg-amber-600 px-3 py-1.5 text-center text-xs font-semibold text-black">
+        <span>⚡ Acting as <b>{acting.name}</b> ({acting.role}) — orders &amp; wallet affect their account</span>
+        <button onClick={switchBack} className="rounded bg-black/20 px-2 py-0.5 hover:bg-black/30">Switch back</button>
+      </div>
+    )}
     <header className="sticky top-0 z-50 border-b border-white/[0.05]"
       style={{ backdropFilter: 'blur(24px) saturate(180%)', background: 'rgba(3,5,7,0.80)' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -401,6 +425,7 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
         )}
       </AnimatePresence>
     </header>
+    </>
   );
 };
 

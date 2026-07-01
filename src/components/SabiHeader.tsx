@@ -26,6 +26,7 @@ export const SabiHeader: React.FC<SabiHeaderProps> = ({ showNavigation = true })
 
   const navItems = [
     { href: '/sabi/dashboard', label: 'Dashboard', icon: FiHome },
+    { href: '/sabi/order/group', label: 'Group Order', icon: FiShoppingCart },
     { href: '/sabi/order', label: 'New Order', icon: FiShoppingCart },
     { href: '/sabi/api-keys', label: 'API Keys', icon: FiKey },
     { href: '/sabi/docs', label: 'Docs', icon: FiBook },
