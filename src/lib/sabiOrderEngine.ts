@@ -189,8 +189,31 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
     }
 
     // ── Discounts applied to the wallet charge ──────────────────────────────
-    // Promo discount (from a code the user applied) — capped at the total.
-    const promoDiscountKobo = Math.max(0, Math.min(Math.round(input.discountAmount || 0), totalPrice));
+    // Promo discount — COMPUTED SERVER-SIDE from the validated code. We must NEVER
+    // trust input.discountAmount from the client: previously any user could send a big
+    // discountAmount and always pay only the margin floor without a real promo. Now the
+    // discount is derived from the promo's own rules (type/value/expiry/uses/min/one-per-user).
+    let promoDiscountKobo = 0;
+    if (input.promoCodeId) {
+      try {
+        const promo = await prisma.sabiPromoCode.findUnique({ where: { id: input.promoCodeId } });
+        const now = new Date();
+        const usable = !!promo && promo.active
+          && (!promo.expiresAt || promo.expiresAt > now)
+          && (promo.maxUses == null || promo.usedCount < promo.maxUses)
+          && totalPrice >= (promo.minOrderKobo || 0);
+        if (usable && promo) {
+          // One redemption per user.
+          const prior = await prisma.sabiPromoUsage.findFirst({ where: { promoId: promo.id, userId: input.userId } });
+          if (!prior) {
+            promoDiscountKobo = promo.discountType === 'percent'
+              ? Math.round(totalPrice * Math.min(100, Math.max(0, promo.discountValue)) / 100)
+              : Math.min(Math.max(0, promo.discountValue), totalPrice);
+          }
+        }
+      } catch { promoDiscountKobo = 0; }
+    }
+    promoDiscountKobo = Math.max(0, Math.min(promoDiscountKobo, totalPrice));
     // First-order welcome coupon: 10% off (max ₦2,000), only when no promo is
     // used and this is the user's very first order. Acquisition incentive.
     let welcomeDiscountKobo = 0;
@@ -337,10 +360,11 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
         if (sendAutoTopupEmail) sendAutoTopupEmail(user.email, user.name, amountNaira);
       }).catch(() => {});
 
-    // Mark promo code used (fire-and-forget)
-    if (input.promoCodeId && input.discountAmount) {
+    // Mark promo code used — ONLY when a validated promo discount was actually applied
+    // (server-computed above), and record the real saved amount, not the client's number.
+    if (input.promoCodeId && promoDiscountKobo > 0) {
       prisma.sabiPromoCode.update({ where: { id: input.promoCodeId }, data: { usedCount: { increment: 1 } } }).catch(() => {});
-      prisma.sabiPromoUsage.create({ data: { promoId: input.promoCodeId, userId: input.userId, orderId: order.id, savedKobo: input.discountAmount } }).catch(() => {});
+      prisma.sabiPromoUsage.create({ data: { promoId: input.promoCodeId, userId: input.userId, orderId: order.id, savedKobo: promoDiscountKobo } }).catch(() => {});
     }
 
     // Referral reward is no longer triggered on order — it now fires when the
