@@ -78,6 +78,34 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // SELF-HEAL drip chains. Completion-mode chains advance by un-parking slice i+1
+  // when slice i completes. If that release was ever missed (e.g. a completion path
+  // that bypassed the hook), the held slices sit at a far-future scheduledAt forever.
+  // This sweep recovers EVERY stalled chain — and runs every 5 min, so it also
+  // back-fills the existing backlog on the first run after deploy: release any
+  // still-parked pending slice whose immediately-prior sibling is already completed.
+  // Runs BEFORE the `due` query so freed slices go out in this same run. Idempotent
+  // (only touches still-parked pending slices); harmless to repeat.
+  try {
+    await sabiExecute({
+      sql: `UPDATE SabiOrder SET scheduledAt = datetime('now')
+            WHERE dripMode = 'completion'
+              AND status = 'pending'
+              AND gamesz360CampaignId IS NULL
+              AND dripChainId IS NOT NULL
+              AND (scheduledAt IS NULL OR scheduledAt > datetime('now'))
+              AND EXISTS (
+                SELECT 1 FROM SabiOrder prev
+                WHERE prev.dripChainId = SabiOrder.dripChainId
+                  AND prev.dripIndex = SabiOrder.dripIndex - 1
+                  AND prev.status = 'completed'
+              )`,
+      args: [],
+    });
+  } catch (e: any) {
+    console.error('[CRON] drip self-heal sweep failed:', e?.message);
+  }
+
   // Find ALL pending orders that haven't been submitted to gamerz360 yet.
   // This includes:
   //   1. Scheduled orders whose scheduledAt time has passed

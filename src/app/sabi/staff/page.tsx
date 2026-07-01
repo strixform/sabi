@@ -2,8 +2,28 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, type ReactNode, type SyntheticEvent } from 'react';
 import Link from 'next/link';
+
+// Click-to-copy chip. Rendered as a span (not a button) so it can live inside the
+// card's header button without nesting buttons; stops propagation so copying does
+// not also toggle the card open/closed. Shows a brief ✓ after copying.
+function Copyable({ value, children, className }: { value: string; children: ReactNode; className?: string }) {
+  const [done, setDone] = useState(false);
+  const copy = (e: SyntheticEvent) => {
+    e.stopPropagation(); e.preventDefault();
+    navigator.clipboard?.writeText(value);
+    setDone(true); setTimeout(() => setDone(false), 1200);
+  };
+  return (
+    <span role="button" tabIndex={0} onClick={copy}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') copy(e); }}
+      title="Click to copy"
+      className={`inline-flex items-center gap-1 cursor-pointer hover:text-white ${className || ''}`}>
+      {children}<span className="opacity-50">{done ? '✓' : '⧉'}</span>
+    </span>
+  );
+}
 
 type Tab = 'proofs' | 'reuploads' | 'checked' | 'refunds' | 'refills' | 'requests' | 'partnerships';
 
@@ -364,7 +384,7 @@ function ProofsTab() {
                 <button onClick={() => toggle(o.id)} className="w-full text-left p-4 flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-[10px] font-mono text-violet-300">SABI #{o.id}</span>
+                      <Copyable value={o.id} className="text-[10px] font-mono text-violet-300">SABI #{o.id}</Copyable>
                       {o.refillOf && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">↻ REFILL of #{o.refillOf}</span>}
                     </div>
                     <div className="font-bold capitalize text-sm">{fmtSvc(o.serviceType)} · <span className="text-cyan-400">{(o.completedQuantity ?? 0).toLocaleString()}/{o.quantity.toLocaleString()}</span></div>
@@ -372,7 +392,11 @@ function ProofsTab() {
                       onClick={(e) => { e.stopPropagation(); window.open(o.targetUrl, '_blank', 'noopener,noreferrer'); }}
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); window.open(o.targetUrl, '_blank', 'noopener,noreferrer'); } }}
                       className="block text-xs text-blue-400 hover:underline cursor-pointer truncate max-w-[240px]">{o.targetUrl} ↗</span>
-                    <div className="text-[11px] text-slate-500 mt-0.5">{o.user?.email || '—'} · {new Date(o.createdAt).toLocaleDateString()}</div>
+                    <div className="text-[11px] text-slate-500 mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                      {o.user?.email ? <Copyable value={o.user.email} className="text-slate-400">{o.user.email}</Copyable> : <span>—</span>}
+                      <span>· {new Date(o.createdAt).toLocaleDateString()}</span>
+                      <Copyable value={o.targetUrl} className="text-slate-500">copy link</Copyable>
+                    </div>
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${o.status === 'completed' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-yellow-500/15 text-yellow-300'}`}>{o.status}</span>
@@ -392,8 +416,7 @@ function ProofsTab() {
                         className="text-xs text-blue-400 hover:underline break-all flex-1 min-w-0">{o.targetUrl}</a>
                       <a href={o.targetUrl} target="_blank" rel="noopener noreferrer"
                         className="text-[10px] font-bold text-blue-300 hover:text-white shrink-0 whitespace-nowrap">Open ↗</a>
-                      <button onClick={() => { navigator.clipboard?.writeText(o.targetUrl); }}
-                        className="text-[10px] text-slate-400 hover:text-white shrink-0">Copy</button>
+                      <Copyable value={o.targetUrl} className="text-[10px] text-slate-400 shrink-0">Copy</Copyable>
                     </div>
                     {/* Buyer's starting count + "before" screenshot (compulsory at order time). */}
                     {(o.startCount != null || o.startScreenshotUrl) && (

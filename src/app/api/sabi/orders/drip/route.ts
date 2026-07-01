@@ -3,6 +3,7 @@ import { getSabiSession } from '@/lib/sabiAuth';
 import { createSabiOrder } from '@/lib/sabiOrderEngine';
 import { getService } from '@/lib/sabiServices';
 import { getRateLimitKey, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit';
+import { getActingAccount, canSpend } from '@/lib/sabiTeam';
 import crypto from 'crypto';
 
 export const maxDuration = 30;
@@ -22,6 +23,11 @@ export async function POST(req: NextRequest) {
 
   const session = await getSabiSession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const acct = await getActingAccount(session.id);
+  if (acct.delegated && !canSpend(acct.role)) {
+    return NextResponse.json({ error: 'You have view-only access to this account and cannot place orders.' }, { status: 403 });
+  }
 
   const body = await req.json().catch(() => ({}));
   const {
@@ -78,7 +84,7 @@ export async function POST(req: NextRequest) {
       ? undefined
       : dripMode === 'time' ? new Date(now + i * intervalMs) : HELD_FUTURE;
     const result = await createSabiOrder({
-      userId: session.id,
+      userId: acct.accountId,
       serviceId,
       targetUrl,
       quantity: slices[i],

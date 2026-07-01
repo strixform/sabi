@@ -44,6 +44,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { invalidateOrdersCache } from '@/lib/redis';
+import { releaseNextDripSlice } from '@/lib/sabiOrderEngine';
 
 export const preferredRegion = "sfo1";
 export const maxDuration = 10; // fast DB update + fire-and-forget notifications
@@ -106,6 +107,10 @@ export async function POST(req: NextRequest) {
 
     // Bust the Redis order cache so the user's next page load shows live count
     await invalidateOrdersCache(order.userId).catch(() => {});
+
+    // Completion-mode drip chains: now that this slice is done, hand off to the
+    // next parked slice so the chain keeps moving (no-op for non-drip orders).
+    if (isComplete) await releaseNextDripSlice(order.id);
 
     // Loyalty cashback — credit 2% (max ₦500) of what was paid, once, on completion.
     if (isComplete) {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkSabiAdmin } from '@/lib/sabiAdminAuth';
 import { allowOwnerOrStaff } from '@/lib/sabiStaff';
 import { prisma } from '@/lib/prisma';
+import { releaseNextDripSlice } from '@/lib/sabiOrderEngine';
 
 export const maxDuration = 15;
 export const preferredRegion = 'sfo1';
@@ -124,6 +125,10 @@ export async function PATCH(req: NextRequest) {
       data: updateData,
       include: { user: { select: { id: true, email: true, name: true } } },
     });
+
+    // If this update completed the order (explicit status or auto-complete when the
+    // quantity is reached), advance any completion-mode drip chain it belongs to.
+    if (updated.status === 'completed') await releaseNextDripSlice(updated.id);
 
     // adminNote: write via raw SQL because targetingNote exists in the Turso DB
     // column but is not declared in the Prisma schema — Prisma would silently drop it.

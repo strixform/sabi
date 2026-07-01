@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSabiSession } from '@/lib/sabiAuth';
 import { getSabiWallet, getSabiTransactions } from '@/lib/sabiWallet';
 import { getCachedWallet, setCachedWallet } from '@/lib/redis';
+import { getActingAccount } from '@/lib/sabiTeam';
 
 export const preferredRegion = 'sfo1';
 export const maxDuration = 10;
@@ -20,10 +21,13 @@ export async function GET(req: NextRequest) {
     const session = await getSabiSession();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+    // When acting inside a workspace, show that account's wallet (members spend it).
+    const acct = await getActingAccount(session.id);
+
     // Fetch wallet + transactions in parallel — was sequential (2× DB roundtrip cost)
     const [wallet, transactions] = await Promise.all([
-      getSabiWallet(session.id),
-      getSabiTransactions(session.id, 20),
+      getSabiWallet(acct.accountId),
+      getSabiTransactions(acct.accountId, 20),
     ]);
 
     const data = {

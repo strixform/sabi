@@ -3,6 +3,7 @@ import { getSabiSession } from '@/lib/sabiAuth';
 import { sabiExecute } from '@/lib/tursoClient';
 import { createSabiOrder } from '@/lib/sabiOrderEngine';
 import { getBundleById, computeBundleTotal } from '@/lib/servicesCatalog';
+import { getActingAccount, canSpend } from '@/lib/sabiTeam';
 
 export const maxDuration = 30; // creates several orders sequentially
 export const preferredRegion = 'sfo1';
@@ -17,6 +18,11 @@ export async function POST(req: NextRequest) {
   const session = await getSabiSession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  const acct = await getActingAccount(session.id);
+  if (acct.delegated && !canSpend(acct.role)) {
+    return NextResponse.json({ error: 'You have view-only access to this account and cannot place orders.' }, { status: 403 });
+  }
+
   let body: any;
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
 
@@ -30,7 +36,7 @@ export async function POST(req: NextRequest) {
 
   try {
     // Pre-check wallet balance against the full pack total (avoids partial charges).
-    const w = await sabiExecute({ sql: `SELECT balance FROM SabiWallet WHERE userId = ? LIMIT 1`, args: [session.id] });
+    const w = await sabiExecute({ sql: `SELECT balance FROM SabiWallet WHERE userId = ? LIMIT 1`, args: [acct.accountId] });
     const balance = Number((w.rows[0] as any)?.balance ?? 0);
     if (balance < cost.total) {
       return NextResponse.json({
@@ -43,7 +49,7 @@ export async function POST(req: NextRequest) {
     const created: { serviceId: string; orderId?: string; error?: string }[] = [];
     for (const item of bundle.items) {
       const r = await createSabiOrder({
-        userId: session.id,
+        userId: acct.accountId,
         serviceId: item.serviceId,
         targetUrl,
         quantity: item.quantity,

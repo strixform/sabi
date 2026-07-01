@@ -17,6 +17,36 @@ function baseHtml(title: string, body: string) {
   </div>`;
 }
 
+export async function sendTeamInviteEmail(to: string, inviterName: string, acceptUrl: string, role: string = 'viewer') {
+  if (!process.env.RESEND_API_KEY || !to) {
+    console.log(`[EMAIL-DEV] Team invite → ${to} (from ${inviterName}, ${role})`);
+    return { success: true, dev: true };
+  }
+  const esc = (s: string) => String(s).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c] || c));
+  const roleLine = role === 'admin'
+    ? "as an <b>Admin</b> — you'll be able to view activity, place orders, and manage their team."
+    : role === 'member'
+    ? "as a <b>Member</b> — you'll be able to view activity and place orders on their account."
+    : "as a <b>Viewer</b> — you'll be able to see their orders and activity (you can't place or change orders).";
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to,
+      subject: `${esc(inviterName)} invited you to their SABI account`,
+      html: baseHtml('Team invite', `
+        <p style="font-size:15px;line-height:1.6;color:#e2e8f0;">Hi,</p>
+        <p style="font-size:15px;line-height:1.6;color:#e2e8f0;"><b>${esc(inviterName)}</b> invited you to their SABI account ${roleLine}</p>
+        <div style="text-align:center;margin:24px 0;">
+          <a href="${acceptUrl}" style="display:inline-block;background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;text-decoration:none;font-weight:800;padding:12px 28px;border-radius:10px;font-size:15px;">Accept invite →</a>
+        </div>
+        <p style="font-size:12px;color:#64748b;">Sign in with this email address to accept. Or paste this link:<br>${acceptUrl}</p>`),
+    });
+    return { success: true };
+  } catch {
+    return { success: false };
+  }
+}
+
 export async function sendAdminAlertEmail(subject: string, bodyHtml: string) {
   const adminEmail = process.env.SABI_ADMIN_EMAIL;
   if (!adminEmail) return;

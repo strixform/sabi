@@ -566,6 +566,38 @@ export async function cancelSabiOrder(
   }
 }
 
+/**
+ * Release the next slice of a completion-mode drip chain.
+ *
+ * Completion-mode slices 1..N are created + charged upfront but parked at a
+ * far-future scheduledAt ("held"). They only go live once the PRIOR slice
+ * finishes. Call this whenever a slice reaches 'completed' — from ANY path
+ * (webhook, admin panel, cron self-heal) — to un-park the next one: it flips
+ * that slice's scheduledAt → now so the process-scheduled cron submits it.
+ *
+ * Idempotent: only touches a slice that is still `pending`, so calling it more
+ * than once (e.g. webhook + cron sweep both fire) is harmless. Raw SQL because
+ * the drip columns are ALTER-added, not declared in the Prisma model.
+ */
+export async function releaseNextDripSlice(orderId: string): Promise<void> {
+  try {
+    const dr = await sabiExecute({
+      sql: `SELECT dripChainId, dripIndex, dripTotal, dripMode FROM SabiOrder WHERE id = ? LIMIT 1`,
+      args: [orderId],
+    }).catch(() => ({ rows: [] as any[] }));
+    const o = dr.rows[0] as any;
+    const idx = o?.dripIndex == null ? null : Number(o.dripIndex);
+    if (o?.dripMode === 'completion' && o?.dripChainId && idx != null && idx + 1 < Number(o.dripTotal || 0)) {
+      await sabiExecute({
+        sql: `UPDATE SabiOrder SET scheduledAt = datetime('now') WHERE dripChainId = ? AND dripIndex = ? AND status = 'pending'`,
+        args: [String(o.dripChainId), idx + 1],
+      });
+    }
+  } catch (e: any) {
+    console.error('[drip-chain] release next slice failed:', e?.message);
+  }
+}
+
 export async function updateSabiOrderStatus(
   orderId: string,
   status: string,
@@ -591,28 +623,8 @@ export async function updateSabiOrderStatus(
       else if (status === 'failed') sendOrderFailedEmail(order.user.email, order.user.name, orderId, svcName);
     }
 
-    // Completion-triggered drip: when a chain slice completes, RELEASE the next held
-    // slice (created+charged upfront with a far-future scheduledAt). Setting
-    // scheduledAt → now hands it to the process-scheduled cron, which pushes it out.
-    // Raw SQL because the drip columns are added via ALTER, not in the Prisma model.
-    if (status === 'completed') {
-      try {
-        const dr = await sabiExecute({
-          sql: `SELECT dripChainId, dripIndex, dripTotal, dripMode FROM SabiOrder WHERE id = ? LIMIT 1`,
-          args: [orderId],
-        }).catch(() => ({ rows: [] as any[] }));
-        const o = dr.rows[0] as any;
-        const idx = o?.dripIndex == null ? null : Number(o.dripIndex);
-        if (o?.dripMode === 'completion' && o?.dripChainId && idx != null && idx + 1 < Number(o.dripTotal || 0)) {
-          await sabiExecute({
-            sql: `UPDATE SabiOrder SET scheduledAt = datetime('now') WHERE dripChainId = ? AND dripIndex = ? AND status = 'pending'`,
-            args: [String(o.dripChainId), idx + 1],
-          });
-        }
-      } catch (e: any) {
-        console.error('[drip-chain] release next slice failed:', e?.message);
-      }
-    }
+    // Completion-triggered drip: when a chain slice completes, release the next held slice.
+    if (status === 'completed') await releaseNextDripSlice(orderId);
 
     // Push notification
     try {

@@ -66,11 +66,19 @@ export async function PUT(req: NextRequest) {
   const quantity = Math.floor(Number(body.quantity) || 0);
   if (!orderId || quantity < 1) return NextResponse.json({ error: 'Order ID and a positive quantity are required.' }, { status: 400 });
 
-  const orig = await prisma.sabiOrder.findUnique({
-    where: { id: orderId },
-    select: { id: true, userId: true, serviceType: true, targetUrl: true },
-  });
-  if (!orig) return NextResponse.json({ error: `Order ${orderId} not found.` }, { status: 404 });
+  const sel = { id: true, userId: true, serviceType: true, targetUrl: true } as const;
+  let orig = await prisma.sabiOrder.findUnique({ where: { id: orderId }, select: sel });
+  if (!orig) {
+    // Staff usually paste the SHORTENED id shown in the console (the UI truncates
+    // the full cuid). Fall back to a prefix match so the displayed id still works.
+    const matches = await prisma.sabiOrder.findMany({
+      where: { id: { startsWith: orderId } }, select: sel, take: 5,
+    });
+    if (matches.length === 1) orig = matches[0];
+    else if (matches.length > 1)
+      return NextResponse.json({ error: `That ID matches ${matches.length} orders — paste a few more characters of the Order ID.` }, { status: 409 });
+  }
+  if (!orig) return NextResponse.json({ error: `Order ${orderId} not found. Use the full Order ID (or its leading characters).` }, { status: 404 });
 
   const service = getService(orig.serviceType);
   const pricePerUnit = service?.pricePerUnit ?? 0;

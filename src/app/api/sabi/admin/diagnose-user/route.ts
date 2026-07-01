@@ -49,15 +49,18 @@ export async function GET(req: NextRequest) {
       let unaccountedKobo = 0;
       try {
         const acc = await sabiExecute({ sql: `SELECT COALESCE(SUM(totalPrice + platformFee - COALESCE(discountAmount,0)),0) AS a FROM SabiOrder WHERE userId = ?`, args: [u.id] });
-        const w2 = await sabiExecute({ sql: `SELECT totalSpent FROM SabiWallet WHERE userId = ? LIMIT 1`, args: [u.id] });
+        const w2 = await sabiExecute({ sql: `SELECT totalSpent, totalRefunded FROM SabiWallet WHERE userId = ? LIMIT 1`, args: [u.id] });
         // Engine refunds (this tool + stuck-charges) credit back as 'fund' rows but
         // don't reduce totalSpent — subtract them so an already-refunded user reads 0
         // instead of appearing to still be owed.
         const ref = await sabiExecute({ sql: `SELECT COALESCE(SUM(amount),0) AS r FROM SabiTransaction WHERE userId = ? AND type = 'fund' AND reference LIKE 'engine-refund:%'`, args: [u.id] });
         const accountedKobo = Number((acc.rows[0] as any)?.a || 0);
         const spentKobo = Number((w2.rows[0] as any)?.totalSpent || 0);
+        const normalRefundKobo = Number((w2.rows[0] as any)?.totalRefunded || 0);
         const priorRefundKobo = Number((ref.rows[0] as any)?.r || 0);
-        unaccountedKobo = Math.max(0, spentKobo - accountedKobo - priorRefundKobo);
+        // Subtract BOTH normal 'refund' txns (auto-refund on failed create / cancellations)
+        // AND this tool's engine-refunds — so an already-refunded user reads 0 (no double refund).
+        unaccountedKobo = Math.max(0, spentKobo - accountedKobo - normalRefundKobo - priorRefundKobo);
       } catch {}
 
       // Optional one-time refund of the unaccounted spend (idempotent: fixed ref).
