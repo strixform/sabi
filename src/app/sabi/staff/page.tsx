@@ -47,6 +47,8 @@ interface Proof {
   duplicateImage?: boolean; duplicateCount?: number; duplicateCrossUser?: boolean;
   // Auto-triage: OCR ran and the tasker's @username was NOT visible in the screenshot.
   handleMissing?: boolean;
+  // Tasker trust — overall reputation of the person who submitted this proof.
+  trustScore?: number; trustLevel?: string; // trusted | normal | low | flagged
 }
 interface Refill {
   id: string; orderId: string; serviceType: string; targetUrl: string;
@@ -80,7 +82,16 @@ const suspScore = (p: Proof): number =>
   (p.duplicateImage && p.duplicateCrossUser ? 3 : 0) +
   (p.duplicateImage ? 2 : 0) +
   (p.handleMissing ? 2 : 0) +
+  (p.trustLevel === 'flagged' ? 3 : p.trustLevel === 'low' ? 1 : 0) +
   (numbersDown(p) ? 1 : 0);
+
+// Small chip describing the tasker's trust tier.
+const TRUST_CHIP: Record<string, { label: string; cls: string }> = {
+  trusted: { label: '🟢 trusted tasker', cls: 'text-emerald-300 bg-emerald-500/15' },
+  normal:  { label: '⚪ normal', cls: 'text-slate-300 bg-white/5' },
+  low:     { label: '🟠 low trust', cls: 'text-amber-300 bg-amber-500/15' },
+  flagged: { label: '🔴 flagged tasker', cls: 'text-red-300 bg-red-500/20' },
+};
 const fmtSvc = (s?: string | null) => (s || 'request').replace(/_/g, ' ');
 
 // Preset flag reasons staff can pick (plus a free-text box for anything else).
@@ -535,6 +546,15 @@ function ProofsTab() {
                                   <div className="px-1.5 py-1 text-center bg-amber-500/20">
                                     <div className="text-[9px] font-black text-amber-300">⚠️ @HANDLE NOT IN SHOT</div>
                                     <div className="text-[8px] font-bold text-amber-400/90">typed username isn&apos;t visible in the image — verify</div>
+                                  </div>
+                                )}
+                                {/* Tasker trust — the reputation of the person behind this proof */}
+                                {p.trustLevel && (
+                                  <div className="px-1.5 pt-1 flex items-center gap-1">
+                                    <span className={`text-[8px] font-black px-1.5 py-0.5 rounded ${(TRUST_CHIP[p.trustLevel] || TRUST_CHIP.normal).cls}`}>
+                                      {(TRUST_CHIP[p.trustLevel] || TRUST_CHIP.normal).label}
+                                    </span>
+                                    {typeof p.trustScore === 'number' && <span className="text-[8px] text-slate-500">{p.trustScore}/100</span>}
                                   </div>
                                 )}
                                 {/* The account the tasker used for the action */}
