@@ -857,6 +857,21 @@ export default function OrderPage() {
                 <FiArrowRight className="w-5 h-5 text-violet-400 group-hover:translate-x-1 transition-transform flex-shrink-0 ml-4" />
               </Link>
 
+              {/* Group Order banner — one link, many actions at once */}
+              <Link href="/sabi/order/group"
+                className="flex items-center justify-between p-4 sm:p-5 rounded-xl mb-5 border border-emerald-500/30 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 hover:from-emerald-500/20 hover:to-teal-500/20 transition-all group">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-600 flex items-center justify-center flex-shrink-0">
+                    <FiShoppingCart className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-white text-sm sm:text-base">Group Order <span className="ml-1 text-[10px] font-black uppercase tracking-wide text-emerald-300 bg-emerald-500/15 px-1.5 py-0.5 rounded">New</span></div>
+                    <div className="text-xs sm:text-sm text-slate-400">One link, many actions at once — likes, comments, saves, shares and more, each as its own order.</div>
+                  </div>
+                </div>
+                <FiArrowRight className="w-5 h-5 text-emerald-400 group-hover:translate-x-1 transition-transform flex-shrink-0 ml-4" />
+              </Link>
+
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
                 {Object.entries(PLATFORMS).map(([label, value]) => {
                   const Icon = PLATFORM_ICONS[value];

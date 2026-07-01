@@ -103,7 +103,6 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
 
   const navItems = [
     { href: '/sabi/dashboard', label: 'Dashboard', icon: FiHome, badge: null },
-    { href: '/sabi/order/group', label: 'Group Order', icon: FiGrid, badge: 'New' },
     { href: '/sabi/order', label: 'New Order', icon: FiShoppingCart, badge: 'Quick' },
     { href: '/sabi/ugc', label: 'Book Creators', icon: FiStar, badge: 'UGC' },
     { href: '/sabi/services', label: 'Services', icon: FiGrid, badge: null },

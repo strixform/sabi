@@ -4,19 +4,25 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import type { IconType } from "react-icons";
+import {
+  SiInstagram, SiTiktok, SiYoutube, SiX, SiFacebook, SiThreads, SiSpotify, SiTelegram,
+} from "react-icons/si";
+import { FaLinkedinIn } from "react-icons/fa";
 
 interface Svc { id: string; name: string; action: string; category: string; pricePerUnit: number; minQuantity: number; maxQuantity: number; }
 
-const PLATFORMS: { key: string; label: string; icon: string }[] = [
-  { key: "instagram", label: "Instagram", icon: "📸" },
-  { key: "tiktok", label: "TikTok", icon: "🎵" },
-  { key: "youtube", label: "YouTube", icon: "▶️" },
-  { key: "twitter", label: "Twitter / X", icon: "𝕏" },
-  { key: "facebook", label: "Facebook", icon: "📘" },
-  { key: "threads", label: "Threads", icon: "🧵" },
-  { key: "spotify", label: "Spotify", icon: "🎧" },
-  { key: "telegram", label: "Telegram", icon: "✈️" },
-  { key: "linkedin", label: "LinkedIn", icon: "💼" },
+// Premium brand icons + brand colours for a polished, on-brand picker.
+const PLATFORMS: { key: string; label: string; Icon: IconType; color: string }[] = [
+  { key: "instagram", label: "Instagram", Icon: SiInstagram, color: "#E1306C" },
+  { key: "tiktok",    label: "TikTok",    Icon: SiTiktok,    color: "#25F4EE" },
+  { key: "youtube",   label: "YouTube",   Icon: SiYoutube,   color: "#FF0000" },
+  { key: "twitter",   label: "Twitter / X", Icon: SiX,       color: "#FFFFFF" },
+  { key: "facebook",  label: "Facebook",  Icon: SiFacebook,  color: "#1877F2" },
+  { key: "threads",   label: "Threads",   Icon: SiThreads,   color: "#FFFFFF" },
+  { key: "spotify",   label: "Spotify",   Icon: SiSpotify,   color: "#1DB954" },
+  { key: "telegram",  label: "Telegram",  Icon: SiTelegram,  color: "#229ED9" },
+  { key: "linkedin",  label: "LinkedIn",  Icon: FaLinkedinIn, color: "#0A66C2" },
 ];
 
 export default function GroupOrderPage() {
@@ -74,12 +80,16 @@ export default function GroupOrderPage() {
 
         {/* Platform */}
         <div className="flex flex-wrap gap-2 mb-3">
-          {PLATFORMS.map(p => (
-            <button key={p.key} onClick={() => setPlatform(p.key)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-bold border ${platform === p.key ? "bg-blue-600 border-blue-500 text-white" : "bg-white/5 border-white/10 text-gray-300"}`}>
-              {p.icon} {p.label}
-            </button>
-          ))}
+          {PLATFORMS.map(p => {
+            const active = platform === p.key;
+            return (
+              <button key={p.key} onClick={() => setPlatform(p.key)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold border transition-all ${active ? "bg-blue-600 border-blue-500 text-white" : "bg-white/5 border-white/10 text-gray-300 hover:border-white/25"}`}>
+                <p.Icon className="text-base shrink-0" style={{ color: active ? "#fff" : p.color }} />
+                {p.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Link */}
