@@ -499,8 +499,11 @@ function ProofsTab() {
                                 {/* The numbers the tasker reported — the quick coherence check for staff.
                                     When after ≤ before (no gain) we flag it red so staff catch it fast. */}
                                 {(p.countBefore || p.countAfter) && (
-                                  <div className={`px-1.5 py-1 text-[10px] font-black text-center ${badNums ? 'text-red-300 bg-red-500/15' : 'text-white bg-blue-500/10'}`}>
-                                    📊 {p.countBefore ?? '?'} <span className={badNums ? 'text-red-400' : 'text-blue-300'}>→</span> {p.countAfter ?? '?'}
+                                  <div className={`px-1.5 py-1 text-center ${badNums ? 'text-red-300 bg-red-500/15' : 'text-white bg-blue-500/10'}`}>
+                                    <div className="text-[8px] font-black tracking-widest opacity-70">COUNT (BEFORE → AFTER)</div>
+                                    <div className="text-[11px] font-black">
+                                      {p.countBefore ?? '?'} <span className={badNums ? 'text-red-400' : 'text-blue-300'}>→</span> {p.countAfter ?? '?'}
+                                    </div>
                                     {badNums && <div className="text-[8.5px] font-bold text-red-400 mt-0.5">⚠️ NO GAIN — after ≤ before</div>}
                                   </div>
                                 )}
