@@ -40,6 +40,9 @@ interface Proof {
   id: string; proofUrl: string | null; proofText: string | null; status: string; createdAt: string;
   flag?: ProofFlag | null; staffApproved?: boolean;
   username?: string | null; bankName?: string | null; accountName?: string | null;
+  // Before/after proof the tasker uploaded + the numbers they reported.
+  beforeUrl?: string | null; afterUrl?: string | null; accountUsername?: string | null;
+  countBefore?: string | null; countAfter?: string | null;
 }
 interface Refill {
   id: string; orderId: string; serviceType: string; targetUrl: string;
@@ -458,13 +461,39 @@ function ProofsTab() {
                                       className="w-4 h-4 accent-blue-500" />
                                   </label>
                                 )}
-                                {isImg(p.proofUrl) ? (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <a href={p.proofUrl!} target="_blank" rel="noopener noreferrer"><img src={p.proofUrl!} alt="proof" loading="lazy" className="w-full h-24 object-cover hover:opacity-90" /></a>
-                                ) : p.proofUrl ? (
-                                  <a href={p.proofUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center h-24 text-[10px] text-blue-400 hover:underline px-1 text-center break-all">View ↗</a>
-                                ) : <div className="flex items-center justify-center h-24 text-xl">✅</div>}
-                                <div className="px-1.5 py-1 text-[9px] text-slate-400 truncate">{p.proofText || p.status}</div>
+                                {/* BEFORE → AFTER screenshots side by side, so staff can compare at a glance */}
+                                <div className="grid grid-cols-2 gap-px bg-white/[0.06]">
+                                  <div className="relative">
+                                    <div className="absolute bottom-0.5 left-0.5 z-10 text-[7px] font-black px-1 rounded bg-black/75 text-slate-300">BEFORE</div>
+                                    {isImg(p.beforeUrl) ? (
+                                      // eslint-disable-next-line @next/next/no-img-element
+                                      <a href={p.beforeUrl!} target="_blank" rel="noopener noreferrer"><img src={p.beforeUrl!} alt="before" loading="lazy" className="w-full h-20 object-cover hover:opacity-90" /></a>
+                                    ) : p.beforeUrl ? (
+                                      <a href={p.beforeUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center h-20 text-[9px] text-blue-400 hover:underline">view ↗</a>
+                                    ) : <div className="flex items-center justify-center h-20 text-[9px] text-slate-600">—</div>}
+                                  </div>
+                                  <div className="relative">
+                                    <div className="absolute bottom-0.5 left-0.5 z-10 text-[7px] font-black px-1 rounded bg-black/75 text-emerald-300">AFTER</div>
+                                    {isImg(p.proofUrl) ? (
+                                      // eslint-disable-next-line @next/next/no-img-element
+                                      <a href={p.proofUrl!} target="_blank" rel="noopener noreferrer"><img src={p.proofUrl!} alt="after" loading="lazy" className="w-full h-20 object-cover hover:opacity-90" /></a>
+                                    ) : p.proofUrl ? (
+                                      <a href={p.proofUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center h-20 text-[9px] text-blue-400 hover:underline px-1 text-center break-all">View ↗</a>
+                                    ) : <div className="flex items-center justify-center h-20 text-lg">✅</div>}
+                                  </div>
+                                </div>
+                                {/* The numbers the tasker reported — the quick coherence check for staff */}
+                                {(p.countBefore || p.countAfter) && (
+                                  <div className="px-1.5 py-1 text-[10px] font-black text-center text-white bg-blue-500/10">
+                                    📊 {p.countBefore ?? '?'} <span className="text-blue-300">→</span> {p.countAfter ?? '?'}
+                                  </div>
+                                )}
+                                {/* The account the tasker used for the action */}
+                                {p.accountUsername && <div className="px-1.5 pt-1 text-[9px] font-bold text-cyan-400/90 truncate">📱 {p.accountUsername}</div>}
+                                {/* Raw proof text only when it carries extra info (e.g. a comment), not the count line */}
+                                {p.proofText && !/before:/i.test(p.proofText)
+                                  ? <div className="px-1.5 py-1 text-[9px] text-slate-400 truncate">{p.proofText}</div>
+                                  : (!p.countBefore && !p.countAfter && <div className="px-1.5 py-1 text-[9px] text-slate-400 truncate">{p.status}</div>)}
                                 {/* Tasker identity — spot two screenshots from the SAME person (double account) */}
                                 {(p.username || p.bankName) && (
                                   <div className="px-1.5 pb-1 text-[8.5px] leading-tight text-slate-500">
