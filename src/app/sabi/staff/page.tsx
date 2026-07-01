@@ -57,6 +57,19 @@ interface CustomReq {
 }
 
 const isImg = (u?: string | null) => !!u && /^https?:\/\/\S+\.(png|jpe?g|webp|gif)(\?|$)/i.test(u);
+
+// Parse a reported count like "1,240" → 1240. Returns null if not a clean number.
+const numFromCount = (s?: string | null): number | null => {
+  if (!s) return null;
+  const n = Number(String(s).replace(/[^\d.]/g, ""));
+  return Number.isFinite(n) ? n : null;
+};
+// A proof is "numbers-down" when the tasker's own after ≤ before — i.e. the action
+// produced no gain. Strong signal the task wasn't really done (auto-flag candidate).
+const numbersDown = (p: Proof): boolean => {
+  const b = numFromCount(p.countBefore), a = numFromCount(p.countAfter);
+  return b !== null && a !== null && a <= b;
+};
 const fmtSvc = (s?: string | null) => (s || 'request').replace(/_/g, ' ');
 
 // Preset flag reasons staff can pick (plus a free-text box for anything else).
@@ -450,11 +463,12 @@ function ProofsTab() {
                         </div>
                         {pf.items.length === 0 ? <p className="text-slate-600 text-xs pb-2">No proof uploaded yet.</p> : (
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-1">
-                            {pf.items.map(p => {
+                            {[...pf.items].sort((a, b) => Number(numbersDown(b)) - Number(numbersDown(a))).map(p => {
                               const fl = p.flag && p.flag.status !== 'cleared' ? p.flag : null;
                               const resub = fl?.status === 'resubmitted';
+                              const badNums = numbersDown(p); // after ≤ before → no gain
                               return (
-                              <div key={p.id} className={`relative rounded-lg overflow-hidden bg-black/30 border ${selected[o.id]?.has(p.id) ? 'border-blue-500/70 ring-1 ring-blue-500/40' : fl ? (resub ? 'border-yellow-500/40' : 'border-red-500/40') : 'border-white/[0.06]'}`}>
+                              <div key={p.id} className={`relative rounded-lg overflow-hidden bg-black/30 border ${selected[o.id]?.has(p.id) ? 'border-blue-500/70 ring-1 ring-blue-500/40' : fl ? (resub ? 'border-yellow-500/40' : 'border-red-500/40') : badNums ? 'border-red-500/60 ring-1 ring-red-500/30' : 'border-white/[0.06]'}`}>
                                 {!fl && (
                                   <label className="absolute top-1 left-1 z-10 cursor-pointer" onClick={e => e.stopPropagation()}>
                                     <input type="checkbox" checked={!!selected[o.id]?.has(p.id)} onChange={() => toggleSel(o.id, p.id)}
@@ -482,10 +496,12 @@ function ProofsTab() {
                                     ) : <div className="flex items-center justify-center h-20 text-lg">✅</div>}
                                   </div>
                                 </div>
-                                {/* The numbers the tasker reported — the quick coherence check for staff */}
+                                {/* The numbers the tasker reported — the quick coherence check for staff.
+                                    When after ≤ before (no gain) we flag it red so staff catch it fast. */}
                                 {(p.countBefore || p.countAfter) && (
-                                  <div className="px-1.5 py-1 text-[10px] font-black text-center text-white bg-blue-500/10">
-                                    📊 {p.countBefore ?? '?'} <span className="text-blue-300">→</span> {p.countAfter ?? '?'}
+                                  <div className={`px-1.5 py-1 text-[10px] font-black text-center ${badNums ? 'text-red-300 bg-red-500/15' : 'text-white bg-blue-500/10'}`}>
+                                    📊 {p.countBefore ?? '?'} <span className={badNums ? 'text-red-400' : 'text-blue-300'}>→</span> {p.countAfter ?? '?'}
+                                    {badNums && <div className="text-[8.5px] font-bold text-red-400 mt-0.5">⚠️ NO GAIN — after ≤ before</div>}
                                   </div>
                                 )}
                                 {/* The account the tasker used for the action */}

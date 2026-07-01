@@ -318,7 +318,7 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="lg:hidden border-t border-white/[0.05] bg-[#030507]/90"
+              className="lg:hidden border-t border-white/[0.05] bg-[#030507]/90 max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain"
             >
               <div className="flex flex-col gap-1 py-3">
                 {navItems.map((item, idx) => {
