@@ -43,6 +43,8 @@ interface Proof {
   // Before/after proof the tasker uploaded + the numbers they reported.
   beforeUrl?: string | null; afterUrl?: string | null; accountUsername?: string | null;
   countBefore?: string | null; countAfter?: string | null;
+  // Auto-triage: this exact screenshot was reused on other proofs.
+  duplicateImage?: boolean; duplicateCount?: number; duplicateCrossUser?: boolean;
 }
 interface Refill {
   id: string; orderId: string; serviceType: string; targetUrl: string;
@@ -70,6 +72,12 @@ const numbersDown = (p: Proof): boolean => {
   const b = numFromCount(p.countBefore), a = numFromCount(p.countAfter);
   return b !== null && a !== null && a <= b;
 };
+// Combined auto-triage suspicion: higher = more red flags. Sorts the worst to the top.
+// Reused-across-users screenshot is the strongest signal, then reused image, then no-gain.
+const suspScore = (p: Proof): number =>
+  (p.duplicateImage && p.duplicateCrossUser ? 3 : 0) +
+  (p.duplicateImage ? 2 : 0) +
+  (numbersDown(p) ? 1 : 0);
 const fmtSvc = (s?: string | null) => (s || 'request').replace(/_/g, ' ');
 
 // Preset flag reasons staff can pick (plus a free-text box for anything else).
@@ -463,12 +471,14 @@ function ProofsTab() {
                         </div>
                         {pf.items.length === 0 ? <p className="text-slate-600 text-xs pb-2">No proof uploaded yet.</p> : (
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-1">
-                            {[...pf.items].sort((a, b) => Number(numbersDown(b)) - Number(numbersDown(a))).map(p => {
+                            {[...pf.items].sort((a, b) => suspScore(b) - suspScore(a)).map(p => {
                               const fl = p.flag && p.flag.status !== 'cleared' ? p.flag : null;
                               const resub = fl?.status === 'resubmitted';
                               const badNums = numbersDown(p); // after ≤ before → no gain
+                              const dupImg = !!p.duplicateImage; // same screenshot reused elsewhere
+                              const suspicious = badNums || dupImg;
                               return (
-                              <div key={p.id} className={`relative rounded-lg overflow-hidden bg-black/30 border ${selected[o.id]?.has(p.id) ? 'border-blue-500/70 ring-1 ring-blue-500/40' : fl ? (resub ? 'border-yellow-500/40' : 'border-red-500/40') : badNums ? 'border-red-500/60 ring-1 ring-red-500/30' : 'border-white/[0.06]'}`}>
+                              <div key={p.id} className={`relative rounded-lg overflow-hidden bg-black/30 border ${selected[o.id]?.has(p.id) ? 'border-blue-500/70 ring-1 ring-blue-500/40' : fl ? (resub ? 'border-yellow-500/40' : 'border-red-500/40') : suspicious ? 'border-red-500/60 ring-1 ring-red-500/30' : 'border-white/[0.06]'}`}>
                                 {!fl && (
                                   <label className="absolute top-1 left-1 z-10 cursor-pointer" onClick={e => e.stopPropagation()}>
                                     <input type="checkbox" checked={!!selected[o.id]?.has(p.id)} onChange={() => toggleSel(o.id, p.id)}
@@ -505,6 +515,15 @@ function ProofsTab() {
                                       {p.countBefore ?? '?'} <span className={badNums ? 'text-red-400' : 'text-blue-300'}>→</span> {p.countAfter ?? '?'}
                                     </div>
                                     {badNums && <div className="text-[8.5px] font-bold text-red-400 mt-0.5">⚠️ NO GAIN — after ≤ before</div>}
+                                  </div>
+                                )}
+                                {/* Auto-triage: this exact screenshot was reused on other proofs */}
+                                {dupImg && (
+                                  <div className="px-1.5 py-1 text-center bg-red-500/20">
+                                    <div className="text-[9px] font-black text-red-300">🔁 DUPLICATE IMAGE{p.duplicateCount ? ` ×${p.duplicateCount}` : ''}</div>
+                                    <div className="text-[8px] font-bold text-red-400">
+                                      {p.duplicateCrossUser ? 'same shot used by other taskers — reuse ring' : 'same shot reused on another proof'}
+                                    </div>
                                   </div>
                                 )}
                                 {/* The account the tasker used for the action */}
