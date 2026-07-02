@@ -1181,6 +1181,21 @@ export default function OrderPage() {
                       {isCommentLikeService && <span className="text-slate-500 font-normal"> — ₦10 each</span>}
                     </label>
                     {isCommentLikeService && (
+                      <div className="mb-3 rounded-lg border border-blue-500/25 bg-blue-500/[0.06] p-3 text-xs leading-relaxed text-blue-100">
+                        {selectedService.action === 'Post Comment Likes' ? (
+                          <>
+                            <b className="text-blue-300">What this does:</b> real people like the <b>first few comments UNDER your post/video</b> (you choose how many below) — so your comment section looks active and gets more reach.
+                            <div className="mt-1 text-blue-300/80">Not what you want? If you want likes on a comment <b>you left on someone else&apos;s</b> post, choose <b>&ldquo;Comment Likes&rdquo;</b> instead.</div>
+                          </>
+                        ) : (
+                          <>
+                            <b className="text-blue-300">What this does:</b> real people like <b>your own comment</b> — the one <b>you left on someone else&apos;s</b> post — so it rises to the top and gets seen. Paste the link to that post and make sure your comment is visible.
+                            <div className="mt-1 text-blue-300/80">Not what you want? If you want likes on the comments <b>under your own</b> post, choose <b>&ldquo;Post Comment Likes&rdquo;</b> instead.</div>
+                          </>
+                        )}
+                      </div>
+                    )}
+                    {isCommentLikeService && (
                       <div className="flex flex-wrap gap-2 mb-3">
                         {[10, 20, 30].map((p) => (
                           <button
