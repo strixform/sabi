@@ -49,6 +49,7 @@ interface Proof {
   handleMissing?: boolean;
   // Tasker trust — overall reputation of the person who submitted this proof.
   trustScore?: number; trustLevel?: string; // trusted | normal | low | flagged
+  commentUsed?: string | null; // the exact comment the tasker posted (comment tasks)
 }
 interface Refill {
   id: string; orderId: string; serviceType: string; targetUrl: string;
@@ -556,6 +557,10 @@ function ProofsTab() {
                                     </span>
                                     {typeof p.trustScore === 'number' && <span className="text-[8px] text-slate-500">{p.trustScore}/100</span>}
                                   </div>
+                                )}
+                                {/* The exact comment the tasker posted (comment tasks) — check it vs the shot */}
+                                {p.commentUsed && (
+                                  <div className="px-1.5 py-1 text-[9px]" style={{ color:'#93C5FD' }}>💬 <span className="italic">&ldquo;{p.commentUsed}&rdquo;</span></div>
                                 )}
                                 {/* The account the tasker used for the action */}
                                 {p.accountUsername && <div className="px-1.5 pt-1 text-[9px] font-bold text-cyan-400/90 truncate">📱 {p.accountUsername}</div>}
