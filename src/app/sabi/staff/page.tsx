@@ -166,6 +166,8 @@ export default function StaffConsole() {
         </div>
         <p className="text-xs text-slate-500 mb-4">Review delivery proofs, confirm coherence, and handle refill & custom requests.</p>
 
+        <PersonalizeBanner />
+
         {resub > 0 && (
           <button onClick={() => setTab('reuploads')}
             className="w-full text-left mb-4 rounded-xl px-4 py-3 flex items-center gap-2 transition hover:brightness-110"
@@ -247,6 +249,68 @@ function ManualRefillTool() {
       </div>
       <div className="text-[10px] text-slate-500 mt-1.5">Free top-up — buyer not charged · goes to fresh taskers (anyone who did this order is blocked).</div>
       {msg && <div className={`text-[10px] mt-1 ${msg.startsWith('✅') ? 'text-emerald-400' : 'text-red-400'}`}>{msg}</div>}
+    </div>
+  );
+}
+
+// A personal banner so the console feels like home — a photo they love + a greeting +
+// an accent colour. Stored per-device (localStorage), private to them, no backend.
+function PersonalizeBanner() {
+  const [open, setOpen] = useState(false);
+  const [cfg, setCfg] = useState<{ photo?: string; name?: string; msg?: string; accent?: string }>({});
+  useEffect(() => {
+    try { setCfg(JSON.parse(localStorage.getItem('sabi_staff_home') || '{}')); } catch {}
+  }, []);
+  const save = (next: typeof cfg) => { setCfg(next); try { localStorage.setItem('sabi_staff_home', JSON.stringify(next)); } catch {} };
+  const onPhoto = (file: File) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = () => {
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        const scale = Math.min(1, 900 / img.width);
+        c.width = img.width * scale; c.height = img.height * scale;
+        c.getContext('2d')?.drawImage(img, 0, 0, c.width, c.height);
+        save({ ...cfg, photo: c.toDataURL('image/jpeg', 0.72) });
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+  const accent = cfg.accent || '#3b82f6';
+  const hour = new Date().getHours();
+  const greet = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  return (
+    <div className="relative mb-4 rounded-2xl overflow-hidden border" style={{ borderColor: `${accent}55` }}>
+      <div className="h-28 sm:h-32 w-full bg-cover bg-center" style={{ backgroundImage: cfg.photo ? `url(${cfg.photo})` : `linear-gradient(135deg, ${accent}, #0b0f17)` }} />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+      <div className="absolute bottom-0 left-0 right-0 p-3 flex items-end justify-between">
+        <div>
+          <div className="text-white font-black text-lg leading-tight">{greet}{cfg.name ? `, ${cfg.name}` : ''} 💙</div>
+          <div className="text-slate-300 text-xs">{cfg.msg || 'Welcome to your console — you make delivery honest. 🛡️'}</div>
+        </div>
+        <button onClick={() => setOpen(o => !o)} className="shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-black/50 text-white hover:bg-black/70">🎨 Personalize</button>
+      </div>
+      {open && (
+        <div className="p-3 bg-[#0B0F17] border-t border-white/10 space-y-2">
+          <div className="flex gap-2 flex-wrap items-center">
+            <label className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-white/10 text-white cursor-pointer hover:bg-white/20">
+              📷 Upload a photo you love
+              <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) onPhoto(f); }} />
+            </label>
+            {cfg.photo && <button onClick={() => save({ ...cfg, photo: undefined })} className="text-[11px] text-red-300 hover:underline">remove photo</button>}
+            <span className="text-[11px] text-slate-400">Accent:</span>
+            {['#3b82f6', '#10b981', '#ef4444', '#a855f7', '#f59e0b', '#ec4899'].map(c => (
+              <button key={c} onClick={() => save({ ...cfg, accent: c })} className="w-5 h-5 rounded-full border-2" style={{ background: c, borderColor: accent === c ? '#fff' : 'transparent' }} />
+            ))}
+          </div>
+          <input value={cfg.name || ''} onChange={e => save({ ...cfg, name: e.target.value.slice(0, 24) })} placeholder="Your name (e.g. Ada)"
+            className="w-full rounded-lg bg-black/30 border border-white/10 px-3 py-1.5 text-sm outline-none focus:border-blue-500/50" />
+          <input value={cfg.msg || ''} onChange={e => save({ ...cfg, msg: e.target.value.slice(0, 80) })} placeholder="A little message to yourself…"
+            className="w-full rounded-lg bg-black/30 border border-white/10 px-3 py-1.5 text-sm outline-none focus:border-blue-500/50" />
+          <div className="text-[10px] text-slate-500">Saved on this device only — private to you.</div>
+        </div>
+      )}
     </div>
   );
 }
