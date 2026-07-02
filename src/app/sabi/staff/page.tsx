@@ -281,34 +281,64 @@ function PersonalizeBanner() {
   const hour = new Date().getHours();
   const greet = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   return (
-    <div className="relative mb-4 rounded-2xl overflow-hidden border" style={{ borderColor: `${accent}55` }}>
-      <div className="h-28 sm:h-32 w-full bg-cover bg-center" style={{ backgroundImage: cfg.photo ? `url(${cfg.photo})` : `linear-gradient(135deg, ${accent}, #0b0f17)` }} />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-      <div className="absolute bottom-0 left-0 right-0 p-3 flex items-end justify-between">
-        <div>
-          <div className="text-white font-black text-lg leading-tight">{greet}{cfg.name ? `, ${cfg.name}` : ''} 💙</div>
-          <div className="text-slate-300 text-xs">{cfg.msg || 'Welcome to your console — you make delivery honest. 🛡️'}</div>
-        </div>
-        <button onClick={() => setOpen(o => !o)} className="shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-black/50 text-white hover:bg-black/70">🎨 Personalize</button>
-      </div>
-      {open && (
-        <div className="p-3 bg-[#0B0F17] border-t border-white/10 space-y-2">
-          <div className="flex gap-2 flex-wrap items-center">
-            <label className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-white/10 text-white cursor-pointer hover:bg-white/20">
-              📷 Upload a photo you love
-              <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) onPhoto(f); }} />
-            </label>
-            {cfg.photo && <button onClick={() => save({ ...cfg, photo: undefined })} className="text-[11px] text-red-300 hover:underline">remove photo</button>}
-            <span className="text-[11px] text-slate-400">Accent:</span>
-            {['#3b82f6', '#10b981', '#ef4444', '#a855f7', '#f59e0b', '#ec4899'].map(c => (
-              <button key={c} onClick={() => save({ ...cfg, accent: c })} className="w-5 h-5 rounded-full border-2" style={{ background: c, borderColor: accent === c ? '#fff' : 'transparent' }} />
-            ))}
+    <div className="mb-4 rounded-2xl overflow-hidden border" style={{ borderColor: `${accent}55` }}>
+      {/* Banner header — fixed height; the overlay is pointer-events-none so it NEVER blocks clicks */}
+      <div className="relative h-24 sm:h-28">
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: cfg.photo ? `url(${cfg.photo})` : `linear-gradient(135deg, ${accent}, #0b0f17)` }} />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 to-black/10 pointer-events-none" />
+        <div className="absolute inset-0 p-3 flex items-end justify-between gap-2">
+          <div className="min-w-0">
+            <div className="text-white font-black text-lg leading-tight truncate">{greet}{cfg.name ? `, ${cfg.name}` : ''} 💙</div>
+            <div className="text-slate-200 text-xs truncate">{cfg.msg || 'Welcome to your console — you make delivery honest. 🛡️'}</div>
           </div>
-          <input value={cfg.name || ''} onChange={e => save({ ...cfg, name: e.target.value.slice(0, 24) })} placeholder="Your name (e.g. Ada)"
-            className="w-full rounded-lg bg-black/30 border border-white/10 px-3 py-1.5 text-sm outline-none focus:border-blue-500/50" />
-          <input value={cfg.msg || ''} onChange={e => save({ ...cfg, msg: e.target.value.slice(0, 80) })} placeholder="A little message to yourself…"
-            className="w-full rounded-lg bg-black/30 border border-white/10 px-3 py-1.5 text-sm outline-none focus:border-blue-500/50" />
-          <div className="text-[10px] text-slate-500">Saved on this device only — private to you.</div>
+          <button onClick={() => setOpen(o => !o)} className="shrink-0 text-[11px] font-bold px-3 py-1.5 rounded-lg bg-black/60 text-white hover:bg-black/80 border border-white/20">
+            {open ? '✕ Close' : '🎨 Personalize'}
+          </button>
+        </div>
+      </div>
+      {/* Editor — normal flow BELOW the banner, so every control is clickable */}
+      {open && (
+        <div className="p-4 bg-[#0B0F17] border-t border-white/10 space-y-3">
+          <div className="text-xs text-slate-400">Make this space yours — add a photo you love (family, your group, anything), your name, and a note. It shows only to you, on this device.</div>
+
+          <div>
+            <div className="text-[10px] font-black tracking-wide text-slate-400 mb-1">📷 YOUR PHOTO</div>
+            <div className="flex items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {cfg.photo && <img src={cfg.photo} alt="you" className="w-12 h-12 rounded-lg object-cover border border-white/10" />}
+              <label className="text-xs font-bold px-3 py-2 rounded-lg bg-blue-600 text-white cursor-pointer hover:bg-blue-500">
+                {cfg.photo ? 'Change photo' : 'Upload a photo'}
+                <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) onPhoto(f); }} />
+              </label>
+              {cfg.photo && <button onClick={() => save({ ...cfg, photo: undefined })} className="text-xs text-red-300 hover:underline">Remove</button>}
+            </div>
+          </div>
+
+          <div>
+            <div className="text-[10px] font-black tracking-wide text-slate-400 mb-1">🎨 ACCENT COLOUR</div>
+            <div className="flex gap-2">
+              {['#3b82f6', '#10b981', '#ef4444', '#a855f7', '#f59e0b', '#ec4899'].map(c => (
+                <button key={c} type="button" onClick={() => save({ ...cfg, accent: c })} className="w-7 h-7 rounded-full border-2 transition" style={{ background: c, borderColor: accent === c ? '#fff' : 'rgba(255,255,255,0.1)' }} />
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="text-[10px] font-black tracking-wide text-slate-400 mb-1">👤 YOUR NAME</div>
+            <input value={cfg.name || ''} onChange={e => save({ ...cfg, name: e.target.value.slice(0, 24) })} placeholder="e.g. Ada"
+              className="w-full rounded-lg bg-black/30 border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-blue-500/50" />
+          </div>
+
+          <div>
+            <div className="text-[10px] font-black tracking-wide text-slate-400 mb-1">💬 A NOTE TO YOURSELF</div>
+            <input value={cfg.msg || ''} onChange={e => save({ ...cfg, msg: e.target.value.slice(0, 80) })} placeholder="e.g. Stay sharp — every check protects a customer."
+              className="w-full rounded-lg bg-black/30 border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-blue-500/50" />
+          </div>
+
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-[10px] text-slate-500">Saved automatically · private to this device.</span>
+            <button onClick={() => setOpen(false)} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white">Done</button>
+          </div>
         </div>
       )}
     </div>
