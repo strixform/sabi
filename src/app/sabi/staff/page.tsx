@@ -50,6 +50,7 @@ interface Proof {
   // Tasker trust — overall reputation of the person who submitted this proof.
   trustScore?: number; trustLevel?: string; // trusted | normal | low | flagged
   commentUsed?: string | null; // the exact comment the tasker posted (comment tasks)
+  approvedBy?: string | null; flaggedBy?: string | null; // owner-only staff attribution
 }
 interface Refill {
   id: string; orderId: string; serviceType: string; targetUrl: string;
@@ -192,7 +193,7 @@ export default function StaffConsole() {
           ))}
         </div>
 
-        {tab === 'proofs' && <ProofsTab />}
+        {tab === 'proofs' && <ProofsTab owner={role === 'owner'} />}
         {tab === 'reuploads' && <ReuploadsTab />}
         {tab === 'checked' && <CheckedOrdersTab />}
         {tab === 'refunds' && <StaffRefundsTab />}
@@ -248,7 +249,7 @@ function ManualRefillTool() {
   );
 }
 
-function ProofsTab() {
+function ProofsTab({ owner }: { owner: boolean }) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('all'); // show every order by default
@@ -576,6 +577,12 @@ function ProofsTab() {
                                   </div>
                                 )}
                                 {p.staffApproved && !fl && <div className="px-1.5 text-[9px] font-bold text-emerald-400">✓ approved</div>}
+                                {/* Owner-only: which staff member worked this proof */}
+                                {owner && (p.approvedBy || p.flaggedBy) && (
+                                  <div className="px-1.5 text-[8px] font-bold" style={{ color:'#a78bfa' }}>
+                                    👁️ {fl ? `flagged by ${p.flaggedBy || '—'}` : `approved by ${p.approvedBy || '—'}`}
+                                  </div>
+                                )}
                                 {fl && <div className={`px-1.5 text-[9px] font-bold ${resub ? 'text-yellow-300' : 'text-red-300'}`}>{resub ? '🔁 re-uploaded' : '⚠️ flagged'}{fl.reason ? ` · ${fl.reason}` : ''}</div>}
                                 <div className="p-1.5 flex gap-1">
                                   {!fl && !p.staffApproved && (
