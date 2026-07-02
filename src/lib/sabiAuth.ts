@@ -99,27 +99,70 @@ function getSessionSecret(): string {
   if (!s) console.error('[sabiAuth] No session secret env set — sessions are insecure. Set SABI_SESSION_SECRET.');
   return s;
 }
-function signSession(userId: string, exp: string | number): string {
+// Legacy signature (no version) — kept so existing 3-part tokens still verify as v0.
+function signSessionLegacy(userId: string, exp: string | number): string {
   return crypto.createHmac('sha256', getSessionSecret()).update(`${userId}.${exp}`).digest('base64url');
 }
-function makeSessionToken(userId: string): string {
-  const exp = Date.now() + SESSION_DURATION;
-  return `${userId}.${exp}.${signSession(userId, exp)}`;
+// Versioned signature — the session version is bumped on password change so old tokens die.
+function signSession(userId: string, exp: string | number, ver: number): string {
+  return crypto.createHmac('sha256', getSessionSecret()).update(`${userId}.${exp}.${ver}`).digest('base64url');
 }
-/** Returns the userId iff the token's signature + expiry are valid, else null. */
-function verifySessionToken(token: string): string | null {
+function makeSessionToken(userId: string, ver: number): string {
+  const exp = Date.now() + SESSION_DURATION;
+  return `${userId}.${exp}.${ver}.${signSession(userId, exp, ver)}`;
+}
+/** Returns { userId, ver } iff the token's signature + expiry are valid, else null.
+ *  Accepts legacy 3-part tokens (treated as version 0) for a smooth rollout. */
+function verifySessionToken(token: string): { userId: string; ver: number } | null {
   const secret = getSessionSecret();
   if (!secret) return null; // fail closed when misconfigured
   const parts = token.split('.');
-  if (parts.length !== 3) return null; // old-format / malformed → reject (forces re-login)
-  const [userId, expStr, sig] = parts;
-  if (!userId || !expStr || !sig) return null;
-  if (!/^\d+$/.test(expStr) || Number(expStr) < Date.now()) return null;
-  const expected = signSession(userId, expStr);
-  const a = Buffer.from(sig);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
-  return userId;
+  const ok = (sig: string, expected: string) => {
+    const a = Buffer.from(sig), b = Buffer.from(expected);
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  };
+  if (parts.length === 4) {
+    const [userId, expStr, verStr, sig] = parts;
+    if (!userId || !expStr || !verStr || !sig) return null;
+    if (!/^\d+$/.test(expStr) || Number(expStr) < Date.now()) return null;
+    if (!/^\d+$/.test(verStr)) return null;
+    if (!ok(sig, signSession(userId, expStr, Number(verStr)))) return null;
+    return { userId, ver: Number(verStr) };
+  }
+  if (parts.length === 3) {
+    const [userId, expStr, sig] = parts;
+    if (!userId || !expStr || !sig) return null;
+    if (!/^\d+$/.test(expStr) || Number(expStr) < Date.now()) return null;
+    if (!ok(sig, signSessionLegacy(userId, expStr))) return null;
+    return { userId, ver: 0 };
+  }
+  return null;
+}
+
+/** The user's current session version — Redis-cached, DB-backed, fail-open (null). */
+async function currentSessionVersion(userId: string): Promise<number | null> {
+  try {
+    const { getUserSessionVersion, setUserSessionVersion } = await import('./redis');
+    const cached = await getUserSessionVersion(userId);
+    if (cached != null) return cached;
+    const r = await sabiExecute({ sql: `SELECT sessionVersion FROM SabiUser WHERE id = ? LIMIT 1`, args: [userId] }).catch(() => null);
+    const ver = r ? Number((r.rows[0] as any)?.sessionVersion || 0) : 0;
+    setUserSessionVersion(userId, ver).catch(() => {});
+    return ver;
+  } catch {
+    return null; // can't determine → fail open (don't lock users out)
+  }
+}
+
+/** Bump the user's session version → invalidates every existing session token. */
+export async function bumpSessionVersion(userId: string): Promise<number> {
+  try { await sabiExecute({ sql: `ALTER TABLE SabiUser ADD COLUMN sessionVersion INTEGER NOT NULL DEFAULT 0` }); } catch { /* exists */ }
+  await sabiExecute({ sql: `UPDATE SabiUser SET sessionVersion = COALESCE(sessionVersion,0) + 1 WHERE id = ?`, args: [userId] }).catch(() => {});
+  const r = await sabiExecute({ sql: `SELECT sessionVersion FROM SabiUser WHERE id = ? LIMIT 1`, args: [userId] }).catch(() => null);
+  const ver = r ? Number((r.rows[0] as any)?.sessionVersion || 1) : 1;
+  const { setUserSessionVersion } = await import('./redis');
+  await setUserSessionVersion(userId, ver);
+  return ver;
 }
 
 // Register user
@@ -285,7 +328,9 @@ export async function loginSabiUser(
 
 // Create session
 export async function createSabiSession(userId: string): Promise<string> {
-  const token = makeSessionToken(userId); // signed: `${userId}.${exp}.${hmac}`
+  // Embed the user's current session version so a later password change invalidates it.
+  const ver = (await currentSessionVersion(userId)) ?? 0;
+  const token = makeSessionToken(userId, ver); // signed: `${userId}.${exp}.${ver}.${hmac}`
   const hashedToken = hashToken(token);
   const sessionExpiry = new Date(Date.now() + SESSION_DURATION);
 
@@ -342,8 +387,15 @@ export async function getSabiSession(): Promise<SabiSession | null> {
 
     // 1. SECURITY: verify the token's HMAC signature + expiry. The userId is taken
     //    from inside the signed token — NOT from a separate (forgeable) cookie.
-    const userId = verifySessionToken(token);
-    if (!userId) return null;
+    const v = verifySessionToken(token);
+    if (!v) return null;
+    const { userId, ver } = v;
+
+    // 1b. SECURITY: the token's version must match the user's current session version.
+    //     A password change bumps that version, so every token issued before it dies.
+    //     Fail-open (null) only when we genuinely can't determine the version.
+    const cur = await currentSessionVersion(userId);
+    if (cur != null && ver !== cur) return null;
 
     // 2. Check Redis cache — avoids DB query on 90%+ of requests. The cache key is
     //    the signed token, which is now unforgeable, so a cache hit is trustworthy.

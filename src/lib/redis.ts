@@ -112,6 +112,18 @@ export async function invalidateWalletCache(userId: string) {
   withTimeout(() => client.del(`wallet:${userId}`)).catch(() => {});
 }
 
+// Per-user session version — bumped on password change to invalidate all old sessions.
+export async function getUserSessionVersion(userId: string): Promise<number | null> {
+  const client = await getRedisClient();
+  if (!client) return null;
+  try { const v = await withTimeout(() => client.get(`sv:${userId}`)); return v == null ? null : Number(v); } catch { return null; }
+}
+export async function setUserSessionVersion(userId: string, ver: number, ttl = 3600): Promise<void> {
+  const client = await getRedisClient();
+  if (!client) return;
+  withTimeout(() => client.setEx(`sv:${userId}`, ttl, String(ver))).catch(() => {});
+}
+
 export async function getCachedOrders(userId: string) {
   const client = await getRedisClient();
   if (!client) return null;

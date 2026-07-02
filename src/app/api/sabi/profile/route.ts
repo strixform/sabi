@@ -94,9 +94,14 @@ export async function PATCH(req: NextRequest) {
     const newHash = await hash(newPassword, 10);
     await prisma.sabiUser.update({
       where: { id: user.id },
-      data: { passwordHash: newHash, sessionToken: null }, // invalidate all sessions
+      data: { passwordHash: newHash, sessionToken: null },
     });
-    return NextResponse.json({ success: true, message: 'Password changed. Please log in again.' });
+    // REAL invalidation: bump the session version so every existing token dies, then
+    // issue a fresh session for THIS device so the person who changed it stays logged in.
+    const { bumpSessionVersion, createSabiSession } = await import('@/lib/sabiAuth');
+    await bumpSessionVersion(user.id);
+    await createSabiSession(user.id);
+    return NextResponse.json({ success: true, message: 'Password changed. All other devices have been logged out.' });
   }
 
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
