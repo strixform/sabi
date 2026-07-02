@@ -19,6 +19,8 @@ export async function POST(req: NextRequest) {
   const completionId = String(body.completionId || '');
   const action = body.action === 'clear' ? 'clear' : body.action === 'approve' ? 'approve' : 'flag';
   const reason = String(body.reason || '').slice(0, 300);
+  const fixHint = body.fixHint ? String(body.fixHint).slice(0, 600) : undefined;
+  const exampleImageUrl = body.exampleImageUrl ? String(body.exampleImageUrl) : undefined;
   if (!completionId) return NextResponse.json({ error: 'completionId required' }, { status: 400 });
 
   const token = process.env.SABI_INTEGRATION_TOKEN;
@@ -28,7 +30,7 @@ export async function POST(req: NextRequest) {
     const res = await fetch(`${G360_URL}/api/admin/sabi/flag-proof`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, completionId, reason, flaggedBy: auth.email || 'staff' }),
+      body: JSON.stringify({ action, completionId, reason, flaggedBy: auth.email || 'staff', fixHint, exampleImageUrl }),
     });
     const d = await res.json().catch(() => ({}));
     if (!res.ok || d?.error) return NextResponse.json({ error: d?.error || 'Flag failed' }, { status: 400 });

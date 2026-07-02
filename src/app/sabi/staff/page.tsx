@@ -334,6 +334,9 @@ function ProofsTab({ owner }: { owner: boolean }) {
   const [flagTarget, setFlagTarget] = useState<{ orderId: string; completionId: string } | null>(null);
   const [flagPresets, setFlagPresets] = useState<string[]>([]);
   const [flagNote, setFlagNote] = useState('');
+  const [flagFixHint, setFlagFixHint] = useState('');
+  const [flagExampleUrl, setFlagExampleUrl] = useState('');
+  const [flagExampleBusy, setFlagExampleBusy] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -427,16 +430,31 @@ function ProofsTab({ owner }: { owner: boolean }) {
     setFlagTarget({ orderId, completionId });
     setFlagPresets([]);
     setFlagNote('');
+    setFlagFixHint('');
+    setFlagExampleUrl('');
+  };
+
+  // Upload the "correct example" image → gamerz360 watermarks + stores it, returns URL.
+  const uploadFlagExample = async (file: File) => {
+    setFlagExampleBusy(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await af('/api/sabi/admin/flag-example-upload', { method: 'POST', body: fd });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d?.url) setFlagExampleUrl(d.url);
+      else alert(d.error || 'Could not upload the example image.');
+    } finally { setFlagExampleBusy(false); }
   };
 
   // Flag (or clear) a SPECIFIC proof → gamerz360 notifies that exact tasker, and
   // surfaces whether this flag triggered a final warning or auto-suspension.
-  const doFlag = async (orderId: string, completionId: string, action: 'flag' | 'clear', reason = '') => {
+  const doFlag = async (orderId: string, completionId: string, action: 'flag' | 'clear', reason = '', fixHint = '', exampleImageUrl = '') => {
     setProofBusy(completionId);
     try {
       const res = await af('/api/sabi/admin/flag-proof', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ completionId, action, reason }),
+        body: JSON.stringify({ completionId, action, reason, fixHint: fixHint || undefined, exampleImageUrl: exampleImageUrl || undefined }),
       });
       const d = await res.json().catch(() => ({}));
       if (res.ok && d?.success) {
@@ -460,8 +478,10 @@ function ProofsTab({ owner }: { owner: boolean }) {
     const reason = [...flagPresets, flagNote.trim()].filter(Boolean).join(' · ');
     if (!reason) { alert('Pick at least one reason or type one.'); return; }
     const { orderId, completionId } = flagTarget;
+    const fixHint = flagFixHint.trim();
+    const exampleUrl = flagExampleUrl;
     setFlagTarget(null);
-    await doFlag(orderId, completionId, 'flag', reason);
+    await doFlag(orderId, completionId, 'flag', reason, fixHint, exampleUrl);
   };
 
   return (
@@ -717,9 +737,32 @@ function ProofsTab({ owner }: { owner: boolean }) {
             <textarea value={flagNote} onChange={e => setFlagNote(e.target.value.slice(0, 280))} rows={2}
               placeholder="Add a specific note (or type your own reason)…"
               className="w-full bg-[#0F1420] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-red-500/40 resize-none mb-3" />
+
+            {/* Help the tasker fix it — how-to + a watermarked correct-example image */}
+            <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/[0.06] p-3 mb-3">
+              <div className="text-[11px] font-bold text-emerald-300 mb-1.5">✅ Help them fix it (optional — sent to the tasker)</div>
+              <textarea value={flagFixHint} onChange={e => setFlagFixHint(e.target.value.slice(0, 500))} rows={2}
+                placeholder="How to do it correctly, step by step…"
+                className="w-full bg-[#0F1420] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500/40 resize-none mb-2" />
+              {flagExampleUrl ? (
+                <div className="flex items-center gap-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={flagExampleUrl} alt="example" className="w-14 h-14 object-cover rounded-lg border border-white/10" />
+                  <span className="text-[11px] text-emerald-300">✅ Watermarked example attached</span>
+                  <button onClick={() => setFlagExampleUrl('')} className="text-[11px] text-red-300 hover:underline ml-auto">remove</button>
+                </div>
+              ) : (
+                <label className="flex items-center justify-center gap-2 cursor-pointer rounded-lg border border-dashed border-white/15 px-3 py-2 text-[11px] text-slate-400 hover:border-emerald-500/40">
+                  {flagExampleBusy ? 'Uploading…' : '📎 Upload a correct-example screenshot (auto-watermarked)'}
+                  <input type="file" accept="image/*" className="hidden" disabled={flagExampleBusy}
+                    onChange={e => { const f = e.target.files?.[0]; if (f) uploadFlagExample(f); }} />
+                </label>
+              )}
+            </div>
+
             <div className="flex gap-2 justify-end">
               <button onClick={() => setFlagTarget(null)} className="px-4 py-2 rounded-lg text-sm font-bold bg-white/10 text-slate-300 hover:bg-white/20">Cancel</button>
-              <button onClick={submitFlag} className="px-5 py-2 rounded-lg text-sm font-bold bg-red-600 hover:bg-red-500 text-white">Flag proof</button>
+              <button onClick={submitFlag} disabled={flagExampleBusy} className="px-5 py-2 rounded-lg text-sm font-bold bg-red-600 hover:bg-red-500 text-white disabled:opacity-40">Flag proof</button>
             </div>
           </div>
         </div>
