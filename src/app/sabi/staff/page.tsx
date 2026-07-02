@@ -337,6 +337,19 @@ function ProofsTab({ owner }: { owner: boolean }) {
   const [flagFixHint, setFlagFixHint] = useState('');
   const [flagExampleUrl, setFlagExampleUrl] = useState('');
   const [flagExampleBusy, setFlagExampleBusy] = useState(false);
+  // Expandable proof detail + "just viewed" tracking (so clamped cards don't confuse staff).
+  const [detailProof, setDetailProof] = useState<{ orderId: string; p: Proof } | null>(null);
+  const [viewed, setViewed] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set();
+    try { return new Set(JSON.parse(localStorage.getItem('sabi_viewed_proofs') || '[]')); } catch { return new Set(); }
+  });
+  const markViewed = (id: string) => setViewed(prev => {
+    if (prev.has(id)) return prev;
+    const next = new Set(prev); next.add(id);
+    try { localStorage.setItem('sabi_viewed_proofs', JSON.stringify([...next].slice(-2000))); } catch {}
+    return next;
+  });
+  const openDetail = (orderId: string, p: Proof) => { markViewed(p.id); setDetailProof({ orderId, p }); };
 
   const load = useCallback(() => {
     setLoading(true);
@@ -587,34 +600,31 @@ function ProofsTab({ owner }: { owner: boolean }) {
                               const noHandle = !!p.handleMissing; // OCR: @username not in the shot
                               const suspicious = badNums || dupImg || noHandle;
                               return (
-                              <div key={p.id} className={`relative rounded-lg overflow-hidden bg-black/30 border ${selected[o.id]?.has(p.id) ? 'border-blue-500/70 ring-1 ring-blue-500/40' : fl ? (resub ? 'border-yellow-500/40' : 'border-red-500/40') : suspicious ? 'border-red-500/60 ring-1 ring-red-500/30' : 'border-white/[0.06]'}`}>
+                              <div key={p.id} className={`relative rounded-lg overflow-hidden bg-black/30 border ${selected[o.id]?.has(p.id) ? 'border-blue-500/70 ring-1 ring-blue-500/40' : fl ? (resub ? 'border-yellow-500/40' : 'border-red-500/40') : suspicious ? 'border-red-500/60 ring-1 ring-red-500/30' : viewed.has(p.id) ? 'border-white/[0.06] opacity-75' : 'border-white/[0.06]'}`}>
                                 {!fl && (
                                   <label className="absolute top-1 left-1 z-10 cursor-pointer" onClick={e => e.stopPropagation()}>
                                     <input type="checkbox" checked={!!selected[o.id]?.has(p.id)} onChange={() => toggleSel(o.id, p.id)}
                                       className="w-4 h-4 accent-blue-500" />
                                   </label>
                                 )}
-                                {/* BEFORE → AFTER screenshots side by side, so staff can compare at a glance */}
-                                <div className="grid grid-cols-2 gap-px bg-white/[0.06]">
+                                {viewed.has(p.id) && <div className="absolute top-1 right-1 z-10 text-[8px] font-black px-1.5 py-0.5 rounded bg-blue-600/80 text-white">👁 viewed</div>}
+                                {/* BEFORE → AFTER — tap either (or the card) to open the full detail view, NOT download */}
+                                <button type="button" onClick={() => openDetail(o.id, p)} className="grid grid-cols-2 gap-px bg-white/[0.06] w-full">
                                   <div className="relative">
                                     <div className="absolute bottom-0.5 left-0.5 z-10 text-[7px] font-black px-1 rounded bg-black/75 text-slate-300">BEFORE</div>
-                                    {isImg(p.beforeUrl) ? (
+                                    {isImg(p.beforeUrl)
                                       // eslint-disable-next-line @next/next/no-img-element
-                                      <a href={p.beforeUrl!} target="_blank" rel="noopener noreferrer"><img src={p.beforeUrl!} alt="before" loading="lazy" className="w-full h-20 object-cover hover:opacity-90" /></a>
-                                    ) : p.beforeUrl ? (
-                                      <a href={p.beforeUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center h-20 text-[9px] text-blue-400 hover:underline">view ↗</a>
-                                    ) : <div className="flex items-center justify-center h-20 text-[9px] text-slate-600">—</div>}
+                                      ? <img src={p.beforeUrl!} alt="before" loading="lazy" className="w-full h-20 object-cover hover:opacity-90" />
+                                      : <div className="flex items-center justify-center h-20 text-[9px] text-slate-600">{p.beforeUrl ? 'view' : '—'}</div>}
                                   </div>
                                   <div className="relative">
                                     <div className="absolute bottom-0.5 left-0.5 z-10 text-[7px] font-black px-1 rounded bg-black/75 text-emerald-300">AFTER</div>
-                                    {isImg(p.proofUrl) ? (
+                                    {isImg(p.proofUrl)
                                       // eslint-disable-next-line @next/next/no-img-element
-                                      <a href={p.proofUrl!} target="_blank" rel="noopener noreferrer"><img src={p.proofUrl!} alt="after" loading="lazy" className="w-full h-20 object-cover hover:opacity-90" /></a>
-                                    ) : p.proofUrl ? (
-                                      <a href={p.proofUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center h-20 text-[9px] text-blue-400 hover:underline px-1 text-center break-all">View ↗</a>
-                                    ) : <div className="flex items-center justify-center h-20 text-lg">✅</div>}
+                                      ? <img src={p.proofUrl!} alt="after" loading="lazy" className="w-full h-20 object-cover hover:opacity-90" />
+                                      : <div className="flex items-center justify-center h-20 text-lg">{p.proofUrl ? '🔍' : '✅'}</div>}
                                   </div>
-                                </div>
+                                </button>
                                 {/* The numbers the tasker reported — the quick coherence check for staff.
                                     When after ≤ before (no gain) we flag it red so staff catch it fast. */}
                                 {(p.countBefore || p.countAfter) && (
@@ -715,6 +725,66 @@ function ProofsTab({ owner }: { owner: boolean }) {
           })}
         </div>
       )}
+
+      {/* Proof detail — the "inner page" so a clamped card isn't confusing to work on */}
+      {detailProof && (() => {
+        const { orderId, p } = detailProof;
+        const fl = p.flag && p.flag.status !== 'cleared' ? p.flag : null;
+        const bad = numbersDown(p);
+        return (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/85 p-4" onClick={() => setDetailProof(null)}>
+            <div className="bg-[#0B0F17] border border-white/10 rounded-2xl max-w-lg w-full max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 sticky top-0 bg-[#0B0F17]">
+                <div className="text-sm font-black text-white">Proof detail</div>
+                <button onClick={() => setDetailProof(null)} className="text-slate-400 hover:text-white text-lg">✕</button>
+              </div>
+              <div className="p-4 space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  {([{ lbl: 'BEFORE', url: p.beforeUrl }, { lbl: 'AFTER', url: p.proofUrl }]).map(({ lbl, url }) => (
+                    <div key={lbl}>
+                      <div className="text-[9px] font-black text-slate-400 mb-1">{lbl}</div>
+                      {isImg(url)
+                        // eslint-disable-next-line @next/next/no-img-element
+                        ? <a href={url!} target="_blank" rel="noopener noreferrer"><img src={url!} alt={lbl} className="w-full rounded-lg border border-white/10" /></a>
+                        : url ? <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:underline">open ↗</a>
+                          : <div className="text-xs text-slate-600">—</div>}
+                    </div>
+                  ))}
+                </div>
+                {(p.countBefore || p.countAfter) && (
+                  <div className={`rounded-lg px-3 py-2 text-center font-black ${bad ? 'text-red-300 bg-red-500/15' : 'text-white bg-blue-500/10'}`}>
+                    COUNT (BEFORE → AFTER): {p.countBefore ?? '?'} → {p.countAfter ?? '?'}{bad && <div className="text-[10px] text-red-400 mt-0.5">⚠️ NO GAIN — after ≤ before</div>}
+                  </div>
+                )}
+                {p.commentUsed && <div className="text-xs text-blue-300 bg-white/[0.03] rounded-lg px-3 py-2">💬 &ldquo;{p.commentUsed}&rdquo;</div>}
+                <div className="text-xs text-slate-300 space-y-1">
+                  {p.accountUsername && <div>📱 Account used: <b>{p.accountUsername}</b></div>}
+                  {p.username && <div>👤 Tasker: <b>{p.username}</b></div>}
+                  {(p.bankName || p.accountName) && <div className="text-amber-400/90">🏦 {[p.bankName, p.accountName].filter(Boolean).join(' · ')}</div>}
+                  {p.trustLevel && <div>Trust: <b>{p.trustLevel}</b> ({p.trustScore}/100)</div>}
+                  {p.duplicateImage && <div className="text-red-300">🔁 Duplicate image{p.duplicateCrossUser ? ' — reuse ring' : ''}</div>}
+                  {p.handleMissing && <div className="text-amber-300">⚠️ Handle not found in shot (OCR)</div>}
+                  {fl && <div className="text-red-300">⚠️ Flagged{fl.reason ? `: ${fl.reason}` : ''}</div>}
+                </div>
+                <div className="flex gap-2 pt-1">
+                  {!fl && !p.staffApproved && (
+                    <button onClick={() => { approveProof(orderId, p.id); setDetailProof(null); }} disabled={proofBusy === p.id}
+                      className="flex-1 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold disabled:opacity-50">✓ Approve</button>
+                  )}
+                  {!fl && (
+                    <button onClick={() => { setDetailProof(null); openFlag(orderId, p.id); }} disabled={proofBusy === p.id}
+                      className="flex-1 py-2.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-bold disabled:opacity-50">⚠️ Flag</button>
+                  )}
+                  {fl && (
+                    <button onClick={() => { doFlag(orderId, p.id, 'clear'); setDetailProof(null); }} disabled={proofBusy === p.id}
+                      className="flex-1 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold disabled:opacity-50">✅ Clear</button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Flag-reason picker */}
       {flagTarget && (
