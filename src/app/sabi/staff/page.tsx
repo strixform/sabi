@@ -25,7 +25,7 @@ function Copyable({ value, children, className }: { value: string; children: Rea
   );
 }
 
-type Tab = 'proofs' | 'reuploads' | 'checked' | 'refunds' | 'refills' | 'requests' | 'partnerships';
+type Tab = 'proofs' | 'taskers' | 'reuploads' | 'checked' | 'refunds' | 'refills' | 'requests' | 'partnerships';
 
 interface Order {
   id: string; serviceType: string; targetUrl: string; quantity: number;
@@ -179,6 +179,7 @@ export default function StaffConsole() {
         <div className="flex gap-2 mb-5 flex-wrap">
           {([
             ['proofs', '🧾 Orders & Proofs'],
+            ['taskers', '🔎 Taskers'],
             ['reuploads', `🔁 Re-uploads${resub > 0 ? ` (${resub})` : ''}`],
             ['checked', '✅ Checked Orders'],
             ['refunds', '↩️ Refunds'],
@@ -194,6 +195,7 @@ export default function StaffConsole() {
         </div>
 
         {tab === 'proofs' && <ProofsTab owner={role === 'owner'} />}
+        {tab === 'taskers' && <TaskerLookupTab />}
         {tab === 'reuploads' && <ReuploadsTab />}
         {tab === 'checked' && <CheckedOrdersTab />}
         {tab === 'refunds' && <StaffRefundsTab />}
@@ -245,6 +247,76 @@ function ManualRefillTool() {
       </div>
       <div className="text-[10px] text-slate-500 mt-1.5">Free top-up — buyer not charged · goes to fresh taskers (anyone who did this order is blocked).</div>
       {msg && <div className={`text-[10px] mt-1 ${msg.startsWith('✅') ? 'text-emerald-400' : 'text-red-400'}`}>{msg}</div>}
+    </div>
+  );
+}
+
+// Look up any tasker and see every task they've submitted (title, Task ID, status, proof).
+function TaskerLookupTab() {
+  const [q, setQ] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [data, setData] = useState<any>(null);
+  const [candidates, setCandidates] = useState<any[] | null>(null);
+
+  const run = async (query: string) => {
+    if (!query.trim()) return;
+    setLoading(true); setError(''); setData(null); setCandidates(null);
+    try {
+      const res = await fetch(`/api/sabi/orders/tasker-lookup?q=${encodeURIComponent(query.trim())}`);
+      const d = await res.json();
+      if (!res.ok) { if (d.candidates) setCandidates(d.candidates); else setError(d.error || 'Lookup failed'); return; }
+      setData(d);
+    } catch { setError('Network error'); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <div>
+      <form onSubmit={e => { e.preventDefault(); run(q); }} className="flex gap-2 mb-4">
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Tasker email or username"
+          className="flex-1 rounded-lg bg-black/30 border border-white/10 px-3 py-2 text-sm outline-none focus:border-blue-500/50" />
+        <button disabled={loading || !q.trim()} className="rounded-lg bg-blue-600 hover:bg-blue-500 px-5 py-2 text-sm font-bold disabled:opacity-40">{loading ? '…' : 'Look up'}</button>
+      </form>
+
+      {error && <div className="rounded-lg border border-red-700 bg-red-950/40 p-3 text-sm text-red-300">{error}</div>}
+
+      {candidates && (
+        <div className="rounded-lg border border-white/10 divide-y divide-white/5">
+          <div className="p-2 text-xs text-slate-500">{candidates.length} matches — pick one:</div>
+          {candidates.map((c: any) => (
+            <button key={c.id} onClick={() => { setQ(c.username || c.email); run(c.username || c.email); }} className="block w-full text-left p-2.5 text-sm hover:bg-white/5">
+              {c.username} <span className="text-slate-500">· {c.email}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {data && (
+        <div>
+          <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3 mb-3">
+            <div className="text-sm font-black text-white">{data.tasker.username} {data.tasker.isBanned && <span className="text-red-400 text-xs">🚫 banned</span>}</div>
+            <div className="text-xs text-slate-500">{data.tasker.email}</div>
+            {data.tasker.trustLevel && <div className="text-[11px] text-slate-400 mt-0.5">Trust: {data.tasker.trustLevel} ({data.tasker.trustScore}/100) · {data.total} task(s) submitted</div>}
+          </div>
+          <div className="rounded-lg border border-white/10 divide-y divide-white/5">
+            {data.tasks.length === 0 && <div className="p-3 text-sm text-slate-600">No tasks submitted.</div>}
+            {data.tasks.map((t: any) => (
+              <div key={t.completionId} className="p-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-sm font-bold text-slate-200 truncate">{t.title}</div>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${t.status === 'approved' ? 'bg-emerald-500/15 text-emerald-300' : t.status === 'rejected' ? 'bg-red-500/15 text-red-300' : 'bg-amber-500/15 text-amber-300'}`}>{t.status}</span>
+                </div>
+                <div className="mt-0.5 flex items-center gap-2 text-[10px] text-slate-500 flex-wrap">
+                  <Copyable value={t.taskId} className="font-mono text-amber-400/80">🔖 {t.taskId}</Copyable>
+                  {t.proofUrl && <a href={t.proofUrl} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">proof ↗</a>}
+                  <span>{new Date(t.createdAt).toLocaleDateString()}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
