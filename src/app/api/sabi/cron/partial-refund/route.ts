@@ -63,22 +63,23 @@ export async function GET(req: NextRequest) {
     const refundKobo = Math.round((order.totalPrice / order.quantity) * remainder);
 
     try {
-      await prisma.$transaction([
-        prisma.sabiOrder.update({
-          where: { id: order.id },
-          data: {
-            status: 'completed',
-            completionPercentage: Math.min(100, Math.round((delivered / order.quantity) * 100)),
-            refundReason: `Partially delivered (${delivered.toLocaleString()} of ${order.quantity.toLocaleString()}). ₦${Math.round(refundKobo / 100).toLocaleString()} refunded for the undelivered remainder — you only pay for what's delivered.`,
-          },
-        }),
-        ...(refundKobo > 0 ? [
-          prisma.sabiWallet.update({
-            where: { userId: order.userId },
-            data: { balance: { increment: refundKobo }, totalSpent: { decrement: refundKobo } },
-          }),
-        ] : []),
-      ]);
+      // Atomic: only the run that transitions executing/processing → completed refunds,
+      // so overlapping cron runs can't double-refund the same order.
+      const win = await prisma.sabiOrder.updateMany({
+        where: { id: order.id, status: { in: ['executing', 'processing'] } },
+        data: {
+          status: 'completed',
+          completionPercentage: Math.min(100, Math.round((delivered / order.quantity) * 100)),
+          refundReason: `Partially delivered (${delivered.toLocaleString()} of ${order.quantity.toLocaleString()}). ₦${Math.round(refundKobo / 100).toLocaleString()} refunded for the undelivered remainder — you only pay for what's delivered.`,
+        },
+      });
+      if (win.count !== 1) { continue; } // another run already closed/refunded it
+      if (refundKobo > 0) {
+        await prisma.sabiWallet.update({
+          where: { userId: order.userId },
+          data: { balance: { increment: refundKobo }, totalSpent: { decrement: refundKobo } },
+        });
+      }
       results.push({ id: order.id, refundKobo, delivered, quantity: order.quantity });
 
       // Stop the gamerz360 campaign so no further (now-refunded) completions are paid.

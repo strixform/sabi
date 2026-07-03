@@ -160,6 +160,15 @@ export async function GET(req: NextRequest) {
         continue;
       }
 
+      // ── ATOMIC CLAIM ── flip pending → processing; only the winner proceeds. This is
+      // what stops two overlapping cron runs from BOTH pushing + refunding the same
+      // order (the double-refund that inflated balances / drove totalSpent negative).
+      const claim = await prisma.sabiOrder.updateMany({
+        where: { id: order.id, status: 'pending' },
+        data: { status: 'processing' },
+      });
+      if (claim.count !== 1) { continue; } // another run already claimed it
+
       const payload = {
         sabiOrderId: order.id,
         serviceType: order.serviceType,
@@ -237,13 +246,26 @@ export async function GET(req: NextRequest) {
           if (errBody?.code === 'no_taskers_in_region' && errBody?.error) reason = String(errBody.error);
           else if (errBody?.error) reason = String(errBody.error);
         } catch {}
-        await prisma.$transaction([
-          prisma.sabiOrder.update({ where: { id: order.id }, data: { status: 'failed', refundReason: reason } }),
-          prisma.sabiWallet.update({ where: { userId: order.userId }, data: { balance: { increment: order.totalPrice + order.platformFee - (order.discountAmount || 0) }, totalSpent: { decrement: order.totalPrice + order.platformFee - (order.discountAmount || 0) } } }),
-        ]);
+        // Refund ONLY if we win the processing → failed transition, so it can never
+        // happen twice (the double-refund guard). The amount = exactly what was charged
+        // (base + fee − discount = chargeKobo).
+        const amt = order.totalPrice + order.platformFee - (order.discountAmount || 0);
+        const failWin = await prisma.sabiOrder.updateMany({
+          where: { id: order.id, status: 'processing' },
+          data: { status: 'failed', refundReason: reason },
+        });
+        if (failWin.count === 1 && amt > 0) {
+          await prisma.sabiWallet.update({
+            where: { userId: order.userId },
+            data: { balance: { increment: amt }, totalSpent: { decrement: amt } },
+          });
+        }
         results.push({ id: order.id, success: false, error: reason });
       }
     } catch (err: any) {
+      // Timeout / network error — the push likely didn't complete. Revert our claim so
+      // it retries next run. NO refund here (that only happens on an explicit rejection).
+      await prisma.sabiOrder.updateMany({ where: { id: order.id, status: 'processing' }, data: { status: 'pending' } }).catch(() => {});
       results.push({ id: order.id, success: false, error: err?.message });
     }
   }
