@@ -44,7 +44,7 @@ const RETRY_DELAYS = [1000, 3000, 7000, 15000];
 export async function sabiExecute(
   query: { sql: string; args?: InArgs },
   timeoutMs = 8000
-): Promise<{ rows: any[] }> {
+): Promise<{ rows: any[]; rowsAffected?: number }> {
   for (let attempt = 0; attempt < 5; attempt++) {
     const client = getClient();
     try {
@@ -54,7 +54,7 @@ export async function sabiExecute(
           setTimeout(() => reject(new Error('sabiExecute timeout')), timeoutMs)
         ),
       ]);
-      return { rows: result.rows as any[] };
+      return { rows: result.rows as any[], rowsAffected: result.rowsAffected };
     } catch (err: any) {
       resetClient(); // fresh client on next attempt
       const msg = err?.message || '';
