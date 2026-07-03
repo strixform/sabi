@@ -1,10 +1,28 @@
 User-agent: *
 Allow: /
+Crawl-delay: 1
+
+# Auth-gated app + private areas — no SEO value, keep out of the index
 Disallow: /api/
 Disallow: /admin/
 Disallow: /sabi/admin/
+Disallow: /sabi/dashboard
+Disallow: /sabi/growth
+Disallow: /sabi/ugc
+Disallow: /sabi/wallet
+Disallow: /sabi/orders
+Disallow: /sabi/profile
+Disallow: /sabi/profiles
+Disallow: /sabi/api-keys
+Disallow: /sabi/team
+Disallow: /sabi/subscriptions
+Disallow: /sabi/referral
+Disallow: /sabi/staff
+Disallow: /sabi/verify
+Disallow: /sabi/reset-password
+Disallow: /sabi/forgot-password
+Disallow: /sabi/r/
+Disallow: /reseller/dashboard
+Disallow: /sabi/order/
 
-Sitemap: https://theowletonline.com/sitemap.xml
-
-User-agent: *
-Crawl-delay: 1
+Sitemap: https://sability.io/sitemap.xml
