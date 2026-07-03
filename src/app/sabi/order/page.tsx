@@ -175,7 +175,9 @@ const SERVICE_URL_REQUIREMENTS: Record<string, URLType[]> = {
   'Subscriptions': ['channel'],
   'Channel Points': ['channel'],
   'Chat Comments': ['channel'],
-  'Plays': ['post', 'channel'],
+  // Plays target an individual TRACK/song link (open.spotify.com/track/…), never the
+  // artist page — so the example must show the track link, not the artist link.
+  'Plays': ['post'],
 };
 
 // Example target URLs per platform, by link kind, so each platform shows the

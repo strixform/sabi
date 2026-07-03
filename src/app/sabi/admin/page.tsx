@@ -21,6 +21,13 @@ import {
   FiShoppingBag, FiGift, FiExternalLink, FiChevronLeft, FiChevronRight,
   FiChevronDown, FiPhone,
 } from 'react-icons/fi';
+import { SERVICES_CATALOG } from '@/lib/servicesCatalog';
+
+// Services sorted by platform then name, for the Orders "by service" filter — lets
+// staff pull up every order for one service to spot systemic vs one-off issues.
+const SERVICE_FILTER_OPTIONS = [...SERVICES_CATALOG]
+  .sort((a, b) => (a.category + a.name).localeCompare(b.category + b.name))
+  .map(s => ({ id: s.id, label: s.name }));
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1186,6 +1193,7 @@ export default function AdminPage() {
   const [orderPage, setOrderPage] = useState(0);
   const [orderTotal, setOrderTotal] = useState(0);
   const [statusFilter, setStatusFilter] = useState('');
+  const [serviceFilter, setServiceFilter] = useState('');
 
   // Users
   const [users, setUsers]         = useState<User[]>([]);
@@ -1283,8 +1291,9 @@ export default function AdminPage() {
       try {
         if (tab === 'Orders') {
           const p: any = { limit: LIMIT, offset: orderPage * LIMIT };
-          if (search)       p.search = search;
-          if (statusFilter) p.status = statusFilter;
+          if (search)        p.search = search;
+          if (statusFilter)  p.status = statusFilter;
+          if (serviceFilter) p.service = serviceFilter;
           const [o, s] = await Promise.all([
             adminFetch('/api/sabi/admin/orders'  + qs(p)).then(r => r.json()),
             adminFetch('/api/sabi/admin/stats').then(r => r.json()),
@@ -1323,7 +1332,7 @@ export default function AdminPage() {
       finally { setLoading(false); }
     };
     go();
-  }, [authorized, tab, orderPage, userPage, payPage, search, statusFilter, reqStatusFilter, adminFetch]);
+  }, [authorized, tab, orderPage, userPage, payPage, search, statusFilter, serviceFilter, reqStatusFilter, adminFetch]);
 
   if (!authorized) return (
     <div className="min-h-screen bg-[#030507] flex items-center justify-center">
@@ -1428,7 +1437,15 @@ export default function AdminPage() {
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
-              <button onClick={() => { setSearch(''); setStatusFilter(''); setOrderPage(0); }}
+              <select value={serviceFilter} onChange={e => { setServiceFilter(e.target.value); setOrderPage(0); }}
+                title="Review every order for one service"
+                className="px-3 py-2 bg-slate-900 border border-white/[0.06] text-slate-300 text-sm rounded-lg focus:outline-none max-w-[220px]">
+                <option value="">All services</option>
+                {SERVICE_FILTER_OPTIONS.map(s => (
+                  <option key={s.id} value={s.id}>{s.label}</option>
+                ))}
+              </select>
+              <button onClick={() => { setSearch(''); setStatusFilter(''); setServiceFilter(''); setOrderPage(0); }}
                 className="px-3 py-2 bg-slate-900 border border-white/[0.06] text-slate-400 hover:text-white text-sm rounded-lg transition flex items-center gap-1">
                 <FiRefreshCw className="w-4 h-4" />
               </button>

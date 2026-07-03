@@ -23,9 +23,13 @@ export async function GET(req: NextRequest) {
     const limit  = Math.min(parseInt(searchParams.get('limit') || '50'), 200);
     const status = searchParams.get('status') || null;
     const search = searchParams.get('search') || null;
+    // Filter to a single service (serviceType id, e.g. "spotify_plays") so staff can
+    // review every order for one service and spot systemic vs one-off issues.
+    const service = searchParams.get('service') || null;
 
     const where: Record<string, any> = {};
     if (status) where.status = status;
+    if (service) where.serviceType = service;
 
     // Search by user email/name or order ID
     let orders;
