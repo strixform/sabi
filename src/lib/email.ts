@@ -47,8 +47,8 @@ export async function sendTeamInviteEmail(to: string, inviterName: string, accep
   }
 }
 
-export async function sendAdminAlertEmail(subject: string, bodyHtml: string) {
-  const adminEmail = process.env.SABI_ADMIN_EMAIL;
+export async function sendAdminAlertEmail(subject: string, bodyHtml: string, to?: string) {
+  const adminEmail = to || process.env.SABI_ADMIN_EMAIL;
   if (!adminEmail) return;
   try {
     await resend.emails.send({
