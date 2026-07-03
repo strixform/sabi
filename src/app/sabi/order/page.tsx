@@ -849,10 +849,10 @@ export default function OrderPage() {
                     Select where you want to grow your presence
                   </AnimateInText>
                 </p>
-                <Link href="/sabi/order/packs"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-purple-200"
-                  style={{ background: 'rgba(167,139,250,0.12)', border: '1px solid rgba(167,139,250,0.3)' }}>
-                  🎁 Or grab a Power Pack — everything one link needs in one order →
+                <Link href="/sabi/engagement"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-pink-200"
+                  style={{ background: 'rgba(236,72,153,0.12)', border: '1px solid rgba(236,72,153,0.3)' }}>
+                  💗 Or set up Auto Engagement — likes & comments on your next few posts →
                 </Link>
               </div>
 
