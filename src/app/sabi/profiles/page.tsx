@@ -7,8 +7,8 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { FiArrowLeft, FiLoader, FiBookmark, FiTrash2, FiPlus } from 'react-icons/fi';
 import { ModernSabiHeader } from '@/components/ModernSabiHeader';
+import { PageHero } from '@/components/studio/PageHero';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
-import { GradientText } from '@/components/AnimatedText';
 import { InteractiveCard } from '@/components/InteractiveCard';
 
 interface Profile { id: string; label: string; url: string; platform: string | null; }
@@ -59,22 +59,17 @@ export default function SavedProfilesPage() {
       <ModernSabiHeader showNavigation={true} />
 
       <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="mb-8">
-          <Link href="/sabi/dashboard">
-            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-              className="px-4 py-2 bg-white/[0.025] hover:bg-slate-700/50 text-slate-300 rounded-lg transition flex items-center gap-2 border border-white/[0.06]">
-              <FiArrowLeft className="w-4 h-4" /> Back to Dashboard
-            </motion.button>
-          </Link>
-        </motion.div>
+        <Link href="/sabi/studio" className="mb-5 inline-flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.025] px-4 py-2 text-slate-300 transition hover:bg-slate-700/50">
+          <FiArrowLeft className="h-4 w-4" /> Back to Studio
+        </Link>
 
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <h1 className="text-4xl sm:text-5xl font-black mb-2 flex items-center gap-3">
-            <FiBookmark className="w-8 h-8 text-blue-400" />
-            <GradientText>My Profiles</GradientText>
-          </h1>
-          <p className="text-slate-400">Save the accounts and links you order for — then reorder in two taps.</p>
-        </motion.div>
+        <PageHero
+          icon={FiBookmark}
+          eyebrow="Studio"
+          accent="from-blue-500 to-cyan-600"
+          title="My Profiles"
+          subtitle="Save the accounts and links you order for — then reorder in two taps."
+        />
 
         {/* Add form */}
         <InteractiveCard glowColor="blue">

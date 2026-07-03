@@ -4,6 +4,9 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { FiStar, FiArrowLeft } from 'react-icons/fi';
+import { ModernSabiHeader } from '@/components/ModernSabiHeader';
+import { PageHero } from '@/components/studio/PageHero';
 
 const PLATFORMS = ['all', 'instagram', 'tiktok', 'twitter', 'youtube', 'facebook', 'snapchat', 'threads'];
 
@@ -64,13 +67,23 @@ export default function UGCMarketplacePage() {
   useEffect(() => { load(); }, [load]);
 
   return (
+    <>
+    <ModernSabiHeader showNavigation={true} />
     <div className="min-h-screen bg-slate-950 text-white px-4 py-6">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-1">
-          <h1 className="text-2xl font-black">🌟 UGC Creators</h1>
-          <Link href="/sabi/ugc/bookings" className="text-xs font-bold text-emerald-300 hover:text-emerald-200">My bookings →</Link>
-        </div>
-        <p className="text-sm text-slate-400 mb-4">Book real Nigerian creators for authentic shoutouts & content. Pick who you want, then request a booking.</p>
+        <Link href="/sabi/studio" className="mb-5 inline-flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.025] px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-700/50">
+          <FiArrowLeft className="h-4 w-4" /> Back to Studio
+        </Link>
+        <PageHero
+          icon={FiStar}
+          eyebrow="Studio"
+          badge="UGC"
+          accent="from-amber-500 to-orange-600"
+          title="Book Creators"
+          subtitle="Book real Nigerian creators for authentic shoutouts and content. Pick who you want, then request a booking."
+        >
+          <Link href="/sabi/ugc/bookings" className="rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-xs font-bold text-emerald-300 hover:bg-emerald-500/20">My bookings →</Link>
+        </PageHero>
 
         {/* Filters */}
         <div className="flex flex-wrap gap-2 mb-4">
@@ -146,5 +159,6 @@ export default function UGCMarketplacePage() {
         )}
       </div>
     </div>
+    </>
   );
 }

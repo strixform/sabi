@@ -3,6 +3,10 @@
 export const dynamic = 'force-dynamic';
 
 import { useEffect, useState, useCallback } from 'react';
+import Link from 'next/link';
+import { FiUsers, FiArrowLeft } from 'react-icons/fi';
+import { ModernSabiHeader } from '@/components/ModernSabiHeader';
+import { PageHero } from '@/components/studio/PageHero';
 
 interface Member { id: string; memberEmail: string; role: string; status: string; invitedAt: string; acceptedAt: string | null }
 interface Workspace { ownerId: string; role: string; name: string }
@@ -84,9 +88,19 @@ export default function TeamPage() {
   const actingName = acting ? (workspaces.find((w) => w.ownerId === acting.accountId)?.name || 'another account') : null;
 
   return (
+    <>
+    <ModernSabiHeader showNavigation={true} />
     <div className="mx-auto max-w-3xl p-4 text-slate-100 sm:p-6">
-      <h1 className="text-2xl font-bold">Team</h1>
-      <p className="mt-1 text-sm text-slate-400">Invite teammates to your account. <b>Viewers</b> can only see activity; <b>Members</b> can place orders (spends your balance); <b>Admins</b> can also manage the team.</p>
+      <Link href="/sabi/studio" className="mb-5 inline-flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.025] px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-700/50">
+        <FiArrowLeft className="h-4 w-4" /> Back to Studio
+      </Link>
+      <PageHero
+        icon={FiUsers}
+        eyebrow="Studio"
+        accent="from-emerald-500 to-teal-600"
+        title="Team"
+        subtitle="Invite teammates to your account. Viewers can only see activity; Members can place orders (spends your balance); Admins can also manage the team."
+      />
 
       {/* Acting-as banner */}
       {acting && (
@@ -170,5 +184,6 @@ export default function TeamPage() {
         )}
       </section>
     </div>
+    </>
   );
 }

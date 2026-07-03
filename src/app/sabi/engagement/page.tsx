@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { FiHeart } from 'react-icons/fi';
 import { ModernSabiHeader } from '@/components/ModernSabiHeader';
+import { PageHero } from '@/components/studio/PageHero';
 import {
   priceAutoEngagement, AE_LIMITS, AUTO_ENGAGEMENT_PLATFORMS,
   type AutoEngagementPlatform,
@@ -82,15 +84,16 @@ export default function EngagementPage() {
   return (
     <>
     <ModernSabiHeader showNavigation={true} />
-    <main className="mx-auto max-w-3xl px-5 py-10">
-      <header className="mb-8">
-        <h1 className="text-3xl font-black text-white">Auto Engagement</h1>
-        <p className="mt-2 text-slate-400">
-          Fund real engagement for your <b className="text-white">next few posts</b> in one go. Real Nigerians
-          follow you and — each time you publish — like, comment and engage the comments to build organic-looking
-          buzz. You only pay per post as it&apos;s delivered and staff-approved.
-        </p>
-      </header>
+    <main className="mx-auto max-w-3xl px-5 py-8">
+      <PageHero
+        icon={FiHeart}
+        eyebrow="Studio"
+        badge="New"
+        accent="from-pink-500 to-purple-600"
+        title="Auto Engagement"
+        subtitle="Fund real engagement for your next few posts in one go. Real Nigerians follow you and — each time you publish — like, comment and engage the comments to build organic-looking buzz. You only pay per post as it's delivered and staff-approved."
+      />
+      <Link href="/sabi/studio" className="mb-6 -mt-3 inline-flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-white">← Studio</Link>
 
       {/* Configurator */}
       <section className="mb-10 rounded-2xl border border-white/10 bg-slate-900/40 p-5 sm:p-6">
