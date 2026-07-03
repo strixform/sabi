@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiLogOut, FiHome, FiShoppingCart, FiKey, FiBook, FiMenu, FiX, FiCreditCard, FiDownload, FiInbox, FiUser, FiGift, FiRefreshCw, FiBookmark, FiZap, FiGrid, FiStar, FiTrendingUp, FiUsers, FiHeart } from 'react-icons/fi';
+import { FiLogOut, FiHome, FiShoppingCart, FiKey, FiBook, FiMenu, FiX, FiCreditCard, FiDownload, FiInbox, FiUser, FiGift, FiZap, FiGrid, FiCompass } from 'react-icons/fi';
 import { SiWhatsapp } from 'react-icons/si';
 import { LogoImage } from './LogoImage';
 
@@ -104,15 +104,10 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
   const navItems = [
     { href: '/sabi/dashboard', label: 'Dashboard', icon: FiHome, badge: null },
     { href: '/sabi/order', label: 'New Order', icon: FiShoppingCart, badge: 'Quick' },
-    { href: '/sabi/engagement', label: 'Auto Engagement', icon: FiHeart, badge: 'New' },
-    { href: '/sabi/ugc', label: 'Book Creators', icon: FiStar, badge: 'UGC' },
+    { href: '/sabi/studio', label: 'Studio', icon: FiCompass, badge: 'New' },
     { href: '/sabi/services', label: 'Services', icon: FiGrid, badge: null },
     { href: '/sabi/ai', label: 'AI Studio', icon: FiZap, badge: 'AI' },
     { href: '/sabi/orders', label: 'Orders', icon: FiInbox, badge: null },
-    { href: '/sabi/growth', label: 'My Growth', icon: FiTrendingUp, badge: null },
-    { href: '/sabi/subscriptions', label: 'Auto-Reorders', icon: FiRefreshCw, badge: null },
-    { href: '/sabi/profiles', label: 'My Profiles', icon: FiBookmark, badge: null },
-    { href: '/sabi/team', label: 'Team', icon: FiUsers, badge: null },
     { href: '/sabi/partnership', label: 'Partnership', icon: FiKey, badge: 'Resell' },
     { href: '/sabi/referral', label: 'Refer & Earn', icon: FiGift, badge: '₦100' },
     { href: '/sabi/profile', label: 'Profile', icon: FiUser, badge: null },

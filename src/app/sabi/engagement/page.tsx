@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { ModernSabiHeader } from '@/components/ModernSabiHeader';
 import {
   priceAutoEngagement, AE_LIMITS, AUTO_ENGAGEMENT_PLATFORMS,
   type AutoEngagementPlatform,
@@ -79,6 +80,8 @@ export default function EngagementPage() {
   }
 
   return (
+    <>
+    <ModernSabiHeader showNavigation={true} />
     <main className="mx-auto max-w-3xl px-5 py-10">
       <header className="mb-8">
         <h1 className="text-3xl font-black text-white">Auto Engagement</h1>
@@ -168,6 +171,7 @@ export default function EngagementPage() {
         )}
       </section>
     </main>
+    </>
   );
 }
 
