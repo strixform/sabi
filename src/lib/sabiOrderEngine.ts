@@ -536,7 +536,11 @@ export async function getSabiOrder(orderId: string, userId: string) {
 export async function getSabiOrders(userId: string, limit: number = 50) {
   try {
     const r = await sabiExecute({
-      sql: `SELECT * FROM SabiOrder WHERE userId = ? ORDER BY createdAt DESC LIMIT ?`,
+      // Exclude Auto Engagement work orders (customRef 'ae:…') — they're internal units
+      // of a package the buyer tracks on /sabi/engagement, not standalone ₦0 orders.
+      sql: `SELECT * FROM SabiOrder
+            WHERE userId = ? AND (customRef IS NULL OR customRef NOT LIKE 'ae:%')
+            ORDER BY createdAt DESC LIMIT ?`,
       args: [userId, limit],
     });
     return r.rows as any[];

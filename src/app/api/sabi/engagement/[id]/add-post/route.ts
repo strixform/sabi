@@ -27,7 +27,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   // Verify ownership + capacity.
   const pk = await sabiExecute({
-    sql: `SELECT userId, postsTotal, postsSubmitted, status FROM SabiEngagementPackage WHERE id = ? LIMIT 1`,
+    sql: `SELECT userId, platform, profileUrl, engagersPerPost, mixComment, mixCommentLikes,
+                 postsTotal, postsSubmitted, status
+          FROM SabiEngagementPackage WHERE id = ? LIMIT 1`,
     args: [id],
   }).catch(() => ({ rows: [] as any[] }));
   const pkg = (pk.rows as any[])[0];
@@ -57,8 +59,22 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     args: [postId, id, session.id, postUrl, idx],
   });
 
-  // TODO Phase 2: dispatch the engagement round (like + comment + comment-likes) for
-  // this post to gamers360 taskers.
+  // Phase 2: dispatch the engagement round (like + comment + comment-likes) for this
+  // post to gamers360 taskers. Best-effort — the slot is already claimed and the post
+  // recorded; a dispatch hiccup can be re-driven by reconcile.
+  try {
+    const { dispatchEngagementRound } = await import('@/lib/dispatchEngagement');
+    await dispatchEngagementRound(
+      {
+        id, userId: session.id, platform: pkg.platform,
+        profileUrl: pkg.profileUrl, engagersPerPost: Number(pkg.engagersPerPost),
+        mixComment: Number(pkg.mixComment) === 1, mixCommentLikes: Number(pkg.mixCommentLikes),
+      },
+      { id: postId, postUrl },
+    );
+  } catch (e: any) {
+    console.error('[ae-add-post] round dispatch failed (non-fatal):', e?.message);
+  }
 
   return NextResponse.json({ ok: true, postId, idx, remaining: Number(pkg.postsTotal) - idx });
 }

@@ -76,7 +76,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Could not create package — you were not charged' }, { status: 500 });
   }
 
-  // TODO Phase 2: dispatch the "follow + notify" task to gamers360 taskers here.
+  // Phase 2: dispatch the one-time "follow" work order to gamers360 taskers. Best-effort
+  // — a dispatch hiccup must not fail a purchase the buyer already paid for; the follow
+  // can be re-dispatched by reconcile if it didn't land.
+  try {
+    const { dispatchEngagementFollow } = await import('@/lib/dispatchEngagement');
+    await dispatchEngagementFollow({
+      id, userId: session.id, platform,
+      profileUrl, engagersPerPost: cfg.engagersPerPost,
+      mixComment: cfg.mix.comment, mixCommentLikes: cfg.mix.commentLikes,
+    });
+  } catch (e: any) {
+    console.error('[ae-create] follow dispatch failed (non-fatal):', e?.message);
+  }
 
   return NextResponse.json({
     ok: true,
