@@ -200,9 +200,14 @@ function PackageCard({ pkg, onChange }: { pkg: Pkg; onChange: () => void }) {
           <div className="font-bold text-white capitalize">{PLATFORM_LABEL[pkg.platform] || pkg.platform} · {pkg.engagersPerPost} engagers/post</div>
           <a href={pkg.profileUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-400 hover:underline">{pkg.profileUrl}</a>
         </div>
-        <span className={`rounded-full px-3 py-1 text-xs font-bold ${pkg.status === 'active' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-slate-700 text-slate-300'}`}>
-          {pkg.status}
-        </span>
+        <div className="flex items-center gap-2">
+          <Link href={`/sabi/engagement/${pkg.id}/contract`} className="rounded-full border border-white/10 px-3 py-1 text-xs font-bold text-slate-300 hover:bg-white/5">
+            📄 Contract
+          </Link>
+          <span className={`rounded-full px-3 py-1 text-xs font-bold ${pkg.status === 'active' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-slate-700 text-slate-300'}`}>
+            {pkg.status}
+          </span>
+        </div>
       </div>
 
       <div className="mt-3 text-sm text-slate-300">
