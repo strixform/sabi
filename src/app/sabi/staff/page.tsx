@@ -4,6 +4,13 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useState, useCallback, type ReactNode, type SyntheticEvent } from 'react';
 import Link from 'next/link';
+import { SERVICES_CATALOG } from '@/lib/servicesCatalog';
+
+// Services (sorted by platform then name) for the "by service" review filter — lets
+// staff pull up every order for one service to tell a systemic issue from a one-off.
+const SERVICE_FILTER_OPTIONS = [...SERVICES_CATALOG]
+  .sort((a, b) => (a.category + a.name).localeCompare(b.category + b.name))
+  .map(s => ({ id: s.id, label: s.name }));
 
 // Click-to-copy chip. Rendered as a span (not a button) so it can live inside the
 // card's header button without nesting buttons; stops propagation so copying does
@@ -419,6 +426,7 @@ function ProofsTab({ owner }: { owner: boolean }) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('all'); // show every order by default
+  const [service, setService] = useState(''); // filter to one service (serviceType id)
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -449,13 +457,14 @@ function ProofsTab({ owner }: { owner: boolean }) {
     setLoading(true);
     const q = status === 'all' ? '' : `&status=${status}`;
     const s = search.trim() ? `&search=${encodeURIComponent(search.trim())}` : '';
+    const sv = service ? `&service=${encodeURIComponent(service)}` : '';
     // Only orders NOT yet marked checked — checked ones live in the "Checked Orders" tab.
-    af(`/api/sabi/admin/staff-orders?checked=0&limit=50${q}${s}`)
+    af(`/api/sabi/admin/staff-orders?checked=0&limit=50${q}${s}${sv}`)
       .then(r => (r.ok ? r.json() : null))
       .then(d => setOrders(d?.orders || []))
       .catch(() => setOrders([]))
       .finally(() => setLoading(false));
-  }, [status, search]);
+  }, [status, search, service]);
   useEffect(() => { load(); }, [load]);
 
   // Approve a single proof (staff confirms it's correct → won't be re-checked).
@@ -604,11 +613,23 @@ function ProofsTab({ owner }: { owner: boolean }) {
         <button type="submit" className="px-4 py-2 rounded-lg text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white">Search</button>
         {search && <button type="button" onClick={() => { setSearch(''); setSearchInput(''); }} className="px-3 py-2 rounded-lg text-sm font-bold bg-white/10 text-slate-300">Clear</button>}
       </form>
-      <div className="flex gap-2 mb-4 flex-wrap">
+      <div className="flex gap-2 mb-4 flex-wrap items-center">
         {['all', 'executing', 'completed', 'processing'].map(s => (
           <button key={s} onClick={() => setStatus(s)}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition ${status === s ? 'bg-white/10 text-white' : 'bg-white/[0.03] text-slate-500 hover:text-slate-300'}`}>{s}</button>
         ))}
+        {/* Review every order for one service — spot a systemic issue vs a one-off. */}
+        <select value={service} onChange={(e) => setService(e.target.value)}
+          title="Review every order for one service"
+          className={`ml-auto px-3 py-1.5 rounded-lg text-xs font-bold bg-[#0F1420] border outline-none max-w-[220px] ${service ? 'border-blue-500/50 text-white' : 'border-white/[0.08] text-slate-400'}`}>
+          <option value="">All services</option>
+          {SERVICE_FILTER_OPTIONS.map(s => (
+            <option key={s.id} value={s.id}>{s.label}</option>
+          ))}
+        </select>
+        {service && (
+          <button onClick={() => setService('')} className="px-2 py-1.5 rounded-lg text-xs font-bold bg-white/10 text-slate-300">✕</button>
+        )}
       </div>
       {loading ? <p className="text-slate-500 py-10 text-center">Loading…</p> : orders.length === 0 ? (
         <p className="text-slate-500 py-10 text-center">No {status} orders.</p>

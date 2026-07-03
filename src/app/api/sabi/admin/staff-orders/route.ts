@@ -19,11 +19,15 @@ export async function GET(req: NextRequest) {
   const checked = sp.get('checked') === '1' ? 1 : 0;
   const status = sp.get('status');
   const search = (sp.get('search') || '').trim();
+  // Filter to one service (serviceType id) so staff can review every order for a
+  // service and tell a systemic problem from a one-off customer mistake.
+  const service = (sp.get('service') || '').trim();
   const limit = Math.min(parseInt(sp.get('limit') || '50'), 200);
 
   const where: string[] = ['COALESCE(o.staffChecked,0) = ?'];
   const args: any[] = [checked];
   if (status && status !== 'all') { where.push('o.status = ?'); args.push(status); }
+  if (service) { where.push('o.serviceType = ?'); args.push(service); }
   if (search) {
     where.push('(o.id LIKE ? OR LOWER(u.email) LIKE LOWER(?) OR LOWER(u.name) LIKE LOWER(?))');
     args.push(`%${search}%`, `%${search}%`, `%${search}%`);
