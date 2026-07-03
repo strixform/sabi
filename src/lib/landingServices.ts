@@ -704,6 +704,387 @@ export const LANDINGS: Landing[] = [
       'Only pay for what\'s delivered, with auto-refund on shortfall.',
     ],
   },
+
+  /* ---------------------------- Tier 3 ---------------------------- */
+
+  {
+    slug: 'instagram-saves-nigeria',
+    serviceId: 'ig_saves',
+    platform: 'Instagram',
+    unit: 'saves',
+    h1: 'Buy Instagram Saves in Nigeria',
+    tagline: 'Saves — the signal Instagram treats as strongest intent.',
+    metaTitle: 'Buy Instagram Saves in Nigeria — Real Saves',
+    metaDescription:
+      'Get real Instagram saves from Nigerians. Saves are one of the strongest "valuable content" signals to the algorithm. Fast start, live naira pricing, only pay for what\'s delivered.',
+    keywords:
+      'buy Instagram saves Nigeria, Instagram saves Naira, boost Instagram reach Nigeria, Instagram algorithm saves',
+    intro:
+      'A save tells Instagram your post is worth coming back to — one of the strongest signals it uses to decide reach. SABI delivers real saves from Nigerians.',
+    benefits: [
+      'Saves — among the highest-value algorithm signals.',
+      'Pushes your post toward Explore and more feeds.',
+      'From real Nigerians, so it reads as genuine intent.',
+      'Only pay for what\'s delivered, with auto-refund on shortfall.',
+    ],
+  },
+  {
+    slug: 'instagram-shares-nigeria',
+    serviceId: 'ig_shares',
+    platform: 'Instagram',
+    unit: 'shares',
+    h1: 'Buy Instagram Shares in Nigeria',
+    tagline: 'Real shares that spread your post through DMs and stories.',
+    metaTitle: 'Buy Instagram Shares in Nigeria — Real Shares',
+    metaDescription:
+      'Get real Instagram shares from Nigerians to spread your post further and boost reach. Fast start, live naira pricing, only pay for what\'s delivered.',
+    keywords:
+      'buy Instagram shares Nigeria, Instagram shares Naira, boost Instagram post reach Nigeria',
+    intro:
+      'When people share your post to DMs and stories, Instagram reads it as content worth spreading and widens its reach. SABI delivers real shares from Nigerians.',
+    benefits: [
+      'Real shares that extend your post\'s reach.',
+      'A strong "worth spreading" signal to the algorithm.',
+      'From real Nigerians, never bots.',
+      'Only pay for what\'s delivered, with auto-refund on shortfall.',
+    ],
+  },
+  {
+    slug: 'tiktok-bookmarks-nigeria',
+    serviceId: 'tiktok_bookmarks',
+    platform: 'TikTok',
+    unit: 'bookmarks',
+    h1: 'Buy TikTok Bookmarks in Nigeria',
+    tagline: 'Saves that tell TikTok your video is worth returning to.',
+    metaTitle: 'Buy TikTok Bookmarks in Nigeria — Real Saves',
+    metaDescription:
+      'Get real TikTok bookmarks (saves) from Nigerians — a strong signal your video is worth revisiting. Fast start, live naira pricing, only pay for what\'s delivered.',
+    keywords:
+      'buy TikTok bookmarks Nigeria, TikTok saves Naira, boost TikTok video Nigeria, TikTok favorites',
+    intro:
+      'A bookmark says a viewer wants to come back to your video — a signal TikTok weighs heavily when deciding reach. SABI delivers real saves from Nigerians.',
+    benefits: [
+      'Bookmarks — a high-value For You Page signal.',
+      'Marks your video as reference-worthy content.',
+      'From real Nigerians, so it looks genuine.',
+      'Only pay for what\'s delivered, with auto-refund on shortfall.',
+    ],
+  },
+  {
+    slug: 'tiktok-live-views-nigeria',
+    serviceId: 'tiktok_live_views',
+    platform: 'TikTok',
+    unit: 'live views',
+    h1: 'Buy TikTok LIVE Views in Nigeria',
+    tagline: 'Real viewers that get your LIVE ranked and recommended.',
+    metaTitle: 'Buy TikTok LIVE Views in Nigeria — Real Live Viewers',
+    metaDescription:
+      'Get real TikTok LIVE viewers from Nigerians to climb the LIVE rankings and get recommended. Fast start, live naira pricing, only pay for what\'s delivered.',
+    keywords:
+      'buy TikTok live views Nigeria, TikTok LIVE viewers Naira, boost TikTok live Nigeria',
+    intro:
+      'TikTok recommends LIVEs that already have viewers — momentum begets momentum. SABI gets real Nigerians into your LIVE so it climbs the rankings.',
+    benefits: [
+      'Real live viewers that lift your LIVE ranking.',
+      'More recommendations into other users\' feeds.',
+      'From real Nigerians, never bots.',
+      'Only pay for what\'s delivered, with auto-refund on shortfall.',
+    ],
+  },
+  {
+    slug: 'youtube-shares-nigeria',
+    serviceId: 'youtube_shares',
+    platform: 'YouTube',
+    unit: 'shares',
+    h1: 'Buy YouTube Shares in Nigeria',
+    tagline: 'Real shares that spread your video beyond YouTube.',
+    metaTitle: 'Buy YouTube Shares in Nigeria — Real Shares',
+    metaDescription:
+      'Get real YouTube shares from Nigerians to spread your video and signal quality to the algorithm. Natural pacing, live naira pricing, only pay for what\'s delivered.',
+    keywords:
+      'buy YouTube shares Nigeria, YouTube shares Naira, boost YouTube video reach Nigeria',
+    intro:
+      'Shares carry your video to new audiences off-platform and tell YouTube it\'s worth recommending. SABI delivers real shares from Nigerians.',
+    benefits: [
+      'Real shares that widen your video\'s reach.',
+      'A positive quality signal to the algorithm.',
+      'From real Nigerians, so it looks organic.',
+      'Only pay for what\'s delivered, with auto-refund on shortfall.',
+    ],
+  },
+  {
+    slug: 'twitter-replies-nigeria',
+    serviceId: 'twitter_replies',
+    platform: 'X (Twitter)',
+    unit: 'replies',
+    h1: 'Buy X (Twitter) Replies in Nigeria',
+    tagline: 'Real Nigerian replies that make a post look like a conversation.',
+    metaTitle: 'Buy Twitter (X) Replies in Nigeria — Real Replies',
+    metaDescription:
+      'Get real, relevant X (Twitter) replies from Nigerians to spark conversation and lift your post. Fast start, live naira pricing, only pay for what\'s delivered.',
+    keywords:
+      'buy Twitter replies Nigeria, buy X replies Nigeria, real tweet replies Naira, boost tweet engagement',
+    intro:
+      'Replies are the engagement X ranks highest — a busy thread pulls in more eyes and more replies. SABI delivers real, on-topic replies from Nigerians.',
+    benefits: [
+      'Real, relevant replies — genuine sentences, not spam.',
+      'The highest-weighted engagement on X.',
+      'From real Nigerians who read the post.',
+      'Only pay for what\'s delivered, with auto-refund on shortfall.',
+    ],
+  },
+  {
+    slug: 'spotify-track-likes-nigeria',
+    serviceId: 'spotify_likes',
+    platform: 'Spotify',
+    unit: 'track likes',
+    h1: 'Buy Spotify Track Likes in Nigeria',
+    tagline: 'Real saves that feed Spotify\'s recommendation engine.',
+    metaTitle: 'Buy Spotify Track Likes in Nigeria — Real Saves',
+    metaDescription:
+      'Get real Spotify track likes (saves) from Nigerians to feed the recommendation algorithm. Natural pacing, live naira pricing, only pay for what\'s delivered.',
+    keywords:
+      'buy Spotify likes Nigeria, Spotify saves Naira, promote track Nigeria, boost Spotify song Nigeria',
+    intro:
+      'When listeners save your track, Spotify learns it\'s worth recommending in Discover Weekly and Radio. SABI delivers real saves from Nigerians.',
+    benefits: [
+      'Real track saves that feed recommendations.',
+      'Signals to Spotify your song resonates.',
+      'From real Nigerian listeners.',
+      'Only pay for what\'s delivered, with auto-refund on shortfall.',
+    ],
+  },
+  {
+    slug: 'threads-likes-nigeria',
+    serviceId: 'threads_likes',
+    platform: 'Threads',
+    unit: 'likes',
+    h1: 'Buy Threads Likes in Nigeria',
+    tagline: 'Real Nigerian likes that give your Threads posts traction.',
+    metaTitle: 'Buy Threads Likes in Nigeria — Real Likes',
+    metaDescription:
+      'Get real Threads likes from Nigerians to give your posts early traction and reach. Fast start, live naira pricing, only pay for what\'s delivered.',
+    keywords:
+      'buy Threads likes Nigeria, real Threads likes Naira, boost Threads post Nigeria',
+    intro:
+      'Early likes decide whether a Threads post gains traction or fades. SABI gives yours real likes from Nigerians when it matters.',
+    benefits: [
+      'Real likes that build early post traction.',
+      'Fast start on new posts.',
+      'From real Nigerians, never bots.',
+      'Only pay for what\'s delivered, with auto-refund on shortfall.',
+    ],
+  },
+  {
+    slug: 'telegram-reactions-nigeria',
+    serviceId: 'telegram_reactions',
+    platform: 'Telegram',
+    unit: 'reactions',
+    h1: 'Buy Telegram Reactions in Nigeria',
+    tagline: 'Real reactions that make your channel posts look engaged.',
+    metaTitle: 'Buy Telegram Reactions in Nigeria — Real Reactions',
+    metaDescription:
+      'Get real Telegram post reactions from Nigerians so your channel looks active and engaged. Fast start, live naira pricing, only pay for what\'s delivered.',
+    keywords:
+      'buy Telegram reactions Nigeria, Telegram post reactions Naira, boost Telegram channel Nigeria',
+    intro:
+      'Reactions under your Telegram posts show a channel people actually engage with. SABI delivers real reactions from Nigerians.',
+    benefits: [
+      'Real reactions that signal an engaged channel.',
+      'Fast start on new posts.',
+      'From real Nigerians, so it holds up.',
+      'Only pay for what\'s delivered, with auto-refund on shortfall.',
+    ],
+  },
+  {
+    slug: 'pinterest-repins-nigeria',
+    serviceId: 'pinterest_repins',
+    platform: 'Pinterest',
+    unit: 'repins',
+    h1: 'Buy Pinterest Repins in Nigeria',
+    tagline: 'Real repins that spread your pin across more boards.',
+    metaTitle: 'Buy Pinterest Repins in Nigeria — Real Repins',
+    metaDescription:
+      'Get real Pinterest repins from Nigerians to spread your pin across boards and widen reach. Natural pacing, live naira pricing, only pay for what\'s delivered.',
+    keywords:
+      'buy Pinterest repins Nigeria, Pinterest saves Naira, boost Pinterest pin Nigeria',
+    intro:
+      'Every repin puts your pin on another board and in front of a new audience — the way content spreads on Pinterest. SABI delivers real repins from Nigerians.',
+    benefits: [
+      'Real repins that spread your pin further.',
+      'More distribution across boards and feeds.',
+      'From real Nigerians, never bots.',
+      'Only pay for what\'s delivered, with auto-refund on shortfall.',
+    ],
+  },
+  {
+    slug: 'snapchat-story-views-nigeria',
+    serviceId: 'snapchat_story_views',
+    platform: 'Snapchat',
+    unit: 'story views',
+    h1: 'Buy Snapchat Story Views in Nigeria',
+    tagline: 'Real story views that prove an active, watched account.',
+    metaTitle: 'Buy Snapchat Story Views in Nigeria — Real Views',
+    metaDescription:
+      'Get real Snapchat story views from Nigerians so your account looks active and watched. Fast start, live naira pricing, only pay for what\'s delivered.',
+    keywords:
+      'buy Snapchat story views Nigeria, Snapchat views Naira, boost Snapchat story Nigeria',
+    intro:
+      'Story views are the proof that people are actually watching what you post. SABI gets real Nigerians viewing your Snapchat stories.',
+    benefits: [
+      'Real story views that signal an active account.',
+      'Fast start within the 24-hour story window.',
+      'From real Nigerians, so the counts hold up.',
+      'Only pay for what\'s delivered, with auto-refund on shortfall.',
+    ],
+  },
+  {
+    slug: 'twitch-subscribers-nigeria',
+    serviceId: 'twitch_subs',
+    platform: 'Twitch',
+    unit: 'subscriptions',
+    h1: 'Buy Twitch Subscriptions in Nigeria',
+    tagline: 'Real subs that boost your channel\'s status and reach.',
+    metaTitle: 'Buy Twitch Subscriptions in Nigeria — Real Subs',
+    metaDescription:
+      'Get real Twitch subscriptions from Nigerians to raise your channel\'s status and reach. Fast start, live naira pricing, only pay for what\'s delivered.',
+    keywords:
+      'buy Twitch subs Nigeria, Twitch subscriptions Naira, grow Twitch channel Nigeria',
+    intro:
+      'Subscriber count is the credibility that makes a channel look worth following and supports your standing on Twitch. SABI grows yours with real Nigerians.',
+    benefits: [
+      'Real subscriptions that raise your channel\'s status.',
+      'Stronger social proof for new viewers.',
+      'From real Nigerians, never bots.',
+      'Only pay for what\'s delivered, with auto-refund on shortfall.',
+    ],
+  },
+  {
+    slug: 'facebook-comments-nigeria',
+    serviceId: 'fb_comments',
+    platform: 'Facebook',
+    unit: 'comments',
+    h1: 'Buy Facebook Comments in Nigeria',
+    tagline: 'Real Nigerian comments that get a post talked about.',
+    metaTitle: 'Buy Facebook Comments in Nigeria — Real Comments',
+    metaDescription:
+      'Get real, relevant Facebook comments from Nigerians to spark discussion and lift reach. Fast start, live naira pricing, only pay for what\'s delivered.',
+    keywords:
+      'buy Facebook comments Nigeria, real Facebook comments Naira, boost Facebook post Nigeria',
+    intro:
+      'Comments are the engagement Facebook rewards with reach, and the social proof that draws more people in. SABI delivers real, on-topic comments from Nigerians.',
+    benefits: [
+      'Real, relevant comments — genuine sentences, not spam.',
+      'Discussion that lifts a post\'s reach.',
+      'From real Nigerians who read the post.',
+      'Only pay for what\'s delivered, with auto-refund on shortfall.',
+    ],
+  },
+  {
+    slug: 'facebook-shares-nigeria',
+    serviceId: 'fb_shares',
+    platform: 'Facebook',
+    unit: 'shares',
+    h1: 'Buy Facebook Shares in Nigeria',
+    tagline: 'Real shares that carry your post to new timelines.',
+    metaTitle: 'Buy Facebook Shares in Nigeria — Real Shares',
+    metaDescription:
+      'Get real Facebook shares from Nigerians to spread your post to new audiences. Fast start, live naira pricing, only pay for what\'s delivered.',
+    keywords:
+      'buy Facebook shares Nigeria, Facebook shares Naira, boost Facebook post reach Nigeria',
+    intro:
+      'A share carries your post onto someone else\'s timeline — the way content travels on Facebook. SABI delivers real shares from Nigerians.',
+    benefits: [
+      'Real shares that extend your post\'s reach.',
+      'A strong "worth spreading" signal.',
+      'From real Nigerians, never bots.',
+      'Only pay for what\'s delivered, with auto-refund on shortfall.',
+    ],
+  },
+  {
+    slug: 'whatsapp-channel-followers-nigeria',
+    serviceId: 'whatsapp_followers',
+    platform: 'WhatsApp',
+    unit: 'channel followers',
+    h1: 'Buy WhatsApp Channel Followers in Nigeria',
+    tagline: 'Real Nigerian followers that make your channel worth joining.',
+    metaTitle: 'Buy WhatsApp Channel Followers in Nigeria — Real Followers',
+    metaDescription:
+      'Grow your WhatsApp channel with real Nigerian followers so new visitors see an active community. Fast start, live naira pricing, only pay for what\'s delivered.',
+    keywords:
+      'buy WhatsApp channel followers Nigeria, WhatsApp channel members Naira, grow WhatsApp channel Nigeria',
+    intro:
+      'Nobody follows an empty WhatsApp channel. SABI seeds yours with real Nigerian followers so new visitors see a community worth joining.',
+    benefits: [
+      'Real Nigerian followers that build credibility.',
+      'Fast start with natural pacing.',
+      'No password needed — just your channel link.',
+      'Only pay for what\'s delivered, with auto-refund on shortfall.',
+    ],
+  },
+  {
+    slug: 'rumble-subscribers-nigeria',
+    serviceId: 'rumble_subscribers',
+    platform: 'Rumble',
+    unit: 'subscribers',
+    h1: 'Buy Rumble Subscribers in Nigeria',
+    tagline: 'Real subscribers that grow your Rumble channel.',
+    metaTitle: 'Buy Rumble Subscribers in Nigeria — Real & Active',
+    metaDescription:
+      'Grow your Rumble channel with real Nigerian subscribers. Natural pacing, no password, live naira pricing. You only pay for what\'s delivered.',
+    keywords:
+      'buy Rumble subscribers Nigeria, real Rumble subscribers Naira, grow Rumble channel Nigeria',
+    intro:
+      'Subscriber count is the credibility a new viewer weighs before following your Rumble channel. SABI grows yours with real Nigerians.',
+    benefits: [
+      'Real, active Nigerian subscribers.',
+      'Natural pacing that looks organic.',
+      'No password needed — just your channel link.',
+      'Only pay for what\'s delivered, with auto-refund on shortfall.',
+    ],
+  },
+  {
+    slug: 'rumble-views-nigeria',
+    serviceId: 'rumble_views',
+    platform: 'Rumble',
+    unit: 'views',
+    h1: 'Buy Rumble Views in Nigeria',
+    tagline: 'Real views that build momentum on your Rumble videos.',
+    metaTitle: 'Buy Rumble Views in Nigeria — Real Video Views',
+    metaDescription:
+      'Get real Rumble video views from Nigerians to build momentum and credibility. Natural pacing, live naira pricing, only pay for what\'s delivered.',
+    keywords:
+      'buy Rumble views Nigeria, Rumble video views Naira, boost Rumble video Nigeria',
+    intro:
+      'View count is the first thing viewers judge a Rumble video by, and momentum feeds discovery. SABI gets real Nigerians viewing yours.',
+    benefits: [
+      'Real views that build credibility and momentum.',
+      'Natural pacing that looks organic.',
+      'From real Nigerians, never bots.',
+      'Only pay for what\'s delivered, with auto-refund on shortfall.',
+    ],
+  },
+  {
+    slug: 'threads-comments-nigeria',
+    serviceId: 'threads_comments',
+    platform: 'Threads',
+    unit: 'comments',
+    h1: 'Buy Threads Comments in Nigeria',
+    tagline: 'Real Nigerian comments that get your Threads post talked about.',
+    metaTitle: 'Buy Threads Comments in Nigeria — Real Comments',
+    metaDescription:
+      'Get real, relevant Threads comments from Nigerians to spark conversation and lift reach. Fast start, live naira pricing, only pay for what\'s delivered.',
+    keywords:
+      'buy Threads comments Nigeria, real Threads comments Naira, boost Threads engagement Nigeria',
+    intro:
+      'A busy reply thread pulls more people into your Threads post and signals it\'s worth surfacing. SABI delivers real, on-topic comments from Nigerians.',
+    benefits: [
+      'Real, relevant comments — genuine sentences, not spam.',
+      'Conversation that lifts a post\'s reach.',
+      'From real Nigerians who read the post.',
+      'Only pay for what\'s delivered, with auto-refund on shortfall.',
+    ],
+  },
 ];
 
 export function getLanding(slug: string): Landing | undefined {
