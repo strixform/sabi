@@ -858,7 +858,7 @@ export default function OrderPage() {
 
               {/* Custom Order banner — shown above platforms */}
               <Link href="/sabi/order/custom"
-                className="flex items-center justify-between p-4 sm:p-5 rounded-xl mb-5 border border-violet-500/30 bg-gradient-to-r from-violet-500/10 to-blue-500/10 hover:from-violet-500/20 hover:to-blue-500/20 transition-all group">
+                className="flex items-center justify-between p-4 sm:p-5 rounded-2xl mb-5 border border-violet-500/30 bg-gradient-to-r from-violet-500/10 to-blue-500/10 hover:from-violet-500/20 hover:to-blue-500/20 hover:-translate-y-0.5 transition-all duration-200 group">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-blue-600 flex items-center justify-center flex-shrink-0">
                     <FiStar className="w-5 h-5 text-white" />
@@ -873,7 +873,7 @@ export default function OrderPage() {
 
               {/* Group Order banner — one link, many actions at once */}
               <Link href="/sabi/order/group"
-                className="flex items-center justify-between p-4 sm:p-5 rounded-xl mb-5 border border-emerald-500/30 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 hover:from-emerald-500/20 hover:to-teal-500/20 transition-all group">
+                className="flex items-center justify-between p-4 sm:p-5 rounded-2xl mb-5 border border-emerald-500/30 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 hover:from-emerald-500/20 hover:to-teal-500/20 hover:-translate-y-0.5 transition-all duration-200 group">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-600 flex items-center justify-center flex-shrink-0">
                     <FiShoppingCart className="w-5 h-5 text-white" />
