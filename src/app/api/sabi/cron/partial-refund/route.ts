@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sabiExecute } from '@/lib/tursoClient';
+import { creditSabiRefund } from '@/lib/sabiRefund';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 25;
@@ -75,10 +76,8 @@ export async function GET(req: NextRequest) {
       });
       if (win.count !== 1) { continue; } // another run already closed/refunded it
       if (refundKobo > 0) {
-        await prisma.sabiWallet.update({
-          where: { userId: order.userId },
-          data: { balance: { increment: refundKobo }, totalSpent: { decrement: refundKobo } },
-        });
+        // Credit + ledger atomically; the win guard makes this run exactly once.
+        await creditSabiRefund({ userId: order.userId, amountKobo: refundKobo, orderId: order.id, reason: `Partial delivery (${delivered}/${order.quantity}) — remainder refunded` });
       }
       results.push({ id: order.id, refundKobo, delivered, quantity: order.quantity });
 

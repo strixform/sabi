@@ -43,6 +43,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sabiExecute } from '@/lib/tursoClient';
+import { creditSabiRefund } from '@/lib/sabiRefund';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 25;
@@ -255,10 +256,9 @@ export async function GET(req: NextRequest) {
           data: { status: 'failed', refundReason: reason },
         });
         if (failWin.count === 1 && amt > 0) {
-          await prisma.sabiWallet.update({
-            where: { userId: order.userId },
-            data: { balance: { increment: amt }, totalSpent: { decrement: amt } },
-          });
+          // Credit + ledger in one atomic step. The failWin guard above makes this
+          // run exactly once, so it can never double-refund.
+          await creditSabiRefund({ userId: order.userId, amountKobo: amt, orderId: order.id, reason: reason || 'Order failed — full refund' });
         }
         results.push({ id: order.id, success: false, error: reason });
       }
