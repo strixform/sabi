@@ -409,11 +409,15 @@ export default function OrderPage() {
     }
   }, [selectedService]);
 
-  // Re-order prefill: /sabi/order?reorder=1&serviceId=&quantity=&url=
+  // Prefill from the URL:
+  //  - Re-order:        /sabi/order?reorder=1&serviceId=&quantity=&url=
+  //  - Landing-page CTA: /sabi/order?serviceId=   (jumps straight to the details step
+  //    with the service preselected — see src/app/buy/[slug])
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
-    if (sp.get('reorder') !== '1') return;
-    const svc = getServiceById(sp.get('serviceId') || '');
+    const svcId = sp.get('serviceId') || '';
+    if (sp.get('reorder') !== '1' && !svcId) return;
+    const svc = getServiceById(svcId);
     if (!svc) return;
     setSelectedPlatform(svc.category);
     setSelectedService(svc);

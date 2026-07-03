@@ -1,4 +1,5 @@
 import { MetadataRoute } from 'next';
+import { allLandingSlugs } from '@/lib/landingServices';
 
 /**
  * Public, indexable pages only. Auth-gated app routes (dashboard, wallet, orders,
@@ -20,9 +21,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority,
   });
 
+  // High-intent keyword landing pages (/buy/*) — one per money service.
+  const landingEntries = allLandingSlugs().map((slug) => entry(`/buy/${slug}`, 0.85, 'weekly'));
+
   return [
     entry('', 1.0, 'daily'),
     // Core marketing / conversion
+    entry('/buy', 0.9, 'weekly'),
+    ...landingEntries,
     entry('/sabi/services', 0.9, 'weekly'),
     entry('/sabi/calculator', 0.8, 'weekly'),
     entry('/sabi/docs', 0.7, 'weekly'),
