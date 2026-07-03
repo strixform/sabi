@@ -424,6 +424,7 @@ function TaskerLookupTab() {
 
 function ProofsTab({ owner }: { owner: boolean }) {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('all'); // show every order by default
   const [service, setService] = useState(''); // filter to one service (serviceType id)
@@ -461,8 +462,8 @@ function ProofsTab({ owner }: { owner: boolean }) {
     // Only orders NOT yet marked checked — checked ones live in the "Checked Orders" tab.
     af(`/api/sabi/admin/staff-orders?checked=0&limit=50${q}${s}${sv}`)
       .then(r => (r.ok ? r.json() : null))
-      .then(d => setOrders(d?.orders || []))
-      .catch(() => setOrders([]))
+      .then(d => { setOrders(d?.orders || []); setTotal(d?.total ?? (d?.orders?.length || 0)); })
+      .catch(() => { setOrders([]); setTotal(0); })
       .finally(() => setLoading(false));
   }, [status, search, service]);
   useEffect(() => { load(); }, [load]);
@@ -631,6 +632,12 @@ function ProofsTab({ owner }: { owner: boolean }) {
           <button onClick={() => setService('')} className="px-2 py-1.5 rounded-lg text-xs font-bold bg-white/10 text-slate-300">✕</button>
         )}
       </div>
+      {!loading && orders.length > 0 && (
+        <div className="text-[11px] font-bold text-slate-400 mb-2">
+          {total.toLocaleString()} order{total === 1 ? '' : 's'}{service ? ' for this service' : ''}
+          {orders.length < total ? ` · showing first ${orders.length}` : ''}
+        </div>
+      )}
       {loading ? <p className="text-slate-500 py-10 text-center">Loading…</p> : orders.length === 0 ? (
         <p className="text-slate-500 py-10 text-center">No {status} orders.</p>
       ) : (

@@ -58,7 +58,18 @@ export async function GET(req: NextRequest) {
         user: { email: o.userEmail || null, name: o.userName || null },
       };
     });
-    return NextResponse.json({ success: true, orders });
+    // Accurate total for the same filters (the list is capped at `limit`), so staff
+    // can gauge scale — e.g. how many orders exist for a filtered service.
+    let total = orders.length;
+    try {
+      const c = await sabiExecute({
+        sql: `SELECT COUNT(*) AS n FROM SabiOrder o LEFT JOIN SabiUser u ON u.id = o.userId WHERE ${where.join(' AND ')}`,
+        args,
+      });
+      total = Number((c.rows[0] as any)?.n ?? orders.length);
+    } catch { /* fall back to loaded count */ }
+
+    return NextResponse.json({ success: true, orders, total });
   } catch (e: any) {
     return NextResponse.json({ success: true, orders: [], needsMigration: true });
   }

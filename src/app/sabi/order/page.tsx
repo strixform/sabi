@@ -640,6 +640,14 @@ export default function OrderPage() {
     } catch {
       return 'Please paste a full link (e.g. https://...).';
     }
+
+    // Plays target an individual TRACK, never the artist page — an artist link can't be
+    // delivered as plays. A track link never contains "/artist/", so this only ever
+    // catches the genuinely-wrong link and gives the exact fix.
+    if (selectedService.action === 'Plays' && /\/artist\//i.test(u)) {
+      return 'Plays need the individual TRACK link, not your artist page. Open the song → tap ⋯ → Share → Copy Song Link (e.g. https://open.spotify.com/track/…).';
+    }
+
     return null;
   };
 
