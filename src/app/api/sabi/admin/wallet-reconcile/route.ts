@@ -130,14 +130,67 @@ async function reconcile(userIdOrEmail: string, byEmail: boolean): Promise<Recon
   };
 }
 
+/**
+ * Bulk scan — reconstruct every wallet's true balance in one aggregate pass and
+ * flag the ones the double-refund inflated (displayed balance > true balance by
+ * more than `thresholdKobo`). Uses the SAME per-order net-spend logic as reconcile(),
+ * expressed in SQL. Only flags INFLATION (never auto-credits an under-stated wallet).
+ */
+async function scanAll(thresholdKobo: number) {
+  const NET_SPENT = `
+    CASE
+      WHEN o.status IN ('failed','cancelled') THEN 0
+      WHEN o.status = 'completed' AND o.quantity > 0 AND COALESCE(o.completedQuantity,0) < o.quantity
+        THEN MAX(0, (o.totalPrice + o.platformFee - COALESCE(o.discountAmount,0))
+                     - CAST(ROUND((CAST(o.totalPrice AS REAL) / o.quantity) * (o.quantity - COALESCE(o.completedQuantity,0))) AS INTEGER))
+      ELSE MAX(0, o.totalPrice + o.platformFee - COALESCE(o.discountAmount,0))
+    END`;
+
+  const r = await sabiExecute({
+    sql: `
+      SELECT w.userId, u.email, w.balance, w.totalFunded,
+             COALESCE(s.netSpent, 0) AS netSpent,
+             MAX(0, w.totalFunded - COALESCE(s.netSpent, 0)) AS trueBalance
+      FROM SabiWallet w
+      LEFT JOIN SabiUser u ON u.id = w.userId
+      LEFT JOIN (
+        SELECT o.userId AS userId, SUM(${NET_SPENT}) AS netSpent
+        FROM SabiOrder o GROUP BY o.userId
+      ) s ON s.userId = w.userId
+      WHERE (w.balance - MAX(0, w.totalFunded - COALESCE(s.netSpent, 0))) > ?
+      ORDER BY (w.balance - MAX(0, w.totalFunded - COALESCE(s.netSpent, 0))) DESC
+      LIMIT 1000`,
+    args: [thresholdKobo],
+  }).catch(() => ({ rows: [] as any[] }));
+
+  const affected = (r.rows as any[]).map((x) => ({
+    userId: String(x.userId),
+    email: x.email || null,
+    balanceKobo: Number(x.balance || 0),
+    totalFundedKobo: Number(x.totalFunded || 0),
+    trueBalanceKobo: Number(x.trueBalance || 0),
+    trueTotalSpentKobo: Number(x.netSpent || 0),
+    inflatedByKobo: Number(x.balance || 0) - Number(x.trueBalance || 0),
+  }));
+  const totalInflatedKobo = affected.reduce((s, a) => s + a.inflatedByKobo, 0);
+  return { affectedCount: affected.length, totalInflatedNaira: Math.round(totalInflatedKobo / 100), thresholdKobo, affected };
+}
+
 export async function GET(req: NextRequest) {
   const auth = await allowOwnerOrStaff(req);
   if (!auth.ok || auth.role !== 'owner') return NextResponse.json({ error: 'Owner only' }, { status: 403 });
 
   const url = new URL(req.url);
+
+  // Fleet-wide scan: ?scan=1[&threshold=<kobo>] — dry run, lists every inflated wallet.
+  if (url.searchParams.get('scan')) {
+    const threshold = Math.max(0, Math.round(Number(url.searchParams.get('threshold') || 1000)));
+    return NextResponse.json(await scanAll(threshold));
+  }
+
   const email = url.searchParams.get('email');
   const userId = url.searchParams.get('userId');
-  if (!email && !userId) return NextResponse.json({ error: 'Pass ?userId= or ?email=' }, { status: 400 });
+  if (!email && !userId) return NextResponse.json({ error: 'Pass ?userId=, ?email=, or ?scan=1' }, { status: 400 });
 
   const r = await reconcile((email || userId)!, !!email);
   if (!r) return NextResponse.json({ error: 'Wallet not found' }, { status: 404 });
@@ -149,6 +202,26 @@ export async function POST(req: NextRequest) {
   if (!auth.ok || auth.role !== 'owner') return NextResponse.json({ error: 'Owner only' }, { status: 403 });
 
   const body = await req.json().catch(() => ({}));
+
+  if (body.action === 'apply-all') {
+    // Fleet-wide correction: reconstruct + write every inflated wallet.
+    const threshold = Math.max(0, Math.round(Number(body.threshold ?? 1000)));
+    const scan = await scanAll(threshold);
+    let fixed = 0;
+    for (const a of scan.affected) {
+      const res = await sabiExecute({
+        sql: `UPDATE SabiWallet SET balance = ?, totalSpent = ?, updatedAt = datetime('now') WHERE userId = ? AND balance = ?`,
+        args: [a.trueBalanceKobo, a.trueTotalSpentKobo, a.userId, a.balanceKobo],
+      }).catch(() => ({ rowsAffected: 0 } as any));
+      if (Number((res as any).rowsAffected ?? 0) === 1) fixed += 1;
+    }
+    return NextResponse.json({
+      ok: true, scanned: scan.affectedCount, fixed,
+      totalRecoveredNaira: scan.totalInflatedNaira,
+      affected: scan.affected,
+    });
+  }
+
   const userId = body.userId ? String(body.userId) : null;
   if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 });
 
