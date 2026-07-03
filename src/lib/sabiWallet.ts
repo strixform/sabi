@@ -149,10 +149,13 @@ export async function refundSabiWallet(
       return { success: true }; // Already refunded — idempotent return
     }
 
+    // balance up, net-spend down (clamped at 0 — a refund must never drive totalSpent
+    // negative, which was the double-refund signature), totalRefunded up. Consistent
+    // with the crons + cancel-order so a refund never leaves totalSpent inflated.
     await sabiExecute({
-      sql: `UPDATE SabiWallet SET balance = balance + ?, totalRefunded = totalRefunded + ?, updatedAt = datetime('now')
+      sql: `UPDATE SabiWallet SET balance = balance + ?, totalSpent = MAX(0, totalSpent - ?), totalRefunded = totalRefunded + ?, updatedAt = datetime('now')
             WHERE userId = ?`,
-      args: [amountInKobo, amountInKobo, userId],
+      args: [amountInKobo, amountInKobo, amountInKobo, userId],
     });
 
     await sabiExecute({

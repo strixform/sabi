@@ -55,12 +55,14 @@ export async function POST(req: NextRequest) {
     });
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-    // Refund wallet — increment balance and totalRefunded
+    // Refund wallet — balance up, net-spend down, totalRefunded up (mirror of a debit,
+    // consistent with the crons + cancel-order so a refund never leaves totalSpent inflated).
     await prisma.sabiWallet.upsert({
       where: { userId },
       create: { userId, balance: amount, totalRefunded: amount },
       update: {
         balance:       { increment: amount },
+        totalSpent:    { decrement: amount },
         totalRefunded: { increment: amount },
       },
     });
