@@ -29,6 +29,20 @@ export async function creditSabiRefund(opts: {
   const amount = Math.round(opts.amountKobo);
   if (!amount || amount <= 0) return;
 
+  // IDEMPOTENT PER ORDER — a given orderId is refunded at most ONCE, ever. This is the
+  // hard stop for the recurring double-refund: even if a cron re-processes an order
+  // whose status got reverted (e.g. the gamerz360 webhook flipping 'completed' back to
+  // 'executing'), the second refund finds an existing refund row and no-ops. Every
+  // caller passes a UNIQUE orderId per intended refund (real order id, or an engagement
+  // post id / '<pkg>:unused'), so this never blocks a legitimate distinct refund.
+  if (opts.orderId) {
+    const existing = await prisma.sabiTransaction.findFirst({
+      where: { orderId: opts.orderId, type: 'refund' },
+      select: { id: true },
+    }).catch(() => null);
+    if (existing) return; // already refunded this order — skip
+  }
+
   await prisma.$transaction([
     prisma.sabiWallet.update({
       where: { userId: opts.userId },
