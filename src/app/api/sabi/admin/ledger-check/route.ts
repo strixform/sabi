@@ -49,7 +49,34 @@ export async function GET(req: NextRequest) {
     ok: true,
     ...result,
     hint: result.suspiciousCount
-      ? 'Feed each userId into /api/sabi/admin/wallet-reconcile?userId=… then POST {action:"apply"} to correct.'
+      ? 'Balances: wallet-reconcile apply-all. Then POST {action:"resolve"} here to acknowledge these rows so the daily alert stops.'
       : 'Clean — no order has been refunded more than once.',
   });
+}
+
+/**
+ * POST { action: 'resolve' } — acknowledge the currently-flagged orders (their duplicate
+ * refund ROWS stay for audit, but the tripwire stops re-alerting on them). Use after the
+ * balances have been corrected via wallet-reconcile. Owner only.
+ */
+export async function POST(req: NextRequest) {
+  const auth = await allowOwnerOrStaff(req);
+  if (!auth.ok || auth.role !== 'owner') return NextResponse.json({ error: 'Owner only' }, { status: 403 });
+
+  const body = await req.json().catch(() => ({}));
+  if (body?.action !== 'resolve') return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
+
+  const { offenders } = await findDoubleRefunds();
+  if (!offenders.length) return NextResponse.json({ ok: true, resolved: 0 });
+
+  await sabiExecute({ sql: `CREATE TABLE IF NOT EXISTS SabiLedgerResolved (orderId TEXT PRIMARY KEY, resolvedAt TEXT DEFAULT (datetime('now')))`, args: [] }).catch(() => {});
+  let resolved = 0;
+  for (const o of offenders) {
+    const res = await sabiExecute({
+      sql: `INSERT OR IGNORE INTO SabiLedgerResolved (orderId) VALUES (?)`,
+      args: [o.orderId],
+    }).catch(() => ({ rowsAffected: 0 } as any));
+    if (Number((res as any).rowsAffected ?? 0) === 1) resolved += 1;
+  }
+  return NextResponse.json({ ok: true, resolved, orders: offenders.map(o => o.orderId) });
 }

@@ -26,6 +26,9 @@ export type LedgerCheckResult = {
  * endpoint and the daily cron tripwire.
  */
 export async function findDoubleRefunds(): Promise<LedgerCheckResult> {
+  // Orders already acknowledged/corrected are skipped so the tripwire doesn't keep
+  // re-flagging historical (now-fixed) double-refunds. Guarded create keeps the query safe.
+  await sabiExecute({ sql: `CREATE TABLE IF NOT EXISTS SabiLedgerResolved (orderId TEXT PRIMARY KEY, resolvedAt TEXT DEFAULT (datetime('now')))`, args: [] }).catch(() => {});
   const r = await sabiExecute({
     sql: `
       SELECT t.orderId,
@@ -37,6 +40,7 @@ export async function findDoubleRefunds(): Promise<LedgerCheckResult> {
              MAX(t.createdAt) AS lastAt
       FROM SabiTransaction t
       WHERE t.type = 'refund' AND t.orderId IS NOT NULL AND t.orderId != ''
+            AND t.orderId NOT IN (SELECT orderId FROM SabiLedgerResolved)
       GROUP BY t.orderId
       HAVING COUNT(*) > 1
       ORDER BY (SUM(t.amount) - MAX(t.amount)) DESC
