@@ -91,14 +91,24 @@ export async function POST(req: NextRequest) {
     const isComplete = event === "order.completed";
     const newStatus = isComplete ? "completed" : "executing";
 
-    // Update the order with the live count + percentage
+    // ROOT-CAUSE GUARD: a terminal order (completed/failed/cancelled) is FROZEN. A late
+    // 'order.progress' must never revert it back to 'executing' — that's what let a refund
+    // cron re-pick-up and re-refund the same order (the double-refund incident). A late
+    // 'order.completed' must likewise never un-fail a refunded order. Only advance status
+    // when the order isn't already terminal.
+    const adv = await prisma.sabiOrder.updateMany({
+      where: { id: sabiOrderId, status: { notIn: ["completed", "failed", "cancelled"] } },
+      data: { status: newStatus, ...(isComplete ? { completedAt: new Date() } : {}) },
+    });
+    const statusAdvanced = adv.count === 1;          // status actually changed this call
+    const justCompleted = isComplete && statusAdvanced; // transitioned to completed now
+
+    // Live counts are always safe to refresh (even on a frozen terminal order).
     const order = await prisma.sabiOrder.update({
       where: { id: sabiOrderId },
       data: {
-        status: newStatus,
         completedQuantity: completedCount ?? 0,
         completionPercentage: completionPercentage ?? 0,
-        ...(isComplete ? { completedAt: new Date() } : {}),
       },
       include: {
         user: { select: { id: true, email: true, name: true, notifyEmail: true } },
@@ -110,10 +120,10 @@ export async function POST(req: NextRequest) {
 
     // Completion-mode drip chains: now that this slice is done, hand off to the
     // next parked slice so the chain keeps moving (no-op for non-drip orders).
-    if (isComplete) await releaseNextDripSlice(order.id);
+    if (justCompleted) await releaseNextDripSlice(order.id);
 
     // Loyalty cashback — credit 2% (max ₦500) of what was paid, once, on completion.
-    if (isComplete) {
+    if (justCompleted) {
       const chargedKobo = order.totalPrice + order.platformFee - (order.discountAmount || 0);
       import('@/lib/sabiCashback').then(async ({ creditOrderCashback }) => {
         const credited = await creditOrderCashback(order.id, order.userId, chargedKobo);
@@ -134,7 +144,9 @@ export async function POST(req: NextRequest) {
     // Send push + email notifications at key milestones — not every single tick
     const milestones = [25, 50, 75, 100];
     const pct = completionPercentage ?? 0;
-    const shouldNotify = isComplete || milestones.includes(pct);
+    // Only notify when the status actually moved this call — never for a late tick on a
+    // frozen terminal order.
+    const shouldNotify = statusAdvanced && (isComplete || milestones.includes(pct));
 
     if (shouldNotify && order.user) {
       const svcName = order.serviceType.replace(/_/g, " ");
@@ -166,8 +178,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // On completion: log a transaction record
-    if (isComplete) {
+    // On completion: log a transaction record (only on the real transition)
+    if (justCompleted) {
       await prisma.sabiTransaction.create({
         data: {
           userId: order.userId,
