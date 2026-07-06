@@ -541,15 +541,40 @@ export default function OrderPage() {
     } catch {}
   };
 
+  // Downscale + re-encode to a small JPEG in the browser BEFORE upload. Phone screenshots/
+  // photos are often 3–8MB (and HEIC), which blow past Vercel's ~4.5MB request-body limit
+  // and fail with a generic error. Drawing to a canvas fixes size AND converts HEIC→JPEG
+  // (iOS Safari can decode HEIC). Falls back to the original file if anything goes wrong.
+  const compressImage = async (file: File, maxDim = 1600, quality = 0.82): Promise<Blob> => {
+    try {
+      if (!file.type.startsWith('image/') && !/\.(heic|heif)$/i.test(file.name)) return file;
+      const bitmap = await createImageBitmap(file);
+      let { width, height } = bitmap;
+      if (Math.max(width, height) > maxDim) {
+        const s = maxDim / Math.max(width, height);
+        width = Math.round(width * s); height = Math.round(height * s);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return file;
+      ctx.drawImage(bitmap, 0, 0, width, height);
+      const blob = await new Promise<Blob | null>(r => canvas.toBlob(r, 'image/jpeg', quality));
+      return blob && blob.size > 0 ? blob : file;
+    } catch { return file; }
+  };
+
   const uploadStartShot = async (file?: File) => {
     if (!file) return;
     setShotUploading(true); setError('');
     try {
-      const fd = new FormData(); fd.append('file', file);
+      const compressed = await compressImage(file);
+      const fd = new FormData();
+      fd.append('file', compressed, compressed.type === 'image/jpeg' ? 'start.jpg' : (file.name || 'start.png'));
       const res = await fetch('/api/sabi/upload', { method: 'POST', body: fd });
       const d = await res.json().catch(() => null);
       if (res.ok && d?.url) setStartShot(d.url);
-      else setError(d?.detail || d?.error || "Couldn't upload screenshot");
+      else setError(d?.detail || d?.error || (res.status === 413 ? 'That image is too large — try again.' : "Couldn't upload screenshot"));
     } catch { setError('Screenshot upload failed'); }
     finally { setShotUploading(false); }
   };
