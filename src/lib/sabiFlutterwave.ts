@@ -236,6 +236,29 @@ export async function createStaticVirtualAccount(
   }
 }
 
+// List successful transactions for a customer email (used to reconcile dedicated
+// virtual-account transfers that the webhook didn't attribute). Returns the raw
+// FLW transaction array (empty on any error).
+export async function listFlwTransactionsByEmail(
+  customerEmail: string,
+  fromDate?: string
+): Promise<any[]> {
+  try {
+    const qs = new URLSearchParams();
+    qs.set('customer_email', customerEmail);
+    qs.set('status', 'successful');
+    if (fromDate) qs.set('from', fromDate);
+    const res = await fetch(`${FLW_BASE_URL}/transactions?${qs.toString()}`, {
+      headers: { Authorization: `Bearer ${FLW_SECRET_KEY}` },
+    });
+    if (!res.ok) return [];
+    const data = await res.json().catch(() => ({}));
+    return Array.isArray(data?.data) ? data.data : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function disburseFlwFunds(): Promise<{ success: boolean; error?: string }> {
   return { success: true };
 }

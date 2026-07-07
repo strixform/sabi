@@ -52,6 +52,31 @@ export default function WalletPage() {
   const [vaLoading, setVaLoading] = useState(false);
   const [vaError, setVaError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [vaRecheckLoading, setVaRecheckLoading] = useState(false);
+  const [vaRecheckMsg, setVaRecheckMsg] = useState('');
+
+  const recheckVaFunding = async () => {
+    setVaRecheckLoading(true);
+    setVaRecheckMsg('');
+    try {
+      const res = await fetch('/api/sabi/wallet/virtual-account/reconcile', {
+        method: 'POST', credentials: 'include',
+      });
+      const data = await res.json();
+      if (data.success && data.credited > 0) {
+        setVaRecheckMsg(`✅ Credited ₦${(data.amountKobo / 100).toLocaleString()} — refreshing…`);
+        setTimeout(() => window.location.reload(), 1200);
+      } else if (data.success) {
+        setVaRecheckMsg('No new transfer found yet. Bank transfers can take a few minutes — try again shortly.');
+      } else {
+        setVaRecheckMsg(data.error || 'Could not check right now. Please try again.');
+      }
+    } catch {
+      setVaRecheckMsg('Network error — please try again.');
+    } finally {
+      setVaRecheckLoading(false);
+    }
+  };
 
   const copyAccount = async () => {
     if (!vaAccount) return;
@@ -288,7 +313,14 @@ export default function WalletPage() {
                   </div>
                   {vaAccount.accountName && <p className="text-sm text-slate-400 mt-2">{vaAccount.accountName}</p>}
                 </div>
-                <p className="text-[11px] text-slate-500 mt-3">This account is permanently yours — save it in your bank app for instant top-ups anytime.</p>
+                <div className="flex items-center justify-between gap-3 mt-3">
+                  <p className="text-[11px] text-slate-500">This account is permanently yours — save it in your bank app for instant top-ups anytime.</p>
+                  <button onClick={recheckVaFunding} disabled={vaRecheckLoading}
+                    className="shrink-0 text-xs font-bold text-emerald-400 hover:text-emerald-300 underline disabled:opacity-40">
+                    {vaRecheckLoading ? 'Checking…' : 'Sent money but not showing?'}
+                  </button>
+                </div>
+                {vaRecheckMsg && <p className="text-[11px] text-slate-400 mt-1">{vaRecheckMsg}</p>}
               </>
             ) : (
               <>

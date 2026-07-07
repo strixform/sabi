@@ -31,6 +31,10 @@ async function ensureVaTable(): Promise<void> {
       createdAt TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
   }).catch(() => {});
+  // Guarded add — the table may already exist from an earlier deploy without this
+  // column. createTxRef = the tx_ref we sent at creation; some FLW inflow payloads
+  // echo it, giving another attribution key.
+  await sabiExecute({ sql: `ALTER TABLE SabiVirtualAccount ADD COLUMN createTxRef TEXT` }).catch(() => {});
   // Indexes power webhook attribution (match an inflow → the owning user).
   await sabiExecute({ sql: `CREATE INDEX IF NOT EXISTS idx_sva_account ON SabiVirtualAccount(accountNumber)` }).catch(() => {});
   await sabiExecute({ sql: `CREATE INDEX IF NOT EXISTS idx_sva_order ON SabiVirtualAccount(orderRef)` }).catch(() => {});
@@ -104,11 +108,11 @@ export async function createUserVirtualAccount(
   const d = res.data;
   await sabiExecute({
     sql: `INSERT OR REPLACE INTO SabiVirtualAccount
-            (id, userId, accountNumber, bankName, accountName, orderRef, flwRef, ninLast4, status, createdAt)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'))`,
+            (id, userId, accountNumber, bankName, accountName, orderRef, flwRef, createTxRef, ninLast4, status, createdAt)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'))`,
     args: [
       crypto.randomUUID(), userId, d.accountNumber, d.bankName || null,
-      d.accountName || null, d.orderRef || null, d.flwRef || null, nin.slice(-4),
+      d.accountName || null, d.orderRef || null, d.flwRef || null, txRef, nin.slice(-4),
     ],
   }).catch(() => {});
 
@@ -133,33 +137,101 @@ export async function createUserVirtualAccount(
 export async function findUserByVirtualAccountPayload(data: any): Promise<string | null> {
   await ensureVaTable();
 
-  // The account that RECEIVED the money can surface in a few payload shapes.
-  const accountNumbers = [
-    data?.account_number,
-    data?.meta?.account_number,
-    data?.entity?.account_number,
-  ]
-    .filter((v: any) => typeof v === 'string' || typeof v === 'number')
-    .map((v: any) => String(v));
+  // Deep-scan the whole payload: collect every leaf value so attribution doesn't
+  // depend on Flutterwave putting the account number / reference at a path we
+  // guessed. Numeric-looking leaves (6–12 digits) are candidate account numbers;
+  // string leaves are candidate references.
+  const numeric = new Set<string>();
+  const strings = new Set<string>();
+  const walk = (o: any, depth: number) => {
+    if (o == null || depth > 6) return;
+    if (Array.isArray(o)) { o.forEach((v) => walk(v, depth + 1)); return; }
+    if (typeof o === 'object') { for (const k in o) walk(o[k], depth + 1); return; }
+    const s = String(o).trim();
+    if (!s) return;
+    if (/^\d{6,12}$/.test(s)) numeric.add(s);
+    if (s.length <= 80) strings.add(s);
+  };
+  walk(data, 0);
 
-  for (const acc of accountNumbers) {
-    const r = await sabiExecute({
-      sql: `SELECT userId FROM SabiVirtualAccount WHERE accountNumber = ? LIMIT 1`,
-      args: [acc],
+  const vals = Array.from(new Set([...numeric, ...strings]));
+  if (vals.length === 0) return null;
+
+  // One indexed query: match any leaf against a stored account number or any of
+  // the references we captured at creation.
+  const ph = vals.map(() => '?').join(',');
+  const r = await sabiExecute({
+    sql: `SELECT userId FROM SabiVirtualAccount
+          WHERE accountNumber IN (${ph})
+             OR orderRef   IN (${ph})
+             OR flwRef     IN (${ph})
+             OR createTxRef IN (${ph})
+          LIMIT 1`,
+    args: [...vals, ...vals, ...vals, ...vals],
+  }).catch(() => null);
+  const uid = (r?.rows[0] as any)?.userId;
+  return uid ? String(uid) : null;
+}
+
+/**
+ * Pull-based recovery: ask Flutterwave for this user's successful transactions and
+ * credit any dedicated-account transfer the webhook missed. Idempotent (ref
+ * `va_<id>`), and it skips checkout/creation refs so it can never double-credit a
+ * card top-up.
+ */
+export async function reconcileVirtualAccount(
+  userId: string,
+  email: string
+): Promise<{ credited: number; amountKobo: number; seen: number }> {
+  await ensureVaTable();
+  const va = await getUserVirtualAccount(userId);
+  if (!va) return { credited: 0, amountKobo: 0, seen: 0 };
+
+  const { listFlwTransactionsByEmail } = await import('./sabiFlutterwave');
+  const { creditSabiWallet } = await import('./sabiWallet');
+
+  const from = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const txs = await listFlwTransactionsByEmail(email, from);
+
+  let credited = 0;
+  let amountKobo = 0;
+  for (const tx of txs) {
+    if (tx?.status !== 'successful') continue;
+    if ((tx?.currency || 'NGN') !== 'NGN') continue;
+    const amt = Number(tx?.amount || 0);
+    if (!(amt > 0)) continue;
+    const ref = String(tx?.tx_ref || '');
+    // Skip card/checkout top-ups (already credited under their own ref) and our
+    // own creation echo — only genuine VA inflows remain.
+    if (ref.startsWith('sabi_') || ref.startsWith('sabiva_')) continue;
+
+    const creditRef = `va_${tx.id}`;
+    // Only count credits that are actually NEW (creditSabiWallet returns success on
+    // duplicates too).
+    const dup = await sabiExecute({
+      sql: `SELECT id FROM SabiTransaction WHERE userId = ? AND type = 'fund' AND reference = ? LIMIT 1`,
+      args: [userId, creditRef],
     }).catch(() => null);
-    const uid = (r?.rows[0] as any)?.userId;
-    if (uid) return String(uid);
-  }
+    if (dup && dup.rows.length > 0) continue;
 
-  const refs = [data?.tx_ref, data?.order_ref, data?.flw_ref].filter((v: any) => typeof v === 'string');
-  for (const ref of refs) {
-    const r = await sabiExecute({
-      sql: `SELECT userId FROM SabiVirtualAccount WHERE orderRef = ? LIMIT 1`,
-      args: [ref],
-    }).catch(() => null);
-    const uid = (r?.rows[0] as any)?.userId;
-    if (uid) return String(uid);
+    const kobo = Math.round(amt * 100);
+    const r = await creditSabiWallet(userId, kobo, creditRef);
+    if (r.success) {
+      credited += 1;
+      amountKobo += kobo;
+      // Same idempotent top-up bonus the webhook applies, so a recovered transfer
+      // isn't shortchanged.
+      try {
+        const { topupBonusKobo, DAILY_PROMO_BUDGET_KOBO } = await import('./sabiPerks');
+        const bonusKobo = topupBonusKobo(kobo);
+        if (bonusKobo > 0) {
+          const { consumePromoBudget } = await import('./redis');
+          if (await consumePromoBudget(bonusKobo, DAILY_PROMO_BUDGET_KOBO)) {
+            await creditSabiWallet(userId, bonusKobo, `${creditRef}_bonus`);
+          }
+        }
+      } catch { /* bonus is best-effort */ }
+    }
   }
-
-  return null;
+  return { credited, amountKobo, seen: txs.length };
 }
