@@ -1,5 +1,5 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
-import { verifyFlwWebhookSignature, parseFlwWebhook, verifyFlwTransaction } from '@/lib/sabiFlutterwave';
+import { verifyFlwWebhookSignature, verifyFlwTransaction } from '@/lib/sabiFlutterwave';
 import { creditSabiWallet } from '@/lib/sabiWallet';
 import { prisma } from '@/lib/prisma';
 export const maxDuration = 15;
@@ -15,28 +15,42 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
-    const webhook = parseFlwWebhook(JSON.parse(body));
-    if (!webhook) {
-      return NextResponse.json({ error: 'Invalid webhook' }, { status: 400 });
-    }
+    let raw: any;
+    try { raw = JSON.parse(body); } catch { return NextResponse.json({ error: 'Invalid webhook' }, { status: 400 }); }
+    const data = raw?.data || {};
 
-    if (webhook.event !== 'charge.completed') {
+    if (raw?.event !== 'charge.completed') {
       return NextResponse.json({ success: true });
     }
 
-    const verification = await verifyFlwTransaction(webhook.data.tx_ref);
+    // Verify by transaction id (falls back to tx_ref) — never trust the raw amount.
+    const verification = await verifyFlwTransaction(String(data.id || data.tx_ref || ''));
     if (!verification.success || verification.status !== 'successful') {
       return NextResponse.json({ success: true });
     }
 
-    const txRef = webhook.data.tx_ref;
-    const userIdMatch = txRef.match(/^sabi_([a-z0-9]+)_/);
-    if (!userIdMatch) {
-      // Invalid tx_ref format - silently reject
-      return NextResponse.json({ success: true }, { status: 200 });
+    const txRef = String(data.tx_ref || '');
+
+    // Attribute the payment to a user. Two funding paths share this webhook:
+    //   1. Card / checkout top-up → tx_ref is `sabi_<userId>_...`
+    //   2. Dedicated (static) virtual account transfer → attribute by the
+    //      receiving account number / order_ref stored at creation.
+    let userId: string | null = null;
+    let creditRef = txRef;
+    const checkoutMatch = txRef.match(/^sabi_([a-z0-9]+)_/);
+    if (checkoutMatch) {
+      userId = checkoutMatch[1];
+    } else {
+      const { findUserByVirtualAccountPayload } = await import('@/lib/sabiVirtualAccount');
+      userId = await findUserByVirtualAccountPayload(data);
+      // Idempotency key for VA inflows = the FLW transaction id (unique per transfer).
+      creditRef = `va_${data.id || txRef}`;
     }
 
-    const userId = userIdMatch[1];
+    if (!userId) {
+      // Unrecognised inflow — silently accept (could be another product's webhook).
+      return NextResponse.json({ success: true }, { status: 200 });
+    }
 
     // Verify user exists
     const user = await prisma.sabiUser.findUnique({
@@ -48,28 +62,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true }, { status: 200 });
     }
 
-    // Check for duplicate transaction
-    const existingTxn = await prisma.sabiTransaction.findFirst({
-      where: {
-        userId,
-        reference: txRef,
-      },
-    });
+    // Use the VERIFIED amount (in naira) rather than the raw webhook value.
+    const amountNaira = Number(verification.amount ?? data.amount ?? 0);
+    const amountInKobo = Math.round(amountNaira * 100);
 
-    if (existingTxn) {
-      // Duplicate - silently accept to prevent replay attack detection
-      return NextResponse.json({ success: true }, { status: 200 });
-    }
-
-    const amountInKobo = Math.round(webhook.data.amount * 100);
-
-    // Validate amount is reasonable (â‰¤ 10M naira)
-    if (amountInKobo > 1000000000) {
+    // Validate amount is reasonable (≤ 10M naira) and positive.
+    if (amountInKobo <= 0 || amountInKobo > 1000000000) {
       // Silently reject suspicious amounts
       return NextResponse.json({ success: true }, { status: 200 });
     }
 
-    const creditResult = await creditSabiWallet(userId, amountInKobo, txRef);
+    // creditSabiWallet is idempotent on (userId, type='fund', reference) — safe
+    // against webhook replays and a racing browser callback.
+    const creditResult = await creditSabiWallet(userId, amountInKobo, creditRef);
 
     if (!creditResult.success) {
       // Generic success response - don't expose internal errors to attacker
@@ -77,14 +82,15 @@ export async function POST(req: NextRequest) {
     }
 
     // Flat top-up bonus — idempotent via the `_bonus` ref, so it's safe even if
-    // the browser callback also ran. Capped by the daily promo budget.
+    // the browser callback also ran. Capped by the daily promo budget. Applies to
+    // both checkout and dedicated-account funding.
     try {
       const { topupBonusKobo, DAILY_PROMO_BUDGET_KOBO } = await import('@/lib/sabiPerks');
       const bonusKobo = topupBonusKobo(amountInKobo);
       if (bonusKobo > 0) {
         const { consumePromoBudget } = await import('@/lib/redis');
         if (await consumePromoBudget(bonusKobo, DAILY_PROMO_BUDGET_KOBO)) {
-          await creditSabiWallet(userId, bonusKobo, `${txRef}_bonus`);
+          await creditSabiWallet(userId, bonusKobo, `${creditRef}_bonus`);
         }
       }
     } catch { /* bonus is best-effort */ }

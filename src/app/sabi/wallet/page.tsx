@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FiArrowLeft, FiLoader, FiCreditCard, FiTrendingUp, FiClock, FiEye, FiEyeOff, FiSettings, FiPlus } from 'react-icons/fi';
+import { FiArrowLeft, FiLoader, FiCreditCard, FiTrendingUp, FiClock, FiEye, FiEyeOff, FiSettings, FiPlus, FiCopy, FiCheck } from 'react-icons/fi';
 import { GradientText } from '@/components/AnimatedText';
 import { InteractiveCard } from '@/components/InteractiveCard';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
@@ -45,6 +45,48 @@ export default function WalletPage() {
   const [showFundPanel, setShowFundPanel] = useState(false);
   const QUICK_AMOUNTS = [1000, 2000, 5000, 10000, 20000, 50000];
 
+  // Dedicated (static) virtual account — optional, opt-in bank-transfer funding.
+  const [vaAccount, setVaAccount] = useState<{ accountNumber: string; bankName: string; accountName: string | null } | null>(null);
+  const [showNinPanel, setShowNinPanel] = useState(false);
+  const [ninInput, setNinInput] = useState('');
+  const [vaLoading, setVaLoading] = useState(false);
+  const [vaError, setVaError] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const copyAccount = async () => {
+    if (!vaAccount) return;
+    try {
+      await navigator.clipboard.writeText(vaAccount.accountNumber);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch { /* clipboard blocked — user can still read it */ }
+  };
+
+  const createDedicatedAccount = async () => {
+    const nin = ninInput.trim();
+    if (!/^\d{11}$/.test(nin)) { setVaError('Enter your 11-digit NIN'); return; }
+    setVaError('');
+    setVaLoading(true);
+    try {
+      const res = await fetch('/api/sabi/wallet/virtual-account', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nin }), credentials: 'include',
+      });
+      const data = await res.json();
+      if (data.success && data.account) {
+        setVaAccount(data.account);
+        setShowNinPanel(false);
+        setNinInput('');
+      } else {
+        setVaError(data.error || 'Could not create your account. Please try again.');
+      }
+    } catch {
+      setVaError('Network error — please try again.');
+    } finally {
+      setVaLoading(false);
+    }
+  };
+
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -64,6 +106,11 @@ export default function WalletPage() {
             });
             setTransactions(walletData.transactions || []);
           }
+          // Load any existing dedicated account (non-blocking for the rest of the page).
+          fetch('/api/sabi/wallet/virtual-account', { credentials: 'include' })
+            .then(r => r.json())
+            .then(d => { if (d?.success && d.account) setVaAccount(d.account); })
+            .catch(() => {});
         } else {
           router.push('/sabi/login');
         }
@@ -214,6 +261,68 @@ export default function WalletPage() {
                   {requeryMsg && <p className="text-[11px] text-slate-400 mt-1">{requeryMsg}</p>}
                 </div>
               </motion.div>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Dedicated bank-transfer account (optional, opt-in via NIN) */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="mb-6">
+          <div className="rounded-2xl bg-white/[0.02] border border-white/[0.06] p-6">
+            <div className="flex items-center gap-2 mb-1">
+              <FiCreditCard className="w-4 h-4 text-emerald-400" />
+              <h3 className="text-white font-bold">Fund by bank transfer</h3>
+              <span className="ml-2 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300">No card needed</span>
+            </div>
+
+            {vaAccount ? (
+              <>
+                <p className="text-slate-400 text-sm mb-4">Transfer any amount to your dedicated account from any bank app — it reflects in your wallet automatically.</p>
+                <div className="rounded-xl bg-gradient-to-br from-emerald-600/10 to-blue-600/10 border border-emerald-500/20 p-5">
+                  <p className="text-xs text-slate-500 mb-1">{vaAccount.bankName || 'Bank'}</p>
+                  <div className="flex items-center gap-3">
+                    <p className="text-3xl font-black text-white tracking-wider">{vaAccount.accountNumber}</p>
+                    <button onClick={copyAccount}
+                      className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 transition">
+                      {copied ? <><FiCheck className="w-4 h-4" /> Copied</> : <><FiCopy className="w-4 h-4" /> Copy</>}
+                    </button>
+                  </div>
+                  {vaAccount.accountName && <p className="text-sm text-slate-400 mt-2">{vaAccount.accountName}</p>}
+                </div>
+                <p className="text-[11px] text-slate-500 mt-3">This account is permanently yours — save it in your bank app for instant top-ups anytime.</p>
+              </>
+            ) : (
+              <>
+                <p className="text-slate-400 text-sm mb-4">
+                  Prefer to pay by transfer? Get a <span className="text-emerald-300 font-semibold">permanent account number</span> that&rsquo;s only yours.
+                  Enter your NIN once to activate it — or just keep using the card option above.
+                </p>
+                {!showNinPanel ? (
+                  <button onClick={() => { setShowNinPanel(true); setVaError(''); }}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-white font-semibold rounded-xl transition text-sm">
+                    <FiPlus className="w-4 h-4" /> Get my dedicated account
+                  </button>
+                ) : (
+                  <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+                    className="p-4 bg-[#0F1420]/80 rounded-xl border border-white/[0.06] space-y-3 max-w-md">
+                    <label className="text-sm font-semibold text-slate-300">National Identification Number (NIN)</label>
+                    <input
+                      value={ninInput}
+                      onChange={e => setNinInput(e.target.value.replace(/\D/g, '').slice(0, 11))}
+                      inputMode="numeric" placeholder="11-digit NIN"
+                      className="w-full px-4 py-2.5 bg-[#0A0D14] border border-white/[0.06] rounded-lg text-white text-sm tracking-wider focus:border-emerald-500/60 outline-none" />
+                    {vaError && <p className="text-xs text-red-400">{vaError}</p>}
+                    <div className="flex items-center gap-2">
+                      <button onClick={createDedicatedAccount} disabled={vaLoading || ninInput.length !== 11}
+                        className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg transition disabled:opacity-40 flex items-center justify-center gap-2">
+                        {vaLoading ? <><FiLoader className="w-4 h-4 animate-spin" /> Creating…</> : <>Activate account</>}
+                      </button>
+                      <button onClick={() => { setShowNinPanel(false); setVaError(''); }}
+                        className="px-4 py-2.5 text-slate-400 hover:text-white text-sm font-semibold">Cancel</button>
+                    </div>
+                    <p className="text-[11px] text-slate-500">Your NIN is used once to create your bank account and is not stored. Required by Nigerian banking rules for a permanent account.</p>
+                  </motion.div>
+                )}
+              </>
             )}
           </div>
         </motion.div>

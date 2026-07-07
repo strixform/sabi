@@ -171,6 +171,71 @@ export function parseFlwWebhook(payload: any): FlwWebhookPayload | null {
   }
 }
 
+// ─── Static (dedicated) virtual account ────────────────────────────────────
+// Creates a PERMANENT NGN virtual account tied to one customer. Regulation
+// (NIBSS/CBN) requires a national ID on permanent accounts; we pass NIN so users
+// never have to surrender a BVN. Returns Flutterwave's raw message on failure so
+// the caller can surface exactly why (e.g. "virtual accounts not enabled on this
+// account" or "invalid nin") — important because we can't test with live keys locally.
+export interface FlwVirtualAccountInput {
+  email: string;
+  nin: string;
+  txRef: string;
+  firstname?: string;
+  lastname?: string;
+  phonenumber?: string;
+  narration?: string;
+}
+
+export async function createStaticVirtualAccount(
+  input: FlwVirtualAccountInput
+): Promise<{
+  success: boolean;
+  data?: { accountNumber: string; bankName: string; accountName?: string; orderRef?: string; flwRef?: string };
+  error?: string;
+}> {
+  try {
+    const res = await fetch(`${FLW_BASE_URL}/virtual-account-numbers`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${FLW_SECRET_KEY}`,
+      },
+      body: JSON.stringify({
+        email: input.email,
+        is_permanent: true, // static / reusable — the "dedicated account" the user keeps
+        tx_ref: input.txRef,
+        nin: input.nin, // national ID in place of BVN
+        narration: input.narration || 'SABI Wallet',
+        ...(input.firstname ? { firstname: input.firstname } : {}),
+        ...(input.lastname ? { lastname: input.lastname } : {}),
+        ...(input.phonenumber ? { phonenumber: input.phonenumber } : {}),
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    const acct = data?.data;
+    if (!res.ok || data?.status !== 'success' || !acct?.account_number) {
+      console.error('[createStaticVirtualAccount] FLW rejected:', res.status, JSON.stringify(data)?.slice(0, 400));
+      return { success: false, error: data?.message || `Flutterwave error (${res.status})` };
+    }
+
+    return {
+      success: true,
+      data: {
+        accountNumber: acct.account_number,
+        bankName: acct.bank_name,
+        accountName: acct.note || acct.narration || input.narration,
+        orderRef: acct.order_ref,
+        flwRef: acct.flw_ref,
+      },
+    };
+  } catch (error) {
+    console.error('[createStaticVirtualAccount] error:', (error as Error)?.message);
+    return { success: false, error: 'Virtual account request failed' };
+  }
+}
+
 export async function disburseFlwFunds(): Promise<{ success: boolean; error?: string }> {
   return { success: true };
 }
