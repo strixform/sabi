@@ -259,6 +259,25 @@ export async function listFlwTransactionsByEmail(
   }
 }
 
+// Recent successful transactions across the merchant (no email filter) — used as a
+// fallback so we can attribute a dedicated-account inflow by its account number
+// even when Flutterwave files it under a different customer email.
+export async function listFlwRecentSuccessful(fromDate?: string): Promise<any[]> {
+  try {
+    const qs = new URLSearchParams();
+    qs.set('status', 'successful');
+    if (fromDate) qs.set('from', fromDate);
+    const res = await fetch(`${FLW_BASE_URL}/transactions?${qs.toString()}`, {
+      headers: { Authorization: `Bearer ${FLW_SECRET_KEY}` },
+    });
+    if (!res.ok) return [];
+    const data = await res.json().catch(() => ({}));
+    return Array.isArray(data?.data) ? data.data : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function disburseFlwFunds(): Promise<{ success: boolean; error?: string }> {
   return { success: true };
 }

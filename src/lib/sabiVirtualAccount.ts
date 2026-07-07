@@ -187,11 +187,33 @@ export async function reconcileVirtualAccount(
   const va = await getUserVirtualAccount(userId);
   if (!va) return { credited: 0, amountKobo: 0, seen: 0 };
 
-  const { listFlwTransactionsByEmail } = await import('./sabiFlutterwave');
+  const { listFlwTransactionsByEmail, listFlwRecentSuccessful } = await import('./sabiFlutterwave');
   const { creditSabiWallet } = await import('./sabiWallet');
 
   const from = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const txs = await listFlwTransactionsByEmail(email, from);
+
+  // Two strategies, de-duplicated by FLW transaction id:
+  //  (a) transactions filed under the user's email;
+  //  (b) recent successful transactions whose payload contains THIS user's
+  //      dedicated account number (covers FLW filing the inflow under a different
+  //      customer email than ours).
+  const [byEmail, broad] = await Promise.all([
+    listFlwTransactionsByEmail(email, from),
+    listFlwRecentSuccessful(from),
+  ]);
+  const byId = new Map<string, any>();
+  for (const tx of [...byEmail, ...broad]) {
+    if (tx?.id != null) byId.set(String(tx.id), tx);
+  }
+  const txs = Array.from(byId.values());
+
+  const emailLc = (email || '').toLowerCase();
+  const deepContains = (o: any, needle: string, depth = 0): boolean => {
+    if (o == null || depth > 6) return false;
+    if (Array.isArray(o)) return o.some((v) => deepContains(v, needle, depth + 1));
+    if (typeof o === 'object') return Object.values(o).some((v) => deepContains(v, needle, depth + 1));
+    return String(o).trim() === needle;
+  };
 
   let credited = 0;
   let amountKobo = 0;
@@ -204,6 +226,13 @@ export async function reconcileVirtualAccount(
     // Skip card/checkout top-ups (already credited under their own ref) and our
     // own creation echo — only genuine VA inflows remain.
     if (ref.startsWith('sabi_') || ref.startsWith('sabiva_')) continue;
+
+    // The transaction must belong to THIS user: either FLW attributes it to their
+    // email, or their dedicated account number appears somewhere in the payload.
+    const belongs =
+      String(tx?.customer?.email || '').toLowerCase() === emailLc ||
+      deepContains(tx, va.accountNumber);
+    if (!belongs) continue;
 
     const creditRef = `va_${tx.id}`;
     // Only count credits that are actually NEW (creditSabiWallet returns success on
