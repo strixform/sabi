@@ -32,15 +32,15 @@ function Copyable({ value, children, className }: { value: string; children: Rea
   );
 }
 
-type Tab = 'proofs' | 'taskers' | 'reuploads' | 'checked' | 'refunds' | 'refills' | 'requests' | 'partnerships';
+type Tab = 'proofs' | 'find' | 'taskers' | 'reuploads' | 'checked' | 'refunds' | 'refills' | 'requests' | 'partnerships';
 
 interface Order {
   id: string; serviceType: string; targetUrl: string; quantity: number;
   completedQuantity: number | null; status: string; createdAt: string;
   staffChecked?: boolean; staffCheckedAt?: string | null; staffCheckedBy?: string | null;
   startCount?: number | null; startScreenshotUrl?: string | null;
-  refillOf?: string | null;
-  user?: { email: string; name: string } | null;
+  refillOf?: string | null; isRefill?: boolean;
+  user?: { email: string; name: string; businessName?: string | null } | null;
 }
 interface ProofFlag { status: string; reason: string | null; reuploadedAt: string | null; }
 interface Proof {
@@ -188,6 +188,7 @@ export default function StaffConsole() {
         <div className="flex gap-2 mb-5 flex-wrap">
           {([
             ['proofs', '🧾 Orders & Proofs'],
+            ['find', '🔍 Find Orders'],
             ['taskers', '🔎 Taskers'],
             ['reuploads', `🔁 Re-uploads${resub > 0 ? ` (${resub})` : ''}`],
             ['checked', '✅ Checked Orders'],
@@ -204,6 +205,7 @@ export default function StaffConsole() {
         </div>
 
         {tab === 'proofs' && <ProofsTab owner={role === 'owner'} />}
+        {tab === 'find' && <FindOrdersTab />}
         {tab === 'taskers' && <TaskerLookupTab />}
         {tab === 'reuploads' && <ReuploadsTab />}
         {tab === 'checked' && <CheckedOrdersTab />}
@@ -652,7 +654,7 @@ function ProofsTab({ owner }: { owner: boolean }) {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
                       <Copyable value={o.id} className="text-[10px] font-mono text-violet-300">SABI #{o.id}</Copyable>
-                      {o.refillOf && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">↻ REFILL of #{o.refillOf}</span>}
+                      {o.isRefill && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">↻ REFILL{o.refillOf ? ` of #${o.refillOf}` : ''}</span>}
                     </div>
                     <div className="font-bold capitalize text-sm">{fmtSvc(o.serviceType)} · <span className="text-cyan-400">{(o.completedQuantity ?? 0).toLocaleString()}/{o.quantity.toLocaleString()}</span></div>
                     <span role="link" tabIndex={0}
@@ -1035,6 +1037,71 @@ function ReuploadsTab() {
 }
 
 // ─── Checked Orders (already reviewed) ──────────────────────────────────────────
+// ─── Find Orders — one search across BOTH lanes (to-review + checked), showing a
+// user's FULL history: paid orders AND refills. Search by username, email, or id.
+function FindOrdersTab() {
+  const [search, setSearch] = useState('');
+  const [orders, setOrders] = useState<Order[] | null>(null);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  const run = useCallback(async () => {
+    const q = search.trim();
+    if (!q) { setOrders(null); return; }
+    setLoading(true);
+    try {
+      const r = await af(`/api/sabi/admin/staff-orders?checked=all&limit=200&search=${encodeURIComponent(q)}`);
+      const d = r.ok ? await r.json() : null;
+      setOrders(d?.orders || []);
+      setTotal(d?.total ?? (d?.orders?.length || 0));
+    } catch { setOrders([]); }
+    finally { setLoading(false); }
+  }, [search]);
+
+  const refills = (orders || []).filter(o => o.isRefill).length;
+
+  return (
+    <div>
+      <p className="text-xs text-slate-400 mb-3 bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2">
+        🔍 Search a customer&apos;s <b>username, email, or order id</b> to see their <b>full order history</b> — paid orders and refills, whether or not they&apos;ve been checked.
+      </p>
+      <div className="flex gap-2 mb-3">
+        <input value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && run()}
+          placeholder="Username, email, or order id…"
+          className="flex-1 bg-[#0F1420] border border-white/[0.08] rounded-lg px-3 py-2 text-sm outline-none" />
+        <button onClick={run} className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold">Search</button>
+        {orders !== null && <button onClick={() => { setSearch(''); setOrders(null); }} className="px-3 py-2 rounded-lg bg-white/10 text-slate-300 text-sm">Clear</button>}
+      </div>
+
+      {loading ? <p className="text-slate-500 py-10 text-center">Searching…</p>
+        : orders === null ? <p className="text-slate-500 py-10 text-center">Type a username, email, or order id and press Search.</p>
+        : orders.length === 0 ? <p className="text-slate-500 py-10 text-center">No orders found for “{search.trim()}”.</p>
+        : (
+        <div className="space-y-2">
+          <div className="text-[11px] text-slate-400 mb-1">{total.toLocaleString()} order{total === 1 ? '' : 's'}{refills > 0 ? ` · ${refills} refill${refills === 1 ? '' : 's'}` : ''}</div>
+          {orders.map(o => (
+            <div key={o.id} className="rounded-xl bg-white/[0.025] border border-white/[0.07] p-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] font-mono text-violet-300">SABI #{o.id}</span>
+                {o.isRefill && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">↻ REFILL{o.refillOf ? ` of #${o.refillOf}` : ''}</span>}
+                <span className={`px-1.5 py-0.5 rounded text-[10px] ${o.status === 'failed' ? 'bg-red-500/15 text-red-300' : o.status === 'completed' ? 'bg-emerald-500/15 text-emerald-300' : o.status === 'cancelled' ? 'bg-white/10 text-slate-400' : 'bg-blue-500/15 text-blue-300'}`}>{o.status}</span>
+                {o.staffChecked
+                  ? <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-300/80">✓ checked</span>
+                  : <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300/80">🕓 to review</span>}
+              </div>
+              <div className="text-sm font-bold capitalize truncate mt-1">{fmtSvc(o.serviceType)} · <span className="text-cyan-400">{(o.completedQuantity ?? 0).toLocaleString()}/{o.quantity.toLocaleString()}</span></div>
+              <div className="text-[10px] text-slate-500 truncate">
+                {o.user?.name || o.user?.businessName || '—'}{o.user?.email ? ` · ${o.user.email}` : ''} · {new Date(o.createdAt).toLocaleDateString()}
+              </div>
+              {o.targetUrl && <a href={o.targetUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-400 hover:underline break-all">{o.targetUrl}</a>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CheckedOrdersTab() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1072,7 +1139,7 @@ function CheckedOrdersTab() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-mono text-violet-300">SABI #{o.id}</span>
-                  {o.refillOf && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">↻ REFILL of #{o.refillOf}</span>}
+                  {o.isRefill && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">↻ REFILL{o.refillOf ? ` of #${o.refillOf}` : ''}</span>}
                 </div>
                 <div className="text-sm font-bold capitalize truncate">{fmtSvc(o.serviceType)} · <span className="text-cyan-400">{(o.completedQuantity ?? 0).toLocaleString()}/{o.quantity.toLocaleString()}</span></div>
                 <div className="text-[10px] text-slate-500">{o.user?.email || '—'} · checked {o.staffCheckedAt ? new Date(o.staffCheckedAt).toLocaleDateString() : ''}{o.staffCheckedBy ? ` by ${o.staffCheckedBy}` : ''}</div>
