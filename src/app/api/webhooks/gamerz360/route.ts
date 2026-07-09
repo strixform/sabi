@@ -50,6 +50,60 @@ export const preferredRegion = "sfo1";
 export const maxDuration = 10; // fast DB update + fire-and-forget notifications
 
 /**
+ * A refill created directly on gamerz360 has no SabiOrder. Materialise one (cloned
+ * from the original order) so it shows on the SABI staff side and later progress
+ * ticks can update it. Idempotent; refreshes counts if it already exists.
+ * Refills are recognised by the `refill.created` event OR a `<orig>-refill-<id>` id.
+ */
+async function ensureRefillOrder(body: any): Promise<void> {
+  const id = typeof body?.sabiOrderId === "string" ? body.sabiOrderId : "";
+  const isRefill = body?.event === "refill.created" || id.includes("-refill-");
+  if (!id || !isRefill) return;
+
+  const existing = await prisma.sabiOrder.findUnique({ where: { id }, select: { id: true } });
+  if (existing) {
+    const cc = Number(body?.completedCount);
+    if (Number.isFinite(cc)) {
+      await prisma.sabiOrder.update({
+        where: { id },
+        data: { completedQuantity: cc, ...(body?.status ? { status: String(body.status) } : {}) },
+      }).catch(() => {});
+    }
+    return;
+  }
+
+  const originalOrderId = String(body?.originalOrderId || id.split("-refill-")[0] || "").trim();
+  const orig = originalOrderId
+    ? await prisma.sabiOrder.findUnique({ where: { id: originalOrderId }, select: { userId: true, serviceType: true, targetUrl: true } })
+    : null;
+
+  const userId = orig?.userId || (body?.sabiUserId ? String(body.sabiUserId) : "");
+  if (!userId) return; // can't attribute — skip
+
+  const qty = Math.max(0, Math.floor(Number(body?.quantity) || Number(body?.targetCount) || 0));
+  if (qty < 1) return;
+  const cc = Math.min(Math.max(0, Math.floor(Number(body?.completedCount) || 0)), qty);
+  const status = String(body?.status || (cc >= qty ? "completed" : "executing"));
+
+  await prisma.sabiOrder.create({
+    data: {
+      id,
+      userId,
+      serviceType: orig?.serviceType || String(body?.serviceType || "refill"),
+      targetUrl: orig?.targetUrl || String(body?.targetUrl || ""),
+      quantity: qty,
+      pricePerUnit: 0, totalPrice: 0, platformFee: 0, discountAmount: 0,
+      paymentMethod: "refill", orderedVia: "web",
+      customRef: `refill:${originalOrderId}`,
+      status,
+      completedQuantity: cc,
+      completionPercentage: qty > 0 ? Math.min(Math.round((cc / qty) * 100), 100) : 0,
+      ...(status === "completed" ? { completedAt: new Date() } : {}),
+    },
+  }).catch((e: any) => console.error("[ensureRefillOrder] create failed:", e?.message));
+}
+
+/**
  * Receives live progress + completion webhooks from gamerz360.
  *
  * Fired on every individual task approval (1 follow = 1 call), giving users
@@ -85,6 +139,20 @@ export async function POST(req: NextRequest) {
 
     if (!sabiOrderId || !event) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    // Materialise a SabiOrder for a refill created on gamerz360 (create-time event
+    // OR the first progress tick self-heals it). Then progress updates below work.
+    await ensureRefillOrder(body).catch((e) => console.error("[webhooks/gamerz360] ensureRefillOrder", e?.message));
+    if (event === "refill.created") {
+      return NextResponse.json({ success: true, refill: true });
+    }
+
+    // If the order still doesn't exist (unknown id we don't track), acknowledge
+    // instead of throwing on the update below.
+    const present = await prisma.sabiOrder.findUnique({ where: { id: sabiOrderId }, select: { id: true } });
+    if (!present) {
+      return NextResponse.json({ success: true, skipped: "no-order" });
     }
 
     // Map gamerz360 events → SABI order statuses
