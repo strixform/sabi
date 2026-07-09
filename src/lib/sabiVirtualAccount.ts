@@ -174,6 +174,26 @@ export async function findUserByVirtualAccountPayload(data: any): Promise<string
 }
 
 /**
+ * Attribute a VA inflow by the customer email Flutterwave puts on it — but only to
+ * a user who actually owns a dedicated account (so we never mis-credit a normal
+ * checkout payment). This is how a bank-transfer inflow is usually attributed.
+ */
+export async function findVaUserByEmail(email: string): Promise<string | null> {
+  const e = (email || '').trim().toLowerCase();
+  if (!e) return null;
+  await ensureVaTable();
+  const r = await sabiExecute({
+    sql: `SELECT v.userId AS userId
+          FROM SabiVirtualAccount v
+          JOIN SabiUser u ON u.id = v.userId
+          WHERE LOWER(u.email) = ? LIMIT 1`,
+    args: [e],
+  }).catch(() => null);
+  const uid = (r?.rows[0] as any)?.userId;
+  return uid ? String(uid) : null;
+}
+
+/**
  * Pull-based recovery: ask Flutterwave for this user's successful transactions and
  * credit any dedicated-account transfer the webhook missed. Idempotent (ref
  * `va_<id>`), and it skips checkout/creation refs so it can never double-credit a
@@ -223,9 +243,11 @@ export async function reconcileVirtualAccount(
     const amt = Number(tx?.amount || 0);
     if (!(amt > 0)) continue;
     const ref = String(tx?.tx_ref || '');
-    // Skip card/checkout top-ups (already credited under their own ref) and our
-    // own creation echo — only genuine VA inflows remain.
-    if (ref.startsWith('sabi_') || ref.startsWith('sabiva_')) continue;
+    // Skip card/checkout top-ups only — they're credited under their own unique
+    // tx_ref by the checkout webhook/callback. VA inflows (ref 'sabiva_...') MUST be
+    // processed: a static VA reuses its creation ref for every inflow, so we key on
+    // the unique transaction id below. ('sabiva_' does NOT startWith 'sabi_'.)
+    if (ref.startsWith('sabi_')) continue;
 
     // The transaction must belong to THIS user: either FLW attributes it to their
     // email, or their dedicated account number appears somewhere in the payload.
@@ -235,15 +257,17 @@ export async function reconcileVirtualAccount(
     if (!belongs) continue;
 
     const creditRef = `va_${tx.id}`;
-    // Only count credits that are actually NEW (creditSabiWallet returns success on
-    // duplicates too).
+    const kobo = Math.round(amt * 100);
+    // Skip if already credited under the correct per-transfer key OR under the legacy
+    // SHARED VA reference with the same amount — never double-credit. (creditSabiWallet
+    // also returns success on duplicates, so we pre-check to count only new credits.)
     const dup = await sabiExecute({
-      sql: `SELECT id FROM SabiTransaction WHERE userId = ? AND type = 'fund' AND reference = ? LIMIT 1`,
-      args: [userId, creditRef],
+      sql: `SELECT id FROM SabiTransaction WHERE userId = ? AND type = 'fund'
+            AND (reference = ? OR (reference = ? AND amount = ?)) LIMIT 1`,
+      args: [userId, creditRef, ref, kobo],
     }).catch(() => null);
     if (dup && dup.rows.length > 0) continue;
 
-    const kobo = Math.round(amt * 100);
     const r = await creditSabiWallet(userId, kobo, creditRef);
     if (r.success) {
       credited += 1;

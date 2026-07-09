@@ -41,8 +41,15 @@ export async function POST(req: NextRequest) {
     if (checkoutMatch) {
       userId = checkoutMatch[1];
     } else {
-      const { findUserByVirtualAccountPayload } = await import('@/lib/sabiVirtualAccount');
+      const { findUserByVirtualAccountPayload, findVaUserByEmail } = await import('@/lib/sabiVirtualAccount');
+      // 1) Match by account number / references in the payload.
       userId = await findUserByVirtualAccountPayload(data);
+      // 2) Fallback: the customer email FLW files the transfer under — but only if
+      //    that user owns a dedicated account (how VA inflows are usually attributed,
+      //    and how reconcile finds them). Verified amount is used below regardless.
+      if (!userId) {
+        userId = await findVaUserByEmail(String(data?.customer?.email || verification.customerEmail || ''));
+      }
       // Idempotency key for VA inflows = the FLW transaction id (unique per transfer).
       creditRef = `va_${data.id || txRef}`;
     }

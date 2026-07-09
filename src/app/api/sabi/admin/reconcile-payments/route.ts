@@ -134,6 +134,47 @@ export async function POST(req: NextRequest) {
     base.userId = resolved.userId;
     base.userEmail = resolved.userEmail;
 
+    // ── Virtual-account inflow ──────────────────────────────────────────────
+    // A static VA reuses its creation tx_ref (`sabiva_...`) for EVERY inflow, so
+    // keying idempotency on tx_ref collapses distinct transfers into one credit
+    // (the user gets one, loses the rest). Key on the UNIQUE Flutterwave txn id
+    // instead — the same `va_<id>` key the live webhook uses.
+    if (txRef && txRef.startsWith('sabiva_')) {
+      if (!flwId) { results.push({ ...base, outcome: 'no_reference', note: 'VA inflow needs the Flutterwave Transaction ID column' }); continue; }
+      const vaRef = `va_${flwId}`;
+      const already = await sabiExecute({
+        sql: `SELECT id FROM SabiTransaction WHERE userId = ? AND type = 'fund' AND reference = ? LIMIT 1`,
+        args: [resolved.userId, vaRef],
+      });
+      if (already.rows.length > 0) { results.push({ ...base, outcome: 'already_complete' }); continue; }
+
+      // Verify the true amount for THIS specific transfer (never trust the CSV).
+      const v = await verifyFlwTransaction(flwId);
+      if (!v.success || v.status !== 'successful') { results.push({ ...base, outcome: 'verify_failed', note: v.error || `status=${v.status ?? 'unknown'}` }); continue; }
+      const vaKobo = Math.round((v.amount || 0) * 100);
+      if (vaKobo <= 0) { results.push({ ...base, outcome: 'verify_failed', note: 'verified amount was zero' }); continue; }
+
+      // Legacy credit mistakenly keyed on the SHARED tx_ref with this exact amount →
+      // adopt it (re-key to va_<id>) so we neither double-credit nor re-skip it.
+      const legacy = await sabiExecute({
+        sql: `SELECT id FROM SabiTransaction WHERE userId = ? AND type = 'fund' AND reference = ? AND amount = ? LIMIT 1`,
+        args: [resolved.userId, txRef, vaKobo],
+      });
+      if (legacy.rows.length > 0) {
+        if (commit) {
+          await sabiExecute({ sql: `UPDATE SabiTransaction SET reference = ? WHERE id = ?`, args: [vaRef, String((legacy.rows[0] as any).id)] }).catch(() => {});
+        }
+        results.push({ ...base, outcome: 'already_complete', note: 're-keyed from shared VA reference' });
+        continue;
+      }
+
+      if (!commit) { results.push({ ...base, outcome: 'missing' }); continue; }
+      const credit = await creditSabiWallet(resolved.userId, vaKobo, vaRef);
+      if (!credit.success) { results.push({ ...base, outcome: 'credit_failed', note: credit.error }); continue; }
+      results.push({ ...base, outcome: 'completed', creditedKobo: vaKobo, newBalanceKobo: typeof credit.balance === 'number' ? credit.balance : null });
+      continue;
+    }
+
     // Canonical idempotency reference = the tx_ref the live flow stores.
     let reference = txRef;
     if (!reference) {
