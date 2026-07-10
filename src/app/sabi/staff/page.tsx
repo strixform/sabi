@@ -32,7 +32,7 @@ function Copyable({ value, children, className }: { value: string; children: Rea
   );
 }
 
-type Tab = 'proofs' | 'find' | 'taskers' | 'reuploads' | 'checked' | 'refunds' | 'refills' | 'requests' | 'partnerships';
+type Tab = 'proofs' | 'find' | 'review' | 'taskers' | 'reuploads' | 'checked' | 'refunds' | 'refills' | 'requests' | 'partnerships';
 
 interface Order {
   id: string; serviceType: string; targetUrl: string; quantity: number;
@@ -189,6 +189,7 @@ export default function StaffConsole() {
           {([
             ['proofs', '🧾 Orders & Proofs'],
             ['find', '🔍 Find Orders'],
+            ['review', '🕵️ Tasker Review'],
             ['taskers', '🔎 Taskers'],
             ['reuploads', `🔁 Re-uploads${resub > 0 ? ` (${resub})` : ''}`],
             ['checked', '✅ Checked Orders'],
@@ -206,6 +207,7 @@ export default function StaffConsole() {
 
         {tab === 'proofs' && <ProofsTab owner={role === 'owner'} />}
         {tab === 'find' && <FindOrdersTab />}
+        {tab === 'review' && <TaskerReviewTab />}
         {tab === 'taskers' && <TaskerLookupTab />}
         {tab === 'reuploads' && <ReuploadsTab />}
         {tab === 'checked' && <CheckedOrdersTab />}
@@ -1037,6 +1039,137 @@ function ReuploadsTab() {
 }
 
 // ─── Checked Orders (already reviewed) ──────────────────────────────────────────
+// ─── Tasker Review — per-tasker 20% audit. INTERNAL: never expose the mechanics to
+// taskers. Flag bad proofs; the system applies the outcome + gates their withdrawals.
+function TaskerReviewTab() {
+  const [queue, setQueue] = useState<any[] | null>(null);
+  const [loadingQ, setLoadingQ] = useState(true);
+  const [active, setActive] = useState<any>(null);         // { userId, username, ... }
+  const [sample, setSample] = useState<any>(null);          // { poolIds, poolSize, threshold, sample[] }
+  const [loadingS, setLoadingS] = useState(false);
+  const [flagged, setFlagged] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  const loadQueue = useCallback(() => {
+    setLoadingQ(true);
+    af('/api/sabi/admin/tasker-review').then(r => (r.ok ? r.json() : null))
+      .then(d => setQueue(d?.queue || [])).catch(() => setQueue([])).finally(() => setLoadingQ(false));
+  }, []);
+  useEffect(() => { loadQueue(); }, [loadQueue]);
+
+  const openTasker = async (t: any) => {
+    setActive(t); setSample(null); setFlagged(new Set()); setMsg(''); setLoadingS(true);
+    try {
+      const r = await af(`/api/sabi/admin/tasker-review?userId=${encodeURIComponent(t.userId)}`);
+      const d = r.ok ? await r.json() : null;
+      setSample(d || null);
+    } catch { setSample(null); } finally { setLoadingS(false); }
+  };
+
+  const toggle = (id: string) => setFlagged(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+
+  const apply = async () => {
+    if (!active || !sample) return;
+    const T = sample.threshold;
+    const n = flagged.size;
+    const verdict = n === 0 ? 'clean → approved (48h)' : n < T ? `${n} flag(s) → approved, must redo (24h)` : n === T ? `${n} flags → held until fixed` : `${n} flags → SUSPENDED`;
+    if (!confirm(`Apply review for ${active.username || active.userId}?\n\nPool ${sample.poolSize} · threshold ${T} · flagged ${n}\nOutcome: ${verdict}\n\nFlagged tasks lose their points permanently.`)) return;
+    setBusy(true); setMsg('');
+    try {
+      const res = await af('/api/sabi/admin/tasker-review', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'apply', userId: active.userId, poolIds: sample.poolIds, flaggedIds: Array.from(flagged) }),
+      });
+      const d = await res.json();
+      if (res.ok && d.success) {
+        setMsg(`✅ ${active.username || 'Tasker'}: ${d.status}${d.status === 'suspended' ? ' (removed from withdrawal list)' : ''} · ${d.flags} flagged`);
+        setActive(null); setSample(null); loadQueue();
+      } else setMsg(d.error || 'Apply failed.');
+    } catch { setMsg('Network error.'); } finally { setBusy(false); }
+  };
+
+  if (active) {
+    const T = sample?.threshold ?? 2;
+    return (
+      <div>
+        <button onClick={() => { setActive(null); setSample(null); }} className="text-xs text-slate-400 hover:text-white mb-3">← Back to queue</button>
+        <div className="rounded-xl bg-white/[0.03] border border-white/[0.07] p-4 mb-3">
+          <div className="font-bold">{active.username || 'Tasker'} <span className="text-slate-500 text-xs">{active.email || ''}</span></div>
+          <div className="text-xs text-slate-400 mt-1">Pool {sample?.poolSize ?? '…'} new tasks · reviewing a random {sample?.sample?.length ?? 0} · fix/suspend threshold <b>{T}</b></div>
+          <p className="text-[11px] text-amber-300/80 mt-1">Flag any proof that&apos;s a duplicate, wrong account, or didn&apos;t do the task. Flagged tasks lose their points permanently.</p>
+        </div>
+        {loadingS ? <p className="text-slate-500 py-8 text-center">Loading sample…</p> : !sample?.sample?.length ? (
+          <p className="text-slate-500 py-8 text-center">No new tasks to review for this tasker.</p>
+        ) : (
+          <>
+            <div className="space-y-2">
+              {sample.sample.map((p: any) => {
+                const on = flagged.has(p.completionId);
+                return (
+                  <div key={p.completionId} className={`rounded-xl border p-3 ${on ? 'border-red-500/40 bg-red-500/[0.06]' : 'border-white/[0.07] bg-white/[0.025]'}`}>
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="text-sm font-bold capitalize truncate">{p.campaignTitle || 'task'}</span>
+                      <span className="text-[10px] text-cyan-400">+{p.pointsEarned} pts</span>
+                      {p.duplicateImage && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-red-500/20 text-red-300">🔁 DUPLICATE IMAGE</span>}
+                      {p.handleMissing && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300">🕵 HANDLE NOT FOUND</span>}
+                    </div>
+                    {p.targetUrl && <a href={p.targetUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-400 hover:underline break-all">{p.targetUrl}</a>}
+                    {p.accountUsername && <div className="text-[10px] text-slate-500">handle: {p.accountUsername}</div>}
+                    <div className="flex items-center gap-2 mt-2">
+                      {p.proofUrl && <a href={p.proofUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-400 hover:underline">open proof ↗</a>}
+                      {p.accountProofUrl && <a href={p.accountProofUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-400 hover:underline">account proof ↗</a>}
+                      <button onClick={() => toggle(p.completionId)}
+                        className={`ml-auto px-3 py-1.5 rounded-lg text-xs font-bold ${on ? 'bg-red-600 text-white' : 'bg-white/10 text-slate-300 hover:bg-white/20'}`}>
+                        {on ? '⚑ Flagged' : 'Flag'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="sticky bottom-0 mt-3 py-3 bg-[#0A0D14]/90 backdrop-blur flex items-center gap-3">
+              <span className="text-xs text-slate-400"><b className="text-red-300">{flagged.size}</b> flagged {flagged.size >= T && <span className="text-red-400 font-bold">· {flagged.size > T ? 'SUSPEND' : 'HOLD'}</span>}</span>
+              <button onClick={apply} disabled={busy} className="ml-auto px-5 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-bold disabled:opacity-40">
+                {busy ? 'Applying…' : 'Apply review'}
+              </button>
+            </div>
+          </>
+        )}
+        {msg && <p className="text-sm text-slate-300 mt-2">{msg}</p>}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <p className="text-xs text-slate-400 mb-3 bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2">
+        🕵️ Taskers with new work awaiting audit. Open one, review the random 20% sample, flag the bad proofs — the system gates their withdrawals automatically. <b>Internal only.</b>
+      </p>
+      {msg && <p className="text-sm text-emerald-300 mb-2">{msg}</p>}
+      {loadingQ ? <p className="text-slate-500 py-10 text-center">Loading queue…</p>
+        : (queue?.length ?? 0) === 0 ? <p className="text-slate-500 py-10 text-center">No taskers awaiting review. ✅</p>
+        : (
+        <div className="space-y-2">
+          {queue!.map(t => (
+            <button key={t.userId} onClick={() => openTasker(t)}
+              className="w-full text-left rounded-xl bg-white/[0.025] border border-white/[0.07] p-3 hover:border-blue-500/40 transition flex items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="font-bold truncate">{t.username || 'Tasker'} <span className="text-slate-500 text-xs">{t.email || ''}</span></div>
+                <div className="text-[10px] text-slate-500">
+                  {t.poolSize} new task{t.poolSize === 1 ? '' : 's'} · review {Math.min(t.poolSize, Math.max(2, Math.ceil(t.poolSize * 0.2)))} · threshold {t.threshold}
+                  {t.status && t.status !== 'never_reviewed' ? ` · was ${t.status}${t.redoOwed ? ` · owes ${t.redoOwed} redo` : ''}` : ' · never reviewed'}
+                </div>
+              </div>
+              <span className="text-xs text-blue-400 shrink-0">Review →</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Find Orders — one search across BOTH lanes (to-review + checked), showing a
 // user's FULL history: paid orders AND refills. Search by username, email, or id.
 function FindOrdersTab() {
