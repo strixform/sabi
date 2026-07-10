@@ -1048,7 +1048,7 @@ function TaskerReviewTab() {
   const [active, setActive] = useState<any>(null);         // { userId, username, ... }
   const [sample, setSample] = useState<any>(null);          // { poolIds, poolSize, threshold, sample[] }
   const [loadingS, setLoadingS] = useState(false);
-  const [flagged, setFlagged] = useState<Set<string>>(new Set());
+  const [marks, setMarks] = useState<Record<string, 'approve' | 'flag'>>({});
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
 
@@ -1071,7 +1071,7 @@ function TaskerReviewTab() {
   useEffect(() => { loadQueue(); }, [loadQueue]);
 
   const openTasker = async (t: any) => {
-    setActive(t); setSample(null); setFlagged(new Set()); setMsg(''); setLoadingS(true);
+    setActive(t); setSample(null); setMarks({}); setMsg(''); setLoadingS(true);
     try {
       const r = await af(`/api/sabi/admin/tasker-review?userId=${encodeURIComponent(t.userId)}`);
       const d = r.ok ? await r.json() : null;
@@ -1079,19 +1079,25 @@ function TaskerReviewTab() {
     } catch { setSample(null); } finally { setLoadingS(false); }
   };
 
-  const toggle = (id: string) => setFlagged(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  // Toggle a proof between approve / flag / unmarked.
+  const setMark = (id: string, m: 'approve' | 'flag') => setMarks(prev => { const n = { ...prev }; if (n[id] === m) delete n[id]; else n[id] = m; return n; });
+  const flaggedIds = () => Object.keys(marks).filter(id => marks[id] === 'flag');
+  const approvedCount = () => Object.values(marks).filter(m => m === 'approve').length;
 
   const apply = async () => {
     if (!active || !sample) return;
     const T = sample.threshold;
-    const n = flagged.size;
+    const flags = flaggedIds();
+    const n = flags.length;
+    const total = sample.sample?.length ?? 0;
+    if (Object.keys(marks).length < total && !confirm(`${total - Object.keys(marks).length} proof(s) not yet approved or flagged — treat the un-marked ones as OK and continue?`)) return;
     const verdict = n === 0 ? 'clean → approved (48h)' : n < T ? `${n} flag(s) → approved, must redo (24h)` : n === T ? `${n} flags → held until fixed` : `${n} flags → SUSPENDED`;
-    if (!confirm(`Apply review for ${active.username || active.userId}?\n\nPool ${sample.poolSize} · threshold ${T} · flagged ${n}\nOutcome: ${verdict}\n\nFlagged tasks lose their points permanently.`)) return;
+    if (!confirm(`Apply review for ${active.username || active.userId}?\n\nReviewed ${total} · approved ${approvedCount()} · flagged ${n} · threshold ${T}\nOutcome: ${verdict}\n\nFlagged tasks lose their points permanently.`)) return;
     setBusy(true); setMsg('');
     try {
       const res = await af('/api/sabi/admin/tasker-review', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'apply', userId: active.userId, poolIds: sample.poolIds, flaggedIds: Array.from(flagged) }),
+        body: JSON.stringify({ action: 'apply', userId: active.userId, poolIds: sample.poolIds, flaggedIds: flags }),
       });
       const d = await res.json();
       if (res.ok && d.success) {
@@ -1103,59 +1109,72 @@ function TaskerReviewTab() {
 
   if (active) {
     const T = sample?.threshold ?? 2;
+    const nFlag = flaggedIds().length;
+    const trustCls = (sample?.trustScore ?? 50) <= 30 ? 'bg-red-500/15 text-red-300' : (sample?.trustScore ?? 50) < 60 ? 'bg-amber-500/15 text-amber-300' : 'bg-emerald-500/15 text-emerald-300';
+    const markAllRemaining = () => setMarks(prev => { const n = { ...prev }; for (const p of (sample?.sample || [])) if (!n[p.completionId]) n[p.completionId] = 'approve'; return n; });
     return (
       <div>
         <button onClick={() => { setActive(null); setSample(null); }} className="text-xs text-slate-400 hover:text-white mb-3">← Back to queue</button>
         <div className="rounded-xl bg-white/[0.03] border border-white/[0.07] p-4 mb-3">
-          <div className="font-bold">{active.username || 'Tasker'} <span className="text-slate-500 text-xs">{active.email || ''}</span></div>
-          <div className="text-xs text-slate-400 mt-1">Pool {sample?.poolSize ?? '…'} new tasks · reviewing a random {sample?.sample?.length ?? 0} · fix/suspend threshold <b>{T}</b></div>
-          <p className="text-[11px] text-amber-300/80 mt-1">Flag any proof that&apos;s a duplicate, wrong account, or didn&apos;t do the task. Flagged tasks lose their points permanently.</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-bold">{active.username || 'Tasker'}</span>
+            <span className="text-slate-500 text-xs">{active.email || ''}</span>
+            {sample && <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${trustCls}`}>trust {sample.trustScore}/100{sample.trustLevel ? ` · ${sample.trustLevel}` : ''}</span>}
+          </div>
+          {(sample?.bankName || sample?.accountName) && <div className="text-[10px] text-slate-500 mt-1">🏦 {sample.bankName || ''}{sample.accountName ? ` · ${sample.accountName}` : ''}</div>}
+          <div className="text-xs text-slate-400 mt-1">Pool {sample?.poolSize ?? '…'} (last 76h, max 100) · reviewing a random {sample?.sample?.length ?? 0} · fix/suspend threshold <b>{T}</b></div>
+          <p className="text-[11px] text-amber-300/80 mt-1">Approve good proofs, flag bad ones (duplicate, wrong account, didn&apos;t do the task). Flagged tasks lose their points permanently.</p>
         </div>
         {loadingS ? <p className="text-slate-500 py-8 text-center">Loading sample…</p> : !sample?.sample?.length ? (
           <p className="text-slate-500 py-8 text-center">No new tasks to review for this tasker.</p>
         ) : (
           <>
-            <div className="space-y-2">
+            <div className="flex justify-end mb-2">
+              <button onClick={markAllRemaining} className="text-[11px] font-bold text-emerald-300 hover:text-emerald-200">✓ Approve all remaining</button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pb-24">
               {sample.sample.map((p: any) => {
-                const on = flagged.has(p.completionId);
+                const m = marks[p.completionId];
                 return (
-                  <div key={p.completionId} className={`rounded-xl border p-3 ${on ? 'border-red-500/40 bg-red-500/[0.06]' : 'border-white/[0.07] bg-white/[0.025]'}`}>
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="text-sm font-bold capitalize truncate">{p.campaignTitle || 'task'}</span>
-                      <span className="text-[10px] text-cyan-400">+{p.pointsEarned} pts</span>
-                      {p.duplicateImage && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-red-500/20 text-red-300">🔁 DUPLICATE IMAGE</span>}
-                      {p.handleMissing && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300">🕵 HANDLE NOT FOUND</span>}
-                    </div>
-                    {p.targetUrl && <a href={p.targetUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-400 hover:underline break-all">{p.targetUrl}</a>}
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5 text-[10px] text-slate-400">
-                      {p.accountUsername && <span>handle: <span className="text-slate-200">{p.accountUsername}</span></span>}
-                      {(p.countBefore || p.countAfter) && <span>count: <span className="text-slate-200">{p.countBefore ?? '?'} → {p.countAfter ?? '?'}</span></span>}
-                    </div>
-                    {p.commentUsed && <div className="text-[10px] text-slate-400 mt-0.5">comment: <span className="text-slate-200">“{p.commentUsed}”</span></div>}
-                    {/* Before / After proof screenshots */}
-                    <div className="flex gap-2 mt-2">
+                  <div key={p.completionId} className={`rounded-xl border overflow-hidden ${m === 'flag' ? 'border-red-500/50 bg-red-500/[0.06]' : m === 'approve' ? 'border-emerald-500/40 bg-emerald-500/[0.05]' : 'border-white/[0.08] bg-white/[0.025]'}`}>
+                    {/* Before / After side by side */}
+                    <div className="grid grid-cols-2">
                       {[{ u: p.beforeUrl, l: 'BEFORE' }, { u: p.afterUrl, l: 'AFTER' }].map(({ u, l }) => (
-                        <div key={l} className="flex-1 min-w-0">
-                          <div className="text-[9px] font-bold text-slate-500 mb-0.5">{l}</div>
+                        <div key={l} className="relative">
                           {isImg(u)
-                            ? <a href={u!} target="_blank" rel="noopener noreferrer"><img src={u!} alt={l} loading="lazy" className="w-full h-28 object-cover rounded-lg border border-white/10 hover:border-blue-400/50" /></a>
-                            : u ? <a href={u} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-400 hover:underline">open ↗</a>
-                            : <div className="h-28 rounded-lg bg-white/[0.03] border border-white/10 flex items-center justify-center text-[10px] text-slate-600">none</div>}
+                            ? <a href={u!} target="_blank" rel="noopener noreferrer"><img src={u!} alt={l} loading="lazy" className="w-full h-32 object-cover" /></a>
+                            : u ? <a href={u} target="_blank" rel="noopener noreferrer" className="h-32 flex items-center justify-center text-[11px] text-blue-400 hover:underline">open ↗</a>
+                            : <div className="h-32 flex items-center justify-center text-[10px] text-slate-600 bg-white/[0.02]">none</div>}
+                          <span className={`absolute top-1 left-1 text-[8px] font-black px-1 py-0.5 rounded ${l === 'BEFORE' ? 'bg-slate-900/80 text-slate-300' : 'bg-emerald-900/80 text-emerald-300'}`}>{l}</span>
                         </div>
                       ))}
                     </div>
-                    <button onClick={() => toggle(p.completionId)}
-                      className={`mt-2 w-full px-3 py-1.5 rounded-lg text-xs font-bold ${on ? 'bg-red-600 text-white' : 'bg-white/10 text-slate-300 hover:bg-white/20'}`}>
-                      {on ? '⚑ Flagged — points will be removed' : 'Flag this proof'}
-                    </button>
+                    <div className="p-2.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-bold capitalize truncate">{p.campaignTitle || 'task'}</span>
+                        <span className="text-[9px] text-cyan-400">+{p.pointsEarned}</span>
+                      </div>
+                      {(p.countBefore || p.countAfter) && <div className="text-center text-[11px] font-black text-white mt-1">{p.countBefore ?? '?'} → {p.countAfter ?? '?'}</div>}
+                      {p.duplicateImage && <div className="text-[8px] font-black text-center px-1.5 py-0.5 mt-1 rounded bg-red-500/20 text-red-300">🔁 DUPLICATE IMAGE — reused shot</div>}
+                      {p.handleMissing && <div className="text-[8px] font-black text-center px-1.5 py-0.5 mt-1 rounded bg-amber-500/20 text-amber-300">🕵 HANDLE NOT FOUND</div>}
+                      <div className="text-[10px] text-slate-400 mt-1 truncate">{p.accountUsername ? `@${p.accountUsername}` : ''}</div>
+                      {p.commentUsed && <div className="text-[9px] text-slate-500 truncate">“{p.commentUsed}”</div>}
+                      {p.targetUrl && <a href={p.targetUrl} target="_blank" rel="noopener noreferrer" className="text-[9px] text-blue-400 hover:underline block truncate">{p.targetUrl}</a>}
+                      <div className="grid grid-cols-2 gap-1.5 mt-2">
+                        <button onClick={() => setMark(p.completionId, 'approve')}
+                          className={`px-2 py-1.5 rounded-lg text-[11px] font-bold ${m === 'approve' ? 'bg-emerald-600 text-white' : 'bg-emerald-600/15 text-emerald-300 hover:bg-emerald-600/25'}`}>✓ Approve</button>
+                        <button onClick={() => setMark(p.completionId, 'flag')}
+                          className={`px-2 py-1.5 rounded-lg text-[11px] font-bold ${m === 'flag' ? 'bg-red-600 text-white' : 'bg-red-600/15 text-red-300 hover:bg-red-600/25'}`}>⚠ Flag</button>
+                      </div>
+                    </div>
                   </div>
                 );
               })}
             </div>
-            <div className="sticky bottom-0 mt-3 py-3 bg-[#0A0D14]/90 backdrop-blur flex items-center gap-3">
-              <span className="text-xs text-slate-400"><b className="text-red-300">{flagged.size}</b> flagged {flagged.size >= T && <span className="text-red-400 font-bold">· {flagged.size > T ? 'SUSPEND' : 'HOLD'}</span>}</span>
+            <div className="fixed bottom-0 left-0 right-0 sm:left-auto sm:right-8 sm:bottom-6 z-20 flex items-center gap-3 bg-[#0A0D14]/95 backdrop-blur border-t sm:border border-white/10 sm:rounded-2xl px-4 py-3 sm:shadow-2xl">
+              <span className="text-xs text-slate-300"><b className="text-emerald-300">{approvedCount()}</b> approved · <b className="text-red-300">{nFlag}</b> flagged {nFlag >= T && <span className="text-red-400 font-bold">· {nFlag > T ? 'SUSPEND' : 'HOLD'}</span>}</span>
               <button onClick={apply} disabled={busy} className="ml-auto px-5 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-bold disabled:opacity-40">
-                {busy ? 'Applying…' : 'Apply review'}
+                {busy ? 'Applying…' : 'Apply Review'}
               </button>
             </div>
           </>
@@ -1168,7 +1187,7 @@ function TaskerReviewTab() {
   return (
     <div>
       <p className="text-xs text-slate-400 mb-3 bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2">
-        🕵️ Taskers with new work awaiting audit. Open one, review the random 20% sample, flag the bad proofs — the system gates their withdrawals automatically. <b>Internal only.</b>
+        🕵️ Taskers with new work awaiting audit. Open one, review the random 40% sample (approve or flag each), then Apply Review — the system gates their withdrawals automatically. <b>Internal only.</b>
       </p>
       {msg && <p className="text-sm text-emerald-300 mb-2">{msg}</p>}
       {loadingQ ? <p className="text-slate-500 py-10 text-center">Loading queue…</p>
@@ -1181,7 +1200,7 @@ function TaskerReviewTab() {
               <div className="min-w-0 flex-1">
                 <div className="font-bold truncate">{t.username || 'Tasker'} <span className="text-slate-500 text-xs">{t.email || ''}</span></div>
                 <div className="text-[10px] text-slate-500">
-                  {t.poolSize} new task{t.poolSize === 1 ? '' : 's'} · review {Math.min(t.poolSize, Math.max(2, Math.ceil(t.poolSize * 0.2)))} · threshold {t.threshold}
+                  {t.poolSize} new task{t.poolSize === 1 ? '' : 's'} · review {Math.min(t.poolSize, Math.max(2, Math.ceil(t.poolSize * 0.4)))} · threshold {t.threshold}
                   {t.status && t.status !== 'never_reviewed' ? ` · was ${t.status}${t.redoOwed ? ` · owes ${t.redoOwed} redo` : ''}` : ' · never reviewed'}
                 </div>
               </div>
