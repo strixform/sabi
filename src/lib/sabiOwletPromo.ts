@@ -46,11 +46,18 @@ export async function importOwletEmails(emails: string[]): Promise<{ added: numb
  * Grant the one-time ₦2,000 if this email is on the Owlet list and hasn't claimed.
  * Atomic claim so it can never be granted twice. Returns granted kobo (0 if not eligible).
  */
+/** Hard cap on total claims (treasury guard). Raise OWLET_PROMO_MAX_CLAIMS as you gain
+ *  confidence — at ₦2,000 each, 10,000 claims = ₦20M. Promo auto-stops once hit. */
+function maxClaims(): number { return Math.max(0, parseInt(process.env.OWLET_PROMO_MAX_CLAIMS || '10000', 10) || 0); }
+
 export async function grantOwletBonus(userId: string, email: string): Promise<{ granted: number }> {
   if (process.env.OWLET_PROMO !== 'on') return { granted: 0 };
   const e = String(email || '').trim().toLowerCase();
   if (!e) return { granted: 0 };
   await ensure();
+  // Treasury guard — stop granting once the total-claims cap is reached.
+  const claimedR = await sabiExecute({ sql: `SELECT COUNT(*) AS n FROM OwletEmail WHERE claimed = 1` }).catch(() => ({ rows: [{ n: 0 }] as any[] }));
+  if (Number((claimedR.rows[0] as any)?.n || 0) >= maxClaims()) return { granted: 0 };
   // Atomically claim — succeeds once, only for an email that's on the list and unclaimed.
   const claim = await sabiExecute({
     sql: `UPDATE OwletEmail SET claimed = 1, claimedByUserId = ?, claimedAt = datetime('now') WHERE email = ? AND claimed = 0`,
