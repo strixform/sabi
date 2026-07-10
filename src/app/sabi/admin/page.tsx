@@ -100,6 +100,8 @@ const STATUS_COLORS: Record<string, string> = {
 
 const fmt = (kobo: number | undefined | null) => `₦${Math.round((kobo ?? 0) / 100).toLocaleString()}`;
 const fmtDate = (d: string) => new Date(d).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' });
+// Full timestamp incl. seconds — for columns where join/order order matters to the second.
+const fmtDateSec = (d: string) => new Date(d).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'medium' });
 const TABS = ['Users', 'Orders', 'Payments', 'Reconcile', 'Referrals', 'Requests', 'Partnerships', 'UGC', 'Health', 'Refunds', 'Settings'] as const;
 
 interface PartnershipReq {
@@ -115,15 +117,21 @@ type Tab = typeof TABS[number];
 // current page (50 rows max) so it's instant with no extra API calls.
 interface SortState { col: string; dir: 'asc' | 'desc' }
 
+// Timestamp strings from the DB look like `2026-07-10 19:05:33` or ISO `…T19:05:33Z`.
+const isDateStr = (s: any) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(s);
+
 function useSortedData<T extends Record<string, any>>(data: T[], sort: SortState) {
   return React.useMemo(() => {
     if (!sort.col) return data;
     return [...data].sort((a, b) => {
       const av = a[sort.col] ?? '';
       const bv = b[sort.col] ?? '';
-      const cmp = typeof av === 'number' && typeof bv === 'number'
-        ? av - bv
-        : String(av).localeCompare(String(bv), 'en', { numeric: true });
+      let cmp: number;
+      if (typeof av === 'number' && typeof bv === 'number') cmp = av - bv;
+      // Dates: compare by parsed timestamp (to the second) so "19:05:33" beats
+      // "19:05:10", not by string form which can mis-order across formats.
+      else if (isDateStr(av) || isDateStr(bv)) cmp = (Date.parse(av) || 0) - (Date.parse(bv) || 0);
+      else cmp = String(av).localeCompare(String(bv), 'en', { numeric: true });
       return sort.dir === 'asc' ? cmp : -cmp;
     });
   }, [data, sort.col, sort.dir]);
@@ -1642,7 +1650,7 @@ export default function AdminPage() {
                             {u.status}
                           </span>
                         </td>
-                        <td className="px-3 py-3 text-[11px] text-slate-500">{fmtDate(u.createdAt)}</td>
+                        <td className="px-3 py-3 text-[11px] text-slate-500 whitespace-nowrap">{fmtDateSec(u.createdAt)}</td>
                         <td className="px-3 py-3">
                           <div className="flex items-center gap-2">
                             <button
