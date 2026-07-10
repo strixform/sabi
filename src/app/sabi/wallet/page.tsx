@@ -273,7 +273,33 @@ export default function WalletPage() {
                   className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg transition disabled:opacity-40 flex items-center justify-center gap-2">
                   {fundLoading ? <><FiLoader className="w-4 h-4 animate-spin" /> Processing...</> : <>Pay via Flutterwave →</>}
                 </button>
-                <p className="text-xs text-slate-500 text-center">Minimum ₦500 · Secure payment via Flutterwave</p>
+                {/* Crypto (Cryptomus) — same amount, credits the wallet on confirmation */}
+                <button
+                  disabled={fundLoading || !fundAmount || Number(fundAmount) < 500}
+                  onClick={async () => {
+                    const amount = parseInt(fundAmount);
+                    if (isNaN(amount) || amount < 500) return;
+                    setFundLoading(true);
+                    try {
+                      const res = await fetch('/api/sabi/wallet/cryptomus', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ amount }), credentials: 'include',
+                      });
+                      const data = await res.json();
+                      if (data.txRef) {
+                        try {
+                          const prev = JSON.parse(localStorage.getItem('sabi_fund_refs') || '[]');
+                          localStorage.setItem('sabi_fund_refs', JSON.stringify([data.txRef, ...prev].slice(0, 8)));
+                        } catch {}
+                      }
+                      if (data.paymentLink) window.location.href = data.paymentLink;
+                      else alert(data.error || 'Crypto payment is unavailable right now.');
+                    } finally { setFundLoading(false); }
+                  }}
+                  className="w-full py-3 bg-slate-700/70 hover:bg-slate-600 text-white font-bold rounded-lg transition disabled:opacity-40 flex items-center justify-center gap-2 border border-white/[0.08]">
+                  {fundLoading ? <><FiLoader className="w-4 h-4 animate-spin" /> Processing...</> : <>Pay with Crypto (USDT, BTC…) →</>}
+                </button>
+                <p className="text-xs text-slate-500 text-center">Minimum ₦500 · Card via Flutterwave · Crypto via Cryptomus</p>
                 {/* Self-service: paid but not showing? re-check instead of messaging support */}
                 <div className="text-center">
                   <button
