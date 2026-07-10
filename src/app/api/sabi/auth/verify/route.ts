@@ -34,6 +34,19 @@ export async function POST(req: NextRequest) {
       data: { emailVerified: true, verifyCode: null, verifyCodeExpiry: null },
     });
 
+    // Owlet welcome promo — if this verified email is on the Owlet allowlist, grant a
+    // one-time ₦2,000 spend credit + welcome email. Fire-and-forget; never blocks verify.
+    (async () => {
+      try {
+        const { grantOwletBonus, OWLET_BONUS_KOBO } = await import('@/lib/sabiOwletPromo');
+        const g = await grantOwletBonus(user.id, user.email);
+        if (g.granted > 0) {
+          const { sendOwletWelcomeEmail } = await import('@/lib/email');
+          sendOwletWelcomeEmail(user.email, user.name, Math.round(OWLET_BONUS_KOBO / 100)).catch(() => {});
+        }
+      } catch { /* promo is best-effort */ }
+    })();
+
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Verification failed' }, { status: 500 });

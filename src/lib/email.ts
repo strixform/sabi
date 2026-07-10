@@ -17,6 +17,32 @@ function baseHtml(title: string, body: string) {
   </div>`;
 }
 
+export async function sendOwletWelcomeEmail(to: string, name: string, bonusNaira = 2000) {
+  if (!process.env.RESEND_API_KEY || !to) {
+    console.log(`[EMAIL-DEV] Owlet welcome → ${to} (₦${bonusNaira})`);
+    return { success: true, dev: true };
+  }
+  const esc = (s: string) => String(s || '').replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c] || c));
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to,
+      subject: `Your ₦${bonusNaira.toLocaleString()} SABI welcome credit is ready 🎁`,
+      html: baseHtml('Welcome to SABI', `
+        <p style="font-size:15px;line-height:1.6;color:#e2e8f0;">Hi ${esc(name) || 'there'},</p>
+        <p style="font-size:15px;line-height:1.6;color:#e2e8f0;">Because you're an Owlet member, we've added <b>₦${bonusNaira.toLocaleString()}</b> to your SABI wallet — on us. 🎉</p>
+        <p style="font-size:15px;line-height:1.6;color:#e2e8f0;">Use it on any SABI service — real engagement from real Nigerians across the platforms you use.</p>
+        <div style="text-align:center;margin:24px 0;">
+          <a href="${APP_URL}/sabi/services" style="display:inline-block;background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;text-decoration:none;font-weight:800;padding:12px 28px;border-radius:10px;font-size:15px;">Spend your ₦${bonusNaira.toLocaleString()} →</a>
+        </div>
+        <p style="font-size:12px;color:#64748b;">The credit is already in your wallet — just place an order.</p>`),
+    });
+    return { success: true };
+  } catch {
+    return { success: false };
+  }
+}
+
 export async function sendTeamInviteEmail(to: string, inviterName: string, acceptUrl: string, role: string = 'viewer') {
   if (!process.env.RESEND_API_KEY || !to) {
     console.log(`[EMAIL-DEV] Team invite → ${to} (from ${inviterName}, ${role})`);
