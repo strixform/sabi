@@ -1043,6 +1043,7 @@ function ReuploadsTab() {
 // taskers. Flag bad proofs; the system applies the outcome + gates their withdrawals.
 function TaskerReviewTab() {
   const [queue, setQueue] = useState<any[] | null>(null);
+  const [suspended, setSuspended] = useState<any[]>([]);
   const [loadingQ, setLoadingQ] = useState(true);
   const [active, setActive] = useState<any>(null);         // { userId, username, ... }
   const [sample, setSample] = useState<any>(null);          // { poolIds, poolSize, threshold, sample[] }
@@ -1054,8 +1055,19 @@ function TaskerReviewTab() {
   const loadQueue = useCallback(() => {
     setLoadingQ(true);
     af('/api/sabi/admin/tasker-review').then(r => (r.ok ? r.json() : null))
-      .then(d => setQueue(d?.queue || [])).catch(() => setQueue([])).finally(() => setLoadingQ(false));
+      .then(d => { setQueue(d?.queue || []); setSuspended(d?.suspended || []); }).catch(() => setQueue([])).finally(() => setLoadingQ(false));
   }, []);
+
+  const resolve = async (userId: string, action: 'forgive' | 'unsuspend', name: string) => {
+    const msgTxt = action === 'forgive'
+      ? `Forgive ${name}? Un-suspends and RESTORES their points (use only if the flags were wrong).`
+      : `Reinstate ${name} as a FRESH tasker? They keep the account but LOSE all old tasks and points.`;
+    if (!confirm(msgTxt)) return;
+    try {
+      const res = await af('/api/sabi/admin/tasker-review', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, userId }) });
+      if (res.ok) { setMsg(`${name}: ${action === 'forgive' ? 'forgiven & restored' : 'reinstated fresh'}`); loadQueue(); }
+    } catch {}
+  };
   useEffect(() => { loadQueue(); }, [loadQueue]);
 
   const openTasker = async (t: any) => {
@@ -1164,6 +1176,24 @@ function TaskerReviewTab() {
               <span className="text-xs text-blue-400 shrink-0">Review →</span>
             </button>
           ))}
+        </div>
+      )}
+
+      {suspended.length > 0 && (
+        <div className="mt-6">
+          <div className="text-[11px] font-bold text-red-300 mb-2">⛔ Suspended by review · {suspended.length} (removed from withdrawal list)</div>
+          <div className="space-y-2">
+            {suspended.map(s => (
+              <div key={s.userId} className="rounded-xl bg-red-500/[0.05] border border-red-500/20 p-3 flex items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="font-bold truncate">{s.username || 'Tasker'} <span className="text-slate-500 text-xs">{s.email || ''}</span></div>
+                  <div className="text-[10px] text-slate-500">{s.flagsLast} flags{s.suspendedAt ? ` · ${new Date(s.suspendedAt).toLocaleDateString()}` : ''}</div>
+                </div>
+                <button onClick={() => resolve(s.userId, 'unsuspend', s.username || 'tasker')} className="px-3 py-1.5 rounded-lg bg-white/10 text-slate-200 text-xs font-bold hover:bg-white/20 shrink-0">Reinstate fresh</button>
+                <button onClick={() => resolve(s.userId, 'forgive', s.username || 'tasker')} className="px-3 py-1.5 rounded-lg bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold hover:bg-emerald-600/30 shrink-0">Forgive & restore</button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
