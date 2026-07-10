@@ -51,7 +51,10 @@ export async function importOwletEmails(emails: string[]): Promise<{ added: numb
 function maxClaims(): number { return Math.max(0, parseInt(process.env.OWLET_PROMO_MAX_CLAIMS || '10000', 10) || 0); }
 
 export async function grantOwletBonus(userId: string, email: string): Promise<{ granted: number }> {
-  if (process.env.OWLET_PROMO !== 'on') return { granted: 0 };
+  // ON by default (kill-switch OWLET_PROMO=off). Harmless until the allowlist is
+  // imported — with an empty list nobody matches, so no grants happen. Importing the
+  // emails is the real trigger; the claim cap below bounds total exposure.
+  if (process.env.OWLET_PROMO === 'off') return { granted: 0 };
   const e = String(email || '').trim().toLowerCase();
   if (!e) return { granted: 0 };
   await ensure();
@@ -74,9 +77,9 @@ export async function grantOwletBonus(userId: string, email: string): Promise<{ 
   return { granted: OWLET_BONUS_KOBO };
 }
 
-export async function owletStats(): Promise<{ total: number; claimed: number; enabled: boolean }> {
+export async function owletStats(): Promise<{ total: number; claimed: number; enabled: boolean; maxClaims: number }> {
   await ensure();
   const t = await sabiExecute({ sql: `SELECT COUNT(*) AS n FROM OwletEmail` }).catch(() => ({ rows: [{ n: 0 }] as any[] }));
   const c = await sabiExecute({ sql: `SELECT COUNT(*) AS n FROM OwletEmail WHERE claimed = 1` }).catch(() => ({ rows: [{ n: 0 }] as any[] }));
-  return { total: Number((t.rows[0] as any)?.n || 0), claimed: Number((c.rows[0] as any)?.n || 0), enabled: process.env.OWLET_PROMO === 'on' };
+  return { total: Number((t.rows[0] as any)?.n || 0), claimed: Number((c.rows[0] as any)?.n || 0), enabled: process.env.OWLET_PROMO !== 'off', maxClaims: maxClaims() };
 }
