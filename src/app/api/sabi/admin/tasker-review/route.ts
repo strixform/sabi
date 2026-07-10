@@ -27,8 +27,15 @@ async function forward(method: 'GET' | 'POST', qs: string, body?: any) {
 export async function GET(req: NextRequest) {
   const auth = await allowOwnerOrStaff(req);
   if (!auth.ok) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  const userId = req.nextUrl.searchParams.get('userId');
-  const { status, data } = await forward('GET', userId ? `?userId=${encodeURIComponent(userId)}` : '');
+  // Pass through the review lookups: userId (open a tasker), search (email/username/
+  // order id), siblings (other proofs on the same task).
+  const sp = req.nextUrl.searchParams;
+  const qs: string[] = [];
+  for (const k of ['userId', 'search', 'siblings'] as const) {
+    const v = sp.get(k);
+    if (v) qs.push(`${k}=${encodeURIComponent(v)}`);
+  }
+  const { status, data } = await forward('GET', qs.length ? `?${qs.join('&')}` : '');
   return NextResponse.json(data, { status });
 }
 

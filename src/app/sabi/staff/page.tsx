@@ -1070,6 +1070,9 @@ function TaskerReviewTab() {
   };
   useEffect(() => { loadQueue(); }, [loadQueue]);
 
+  const [searchInput, setSearchInput] = useState('');
+  const [siblings, setSiblings] = useState<{ forId: string; items: any[]; loading: boolean } | null>(null);
+
   const openTasker = async (t: any) => {
     setActive(t); setSample(null); setMarks({}); setMsg(''); setLoadingS(true);
     try {
@@ -1077,6 +1080,29 @@ function TaskerReviewTab() {
       const d = r.ok ? await r.json() : null;
       setSample(d || null);
     } catch { setSample(null); } finally { setLoadingS(false); }
+  };
+
+  // Support search — email/username opens that tasker; an order id shows the order's proofs (view-only).
+  const runSearch = async () => {
+    const t = searchInput.trim(); if (!t) return;
+    setMsg(''); setLoadingS(true);
+    try {
+      const r = await af(`/api/sabi/admin/tasker-review?search=${encodeURIComponent(t)}`);
+      const d = r.ok ? await r.json() : null;
+      if (d?.matchType === 'tasker') { setMarks({}); setActive({ userId: d.userId, username: d.user?.username, email: d.user?.email }); setSample(d); }
+      else if (d?.matchType === 'order' && d.sample?.length) { setMarks({}); setActive({ orderView: true, orderId: d.orderId }); setSample(d); }
+      else setMsg(`No tasker or order matched “${t}”.`);
+    } catch { setMsg('Search failed.'); } finally { setLoadingS(false); }
+  };
+
+  // Other taskers' proofs on the SAME task — to tell a broken buyer link from a bad tasker.
+  const loadSiblings = async (completionId: string) => {
+    setSiblings({ forId: completionId, items: [], loading: true });
+    try {
+      const r = await af(`/api/sabi/admin/tasker-review?siblings=${encodeURIComponent(completionId)}`);
+      const d = r.ok ? await r.json() : null;
+      setSiblings({ forId: completionId, items: d?.siblings || [], loading: false });
+    } catch { setSiblings({ forId: completionId, items: [], loading: false }); }
   };
 
   // Toggle a proof between approve / flag / unmarked.
@@ -1108,6 +1134,7 @@ function TaskerReviewTab() {
   };
 
   if (active) {
+    const isOrderView = !!active.orderView;
     const T = sample?.threshold ?? 2;
     const nFlag = flaggedIds().length;
     const trustCls = (sample?.trustScore ?? 50) <= 30 ? 'bg-red-500/15 text-red-300' : (sample?.trustScore ?? 50) < 60 ? 'bg-amber-500/15 text-amber-300' : 'bg-emerald-500/15 text-emerald-300';
@@ -1116,22 +1143,33 @@ function TaskerReviewTab() {
       <div>
         <button onClick={() => { setActive(null); setSample(null); }} className="text-xs text-slate-400 hover:text-white mb-3">← Back to queue</button>
         <div className="rounded-xl bg-white/[0.03] border border-white/[0.07] p-4 mb-3">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-bold">{active.username || 'Tasker'}</span>
-            <span className="text-slate-500 text-xs">{active.email || ''}</span>
-            {sample && <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${trustCls}`}>trust {sample.trustScore}/100{sample.trustLevel ? ` · ${sample.trustLevel}` : ''}</span>}
-          </div>
-          {(sample?.bankName || sample?.accountName) && <div className="text-[10px] text-slate-500 mt-1">🏦 {sample.bankName || ''}{sample.accountName ? ` · ${sample.accountName}` : ''}</div>}
-          <div className="text-xs text-slate-400 mt-1">Pool {sample?.poolSize ?? '…'} (last 76h, max 100) · reviewing a random {sample?.sample?.length ?? 0} · fix/suspend threshold <b>{T}</b></div>
-          <p className="text-[11px] text-amber-300/80 mt-1">Approve good proofs, flag bad ones (duplicate, wrong account, didn&apos;t do the task). Flagged tasks lose their points permanently.</p>
+          {isOrderView ? (
+            <>
+              <div className="font-bold">Order <span className="font-mono text-violet-300">{active.orderId}</span> — all delivered proofs</div>
+              <p className="text-[11px] text-slate-400 mt-1">Checking a buyer complaint. If the target link looks broken across <b>everyone&apos;s</b> proofs, it broke after they acted — not the taskers&apos; fault. View only.</p>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-bold">{active.username || 'Tasker'}</span>
+                <span className="text-slate-500 text-xs">{active.email || ''}</span>
+                {sample && <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${trustCls}`}>trust {sample.trustScore}/100{sample.trustLevel ? ` · ${sample.trustLevel}` : ''}</span>}
+              </div>
+              {(sample?.bankName || sample?.accountName) && <div className="text-[10px] text-slate-500 mt-1">🏦 {sample.bankName || ''}{sample.accountName ? ` · ${sample.accountName}` : ''}</div>}
+              <div className="text-xs text-slate-400 mt-1">Pool {sample?.poolSize ?? '…'} (last 76h, max 100) · reviewing a random {sample?.sample?.length ?? 0} · fix/suspend threshold <b>{T}</b></div>
+              <p className="text-[11px] text-amber-300/80 mt-1">Approve good proofs, flag bad ones (duplicate, wrong account, didn&apos;t do the task). Flagged tasks lose their points permanently.</p>
+            </>
+          )}
         </div>
         {loadingS ? <p className="text-slate-500 py-8 text-center">Loading sample…</p> : !sample?.sample?.length ? (
           <p className="text-slate-500 py-8 text-center">No new tasks to review for this tasker.</p>
         ) : (
           <>
-            <div className="flex justify-end mb-2">
-              <button onClick={markAllRemaining} className="text-[11px] font-bold text-emerald-300 hover:text-emerald-200">✓ Approve all remaining</button>
-            </div>
+            {!isOrderView && (
+              <div className="flex justify-end mb-2">
+                <button onClick={markAllRemaining} className="text-[11px] font-bold text-emerald-300 hover:text-emerald-200">✓ Approve all remaining</button>
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pb-24">
               {sample.sample.map((p: any) => {
                 const m = marks[p.completionId];
@@ -1160,26 +1198,69 @@ function TaskerReviewTab() {
                       <div className="text-[10px] text-slate-400 mt-1 truncate">{p.accountUsername ? `@${p.accountUsername}` : ''}</div>
                       {p.commentUsed && <div className="text-[9px] text-slate-500 truncate">“{p.commentUsed}”</div>}
                       {p.targetUrl && <a href={p.targetUrl} target="_blank" rel="noopener noreferrer" className="text-[9px] text-blue-400 hover:underline block truncate">{p.targetUrl}</a>}
-                      <div className="grid grid-cols-2 gap-1.5 mt-2">
-                        <button onClick={() => setMark(p.completionId, 'approve')}
-                          className={`px-2 py-1.5 rounded-lg text-[11px] font-bold ${m === 'approve' ? 'bg-emerald-600 text-white' : 'bg-emerald-600/15 text-emerald-300 hover:bg-emerald-600/25'}`}>✓ Approve</button>
-                        <button onClick={() => setMark(p.completionId, 'flag')}
-                          className={`px-2 py-1.5 rounded-lg text-[11px] font-bold ${m === 'flag' ? 'bg-red-600 text-white' : 'bg-red-600/15 text-red-300 hover:bg-red-600/25'}`}>⚠ Flag</button>
-                      </div>
+                      {!isOrderView && (
+                        <div className="grid grid-cols-2 gap-1.5 mt-2">
+                          <button onClick={() => setMark(p.completionId, 'approve')}
+                            className={`px-2 py-1.5 rounded-lg text-[11px] font-bold ${m === 'approve' ? 'bg-emerald-600 text-white' : 'bg-emerald-600/15 text-emerald-300 hover:bg-emerald-600/25'}`}>✓ Approve</button>
+                          <button onClick={() => setMark(p.completionId, 'flag')}
+                            className={`px-2 py-1.5 rounded-lg text-[11px] font-bold ${m === 'flag' ? 'bg-red-600 text-white' : 'bg-red-600/15 text-red-300 hover:bg-red-600/25'}`}>⚠ Flag</button>
+                        </div>
+                      )}
+                      <button onClick={() => loadSiblings(p.completionId)} className="mt-1.5 w-full text-[10px] font-bold text-blue-400/80 hover:text-blue-300">🔗 others on this task</button>
                     </div>
                   </div>
                 );
               })}
             </div>
-            <div className="fixed bottom-0 left-0 right-0 sm:left-auto sm:right-8 sm:bottom-6 z-20 flex items-center gap-3 bg-[#0A0D14]/95 backdrop-blur border-t sm:border border-white/10 sm:rounded-2xl px-4 py-3 sm:shadow-2xl">
-              <span className="text-xs text-slate-300"><b className="text-emerald-300">{approvedCount()}</b> approved · <b className="text-red-300">{nFlag}</b> flagged {nFlag >= T && <span className="text-red-400 font-bold">· {nFlag > T ? 'SUSPEND' : 'HOLD'}</span>}</span>
-              <button onClick={apply} disabled={busy} className="ml-auto px-5 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-bold disabled:opacity-40">
-                {busy ? 'Applying…' : 'Apply Review'}
-              </button>
-            </div>
+            {!isOrderView && (
+              <div className="fixed bottom-0 left-0 right-0 sm:left-auto sm:right-8 sm:bottom-6 z-20 flex items-center gap-3 bg-[#0A0D14]/95 backdrop-blur border-t sm:border border-white/10 sm:rounded-2xl px-4 py-3 sm:shadow-2xl">
+                <span className="text-xs text-slate-300"><b className="text-emerald-300">{approvedCount()}</b> approved · <b className="text-red-300">{nFlag}</b> flagged {nFlag >= T && <span className="text-red-400 font-bold">· {nFlag > T ? 'SUSPEND' : 'HOLD'}</span>}</span>
+                <button onClick={apply} disabled={busy} className="ml-auto px-5 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-bold disabled:opacity-40">
+                  {busy ? 'Applying…' : 'Apply Review'}
+                </button>
+              </div>
+            )}
           </>
         )}
         {msg && <p className="text-sm text-slate-300 mt-2">{msg}</p>}
+
+        {/* Sibling proofs — other taskers on the same task (broken-link check) */}
+        {siblings && (
+          <div className="fixed inset-0 z-30 bg-black/70 flex items-center justify-center p-4" onClick={() => setSiblings(null)}>
+            <div className="bg-[#0F1420] border border-white/10 rounded-2xl max-w-3xl w-full max-h-[85vh] overflow-auto p-4" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold text-white">Other taskers on this task</h3>
+                <button onClick={() => setSiblings(null)} className="text-slate-400 hover:text-white text-sm">✕ Close</button>
+              </div>
+              <p className="text-[11px] text-slate-400 mb-3">If the link/target looks broken across all of these too, it broke after they acted — not this tasker&apos;s fault.</p>
+              {siblings.loading ? <p className="text-slate-500 py-8 text-center">Loading…</p>
+                : siblings.items.length === 0 ? <p className="text-slate-500 py-8 text-center">No other proofs on this task.</p>
+                : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {siblings.items.map((s: any) => (
+                    <div key={s.completionId} className="rounded-xl border border-white/[0.08] bg-white/[0.025] overflow-hidden">
+                      <div className="grid grid-cols-2">
+                        {[{ u: s.beforeUrl, l: 'BEFORE' }, { u: s.afterUrl, l: 'AFTER' }].map(({ u, l }) => (
+                          <div key={l} className="relative">
+                            {isImg(u) ? <a href={u!} target="_blank" rel="noopener noreferrer"><img src={u!} alt={l} loading="lazy" className="w-full h-28 object-cover" /></a>
+                              : u ? <a href={u} target="_blank" rel="noopener noreferrer" className="h-28 flex items-center justify-center text-[11px] text-blue-400">open ↗</a>
+                              : <div className="h-28 flex items-center justify-center text-[10px] text-slate-600 bg-white/[0.02]">none</div>}
+                            <span className={`absolute top-1 left-1 text-[8px] font-black px-1 py-0.5 rounded ${l === 'BEFORE' ? 'bg-slate-900/80 text-slate-300' : 'bg-emerald-900/80 text-emerald-300'}`}>{l}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="p-2 text-[10px] text-slate-400">
+                        <div className="truncate">{s.username ? `@${s.username}` : s.accountUsername ? `@${s.accountUsername}` : '—'}</div>
+                        {(s.countBefore || s.countAfter) && <div className="text-white font-bold">{s.countBefore ?? '?'} → {s.countAfter ?? '?'}</div>}
+                        {s.targetUrl && <a href={s.targetUrl} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline block truncate">{s.targetUrl}</a>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -1189,6 +1270,13 @@ function TaskerReviewTab() {
       <p className="text-xs text-slate-400 mb-3 bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2">
         🕵️ Taskers with new work awaiting audit. Open one, review the random 40% sample (approve or flag each), then Apply Review — the system gates their withdrawals automatically. <b>Internal only.</b>
       </p>
+      <div className="flex gap-2 mb-3">
+        <input value={searchInput} onChange={e => setSearchInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && runSearch()}
+          placeholder="Look up a tasker (email / username) or an order id…"
+          className="flex-1 bg-[#0F1420] border border-white/[0.08] rounded-lg px-3 py-2 text-sm outline-none" />
+        <button onClick={runSearch} className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold">Search</button>
+        {searchInput && <button onClick={() => setSearchInput('')} className="px-3 py-2 rounded-lg bg-white/10 text-slate-300 text-sm">Clear</button>}
+      </div>
       {msg && <p className="text-sm text-emerald-300 mb-2">{msg}</p>}
       {loadingQ ? <p className="text-slate-500 py-10 text-center">Loading queue…</p>
         : (queue?.length ?? 0) === 0 ? <p className="text-slate-500 py-10 text-center">No taskers awaiting review. ✅</p>
