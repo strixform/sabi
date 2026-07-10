@@ -1127,15 +1127,27 @@ function TaskerReviewTab() {
                       {p.handleMissing && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300">🕵 HANDLE NOT FOUND</span>}
                     </div>
                     {p.targetUrl && <a href={p.targetUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-400 hover:underline break-all">{p.targetUrl}</a>}
-                    {p.accountUsername && <div className="text-[10px] text-slate-500">handle: {p.accountUsername}</div>}
-                    <div className="flex items-center gap-2 mt-2">
-                      {p.proofUrl && <a href={p.proofUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-400 hover:underline">open proof ↗</a>}
-                      {p.accountProofUrl && <a href={p.accountProofUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-400 hover:underline">account proof ↗</a>}
-                      <button onClick={() => toggle(p.completionId)}
-                        className={`ml-auto px-3 py-1.5 rounded-lg text-xs font-bold ${on ? 'bg-red-600 text-white' : 'bg-white/10 text-slate-300 hover:bg-white/20'}`}>
-                        {on ? '⚑ Flagged' : 'Flag'}
-                      </button>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5 text-[10px] text-slate-400">
+                      {p.accountUsername && <span>handle: <span className="text-slate-200">{p.accountUsername}</span></span>}
+                      {(p.countBefore || p.countAfter) && <span>count: <span className="text-slate-200">{p.countBefore ?? '?'} → {p.countAfter ?? '?'}</span></span>}
                     </div>
+                    {p.commentUsed && <div className="text-[10px] text-slate-400 mt-0.5">comment: <span className="text-slate-200">“{p.commentUsed}”</span></div>}
+                    {/* Before / After proof screenshots */}
+                    <div className="flex gap-2 mt-2">
+                      {[{ u: p.beforeUrl, l: 'BEFORE' }, { u: p.afterUrl, l: 'AFTER' }].map(({ u, l }) => (
+                        <div key={l} className="flex-1 min-w-0">
+                          <div className="text-[9px] font-bold text-slate-500 mb-0.5">{l}</div>
+                          {isImg(u)
+                            ? <a href={u!} target="_blank" rel="noopener noreferrer"><img src={u!} alt={l} loading="lazy" className="w-full h-28 object-cover rounded-lg border border-white/10 hover:border-blue-400/50" /></a>
+                            : u ? <a href={u} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-400 hover:underline">open ↗</a>
+                            : <div className="h-28 rounded-lg bg-white/[0.03] border border-white/10 flex items-center justify-center text-[10px] text-slate-600">none</div>}
+                        </div>
+                      ))}
+                    </div>
+                    <button onClick={() => toggle(p.completionId)}
+                      className={`mt-2 w-full px-3 py-1.5 rounded-lg text-xs font-bold ${on ? 'bg-red-600 text-white' : 'bg-white/10 text-slate-300 hover:bg-white/20'}`}>
+                      {on ? '⚑ Flagged — points will be removed' : 'Flag this proof'}
+                    </button>
                   </div>
                 );
               })}
