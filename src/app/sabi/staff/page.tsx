@@ -124,7 +124,7 @@ function af(url: string, opts: RequestInit = {}) {
 
 export default function StaffConsole() {
   const [role, setRole] = useState<'owner' | 'staff' | null | 'loading'>('loading');
-  const [tab, setTab] = useState<Tab>('proofs');
+  const [tab, setTab] = useState<Tab>('review');
 
   const checkRole = useCallback(() => {
     setRole('loading');
@@ -187,9 +187,9 @@ export default function StaffConsole() {
 
         <div className="flex gap-2 mb-5 flex-wrap">
           {([
+            ['review', '🕵️ Tasker Review'],
             ['proofs', '🧾 Orders & Proofs'],
             ['find', '🔍 Find Orders'],
-            ['review', '🕵️ Tasker Review'],
             ['taskers', '🔎 Taskers'],
             ['reuploads', `🔁 Re-uploads${resub > 0 ? ` (${resub})` : ''}`],
             ['checked', '✅ Checked Orders'],
