@@ -1073,6 +1073,32 @@ function TaskerReviewTab() {
   const [searchInput, setSearchInput] = useState('');
   const [siblings, setSiblings] = useState<{ forId: string; items: any[]; loading: boolean } | null>(null);
   const [worklist, setWorklist] = useState<string | null>(null); // banner label when showing a filtered worklist
+  // Flag modal — reason + a watermarked correct-example image, per proof.
+  const [flagModal, setFlagModal] = useState<string | null>(null);
+  const [flagPresets, setFlagPresets] = useState<string[]>([]);
+  const [flagNote, setFlagNote] = useState('');
+  const [flagExampleUrl, setFlagExampleUrl] = useState('');
+  const [flagExampleBusy, setFlagExampleBusy] = useState(false);
+  const [flagDetails, setFlagDetails] = useState<Record<string, { reason: string; exampleUrl: string }>>({});
+
+  const openFlag = (id: string) => { const ex = flagDetails[id]; setFlagPresets(ex?.reason ? [] : []); setFlagNote(''); setFlagExampleUrl(ex?.exampleUrl || ''); setFlagModal(id); };
+  const uploadFlagExample = async (file: File) => {
+    setFlagExampleBusy(true);
+    try {
+      const fd = new FormData(); fd.append('file', file);
+      const res = await af('/api/sabi/admin/flag-example-upload', { method: 'POST', body: fd });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d?.url) setFlagExampleUrl(d.url); else alert(d.error || 'Could not upload the example image.');
+    } finally { setFlagExampleBusy(false); }
+  };
+  const saveFlag = () => {
+    if (!flagModal) return;
+    const reason = [...flagPresets, flagNote.trim()].filter(Boolean).join(' · ');
+    if (!reason) { alert('Pick at least one reason or type one.'); return; }
+    setFlagDetails(prev => ({ ...prev, [flagModal]: { reason, exampleUrl: flagExampleUrl } }));
+    setMarks(prev => ({ ...prev, [flagModal]: 'flag' }));
+    setFlagModal(null);
+  };
 
   // Load exactly the taskers who have a held (review_hold) withdrawal — the frozen ones.
   const loadHeldQueue = async () => {
@@ -1102,7 +1128,7 @@ function TaskerReviewTab() {
   const resetQueue = () => { setWorklist(null); loadQueue(); };
 
   const openTasker = async (t: any) => {
-    setActive(t); setSample(null); setMarks({}); setMsg(''); setLoadingS(true);
+    setActive(t); setSample(null); setMarks({}); setFlagDetails({}); setMsg(''); setLoadingS(true);
     try {
       const r = await af(`/api/sabi/admin/tasker-review?userId=${encodeURIComponent(t.userId)}`);
       const d = r.ok ? await r.json() : null;
@@ -1149,14 +1175,15 @@ function TaskerReviewTab() {
     if (!confirm(`Apply review for ${active.username || active.userId}?\n\nReviewed ${total} · approved ${approvedCount()} · flagged ${n} · threshold ${T}\nOutcome: ${verdict}\n\nFlagged tasks lose their points permanently.`)) return;
     setBusy(true); setMsg('');
     try {
+      const flaggedDetails = flags.map(id => ({ completionId: id, reason: flagDetails[id]?.reason || '', exampleImageUrl: flagDetails[id]?.exampleUrl || '' }));
       const res = await af('/api/sabi/admin/tasker-review', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'apply', userId: active.userId, poolIds: sample.poolIds, flaggedIds: flags }),
+        body: JSON.stringify({ action: 'apply', userId: active.userId, poolIds: sample.poolIds, flaggedIds: flags, flaggedDetails }),
       });
       const d = await res.json();
       if (res.ok && d.success) {
         setMsg(`✅ ${active.username || 'Tasker'}: ${d.status}${d.status === 'suspended' ? ' (removed from withdrawal list)' : ''} · ${d.flags} flagged`);
-        setActive(null); setSample(null); loadQueue();
+        setActive(null); setSample(null); setFlagDetails({}); loadQueue();
       } else setMsg(d.error || 'Apply failed.');
     } catch { setMsg('Network error.'); } finally { setBusy(false); }
   };
@@ -1227,12 +1254,19 @@ function TaskerReviewTab() {
                       {p.commentUsed && <div className="text-[9px] text-slate-500 truncate">“{p.commentUsed}”</div>}
                       {p.targetUrl && <a href={p.targetUrl} target="_blank" rel="noopener noreferrer" className="text-[9px] text-blue-400 hover:underline block truncate">{p.targetUrl}</a>}
                       {!isOrderView && (
-                        <div className="grid grid-cols-2 gap-1.5 mt-2">
-                          <button onClick={() => setMark(p.completionId, 'approve')}
-                            className={`px-2 py-1.5 rounded-lg text-[11px] font-bold ${m === 'approve' ? 'bg-emerald-600 text-white' : 'bg-emerald-600/15 text-emerald-300 hover:bg-emerald-600/25'}`}>✓ Approve</button>
-                          <button onClick={() => setMark(p.completionId, 'flag')}
-                            className={`px-2 py-1.5 rounded-lg text-[11px] font-bold ${m === 'flag' ? 'bg-red-600 text-white' : 'bg-red-600/15 text-red-300 hover:bg-red-600/25'}`}>⚠ Flag</button>
-                        </div>
+                        <>
+                          <div className="grid grid-cols-2 gap-1.5 mt-2">
+                            <button onClick={() => { setMark(p.completionId, 'approve'); setFlagDetails(prev => { const n = { ...prev }; delete n[p.completionId]; return n; }); }}
+                              className={`px-2 py-1.5 rounded-lg text-[11px] font-bold ${m === 'approve' ? 'bg-emerald-600 text-white' : 'bg-emerald-600/15 text-emerald-300 hover:bg-emerald-600/25'}`}>✓ Approve</button>
+                            <button onClick={() => openFlag(p.completionId)}
+                              className={`px-2 py-1.5 rounded-lg text-[11px] font-bold ${m === 'flag' ? 'bg-red-600 text-white' : 'bg-red-600/15 text-red-300 hover:bg-red-600/25'}`}>⚠ Flag</button>
+                          </div>
+                          {m === 'flag' && flagDetails[p.completionId] && (
+                            <button onClick={() => openFlag(p.completionId)} className="mt-1 w-full text-left text-[9px] text-red-300/90 leading-tight">
+                              ⚠ {flagDetails[p.completionId].reason}{flagDetails[p.completionId].exampleUrl ? ' · 🖼 example attached' : ''} <span className="underline">edit</span>
+                            </button>
+                          )}
+                        </>
                       )}
                       <button onClick={() => loadSiblings(p.completionId)} className="mt-1.5 w-full text-[10px] font-bold text-blue-400/80 hover:text-blue-300">🔗 others on this task</button>
                     </div>
@@ -1251,6 +1285,50 @@ function TaskerReviewTab() {
           </>
         )}
         {msg && <p className="text-sm text-slate-300 mt-2">{msg}</p>}
+
+        {/* Flag reason + watermarked correct-example uploader */}
+        {flagModal && (
+          <div className="fixed inset-0 z-40 bg-black/70 flex items-center justify-center p-4" onClick={() => setFlagModal(null)}>
+            <div className="bg-[#0F1420] border border-white/10 rounded-2xl max-w-lg w-full max-h-[88vh] overflow-auto p-4" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-bold text-white">Why is this flagged?</h3>
+                <button onClick={() => setFlagModal(null)} className="text-slate-400 hover:text-white text-sm">✕</button>
+              </div>
+              <p className="text-[11px] text-slate-400 mb-3">The tasker sees this reason + the example. Flagged tasks lose their points.</p>
+              <div className="space-y-1.5 mb-3">
+                {FLAG_REASONS.map(r => {
+                  const on = flagPresets.includes(r);
+                  return (
+                    <button key={r} onClick={() => setFlagPresets(p => on ? p.filter(x => x !== r) : [...p, r])}
+                      className={`w-full text-left text-[12px] px-3 py-2 rounded-lg border ${on ? 'bg-red-600/20 border-red-500/40 text-red-200' : 'bg-white/[0.03] border-white/[0.08] text-slate-300 hover:bg-white/[0.06]'}`}>
+                      {on ? '☑' : '☐'} {r}
+                    </button>
+                  );
+                })}
+              </div>
+              <textarea value={flagNote} onChange={e => setFlagNote(e.target.value)} rows={2}
+                placeholder="Add a specific note (optional)…"
+                className="w-full bg-[#0A0D14] border border-white/[0.08] rounded-lg px-3 py-2 text-sm outline-none mb-3" />
+
+              <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-3 mb-3">
+                <div className="text-[11px] font-bold text-slate-300 mb-1">Correct example (optional)</div>
+                <div className="text-[10px] text-slate-500 mb-2">Auto-watermarked on upload so the tasker can&apos;t re-submit it as their own proof.</div>
+                {flagExampleUrl && <img src={flagExampleUrl} alt="example" className="w-full max-h-52 object-contain rounded-lg mb-2 border border-white/10" />}
+                <label className={`inline-block px-3 py-1.5 rounded-lg text-[11px] font-bold cursor-pointer ${flagExampleBusy ? 'bg-slate-700 text-slate-400' : 'bg-white/[0.08] text-slate-200 hover:bg-white/[0.14]'}`}>
+                  {flagExampleBusy ? 'Uploading…' : flagExampleUrl ? '🔁 Replace example' : '📎 Upload correct example'}
+                  <input type="file" accept="image/*" disabled={flagExampleBusy} className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) uploadFlagExample(f); e.currentTarget.value = ''; }} />
+                </label>
+                {flagExampleUrl && <button onClick={() => setFlagExampleUrl('')} className="ml-2 text-[11px] text-slate-400 hover:text-white">remove</button>}
+              </div>
+
+              <div className="flex gap-2">
+                <button onClick={() => setFlagModal(null)} className="flex-1 py-2 rounded-lg bg-white/10 text-slate-300 text-sm font-bold">Cancel</button>
+                <button onClick={saveFlag} className="flex-1 py-2 rounded-lg bg-red-600 text-white text-sm font-bold">⚠ Flag this proof</button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Sibling proofs — other taskers on the same task (broken-link check) */}
         {siblings && (
