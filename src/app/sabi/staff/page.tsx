@@ -1072,6 +1072,34 @@ function TaskerReviewTab() {
 
   const [searchInput, setSearchInput] = useState('');
   const [siblings, setSiblings] = useState<{ forId: string; items: any[]; loading: boolean } | null>(null);
+  const [worklist, setWorklist] = useState<string | null>(null); // banner label when showing a filtered worklist
+
+  // Load exactly the taskers who have a held (review_hold) withdrawal — the frozen ones.
+  const loadHeldQueue = async () => {
+    setLoadingQ(true); setMsg('');
+    try {
+      const r = await af('/api/sabi/admin/tasker-review?heldQueue=1');
+      const d = r.ok ? await r.json() : null;
+      setQueue(d?.queue || []); setSuspended([]); setWorklist(`held withdrawals (${d?.queue?.length || 0})`);
+    } catch { setMsg('Could not load held taskers.'); } finally { setLoadingQ(false); }
+  };
+
+  // Upload/paste a CSV or list of usernames/emails → show exactly those taskers to review.
+  const loadFromText = async (text: string) => {
+    const ids = Array.from(new Set(
+      text.split(/[\s,;]+/).map(s => s.trim()).filter(Boolean)
+        .filter(s => !['username', 'email', 'naira', 'heldat'].includes(s.toLowerCase()))
+    ));
+    if (!ids.length) { setMsg('No usernames/emails found in that file.'); return; }
+    setLoadingQ(true); setMsg('');
+    try {
+      const r = await af('/api/sabi/admin/tasker-review', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'queue-list', identifiers: ids }) });
+      const d = r.ok ? await r.json() : null;
+      setQueue(d?.queue || []); setSuspended([]); setWorklist(`uploaded list — ${d?.queue?.length || 0} of ${ids.length} matched`);
+    } catch { setMsg('Could not load that list.'); } finally { setLoadingQ(false); }
+  };
+
+  const resetQueue = () => { setWorklist(null); loadQueue(); };
 
   const openTasker = async (t: any) => {
     setActive(t); setSample(null); setMarks({}); setMsg(''); setLoadingS(true);
@@ -1277,6 +1305,18 @@ function TaskerReviewTab() {
         <button onClick={runSearch} className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold">Search</button>
         {searchInput && <button onClick={() => setSearchInput('')} className="px-3 py-2 rounded-lg bg-white/10 text-slate-300 text-sm">Clear</button>}
       </div>
+
+      {/* Worklists — review exactly the frozen taskers, or an uploaded list */}
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        <button onClick={loadHeldQueue} className="px-3 py-2 rounded-lg bg-purple-600/25 text-purple-200 text-xs font-bold hover:bg-purple-600/40 transition">📋 Load held-withdrawal taskers</button>
+        <label className="px-3 py-2 rounded-lg bg-white/[0.06] text-slate-200 text-xs font-bold hover:bg-white/[0.12] transition cursor-pointer">
+          ⬆ Upload list (CSV / usernames)
+          <input type="file" accept=".csv,.txt" className="hidden"
+            onChange={async e => { const f = e.target.files?.[0]; if (f) { await loadFromText(await f.text()); e.target.value = ''; } }} />
+        </label>
+        {worklist && <span className="text-[11px] text-purple-300">Showing <b>{worklist}</b> · <button onClick={resetQueue} className="underline hover:text-white">back to full queue</button></span>}
+      </div>
+
       {msg && <p className="text-sm text-emerald-300 mb-2">{msg}</p>}
       {loadingQ ? <p className="text-slate-500 py-10 text-center">Loading queue…</p>
         : (queue?.length ?? 0) === 0 ? <p className="text-slate-500 py-10 text-center">No taskers awaiting review. ✅</p>
@@ -1286,7 +1326,9 @@ function TaskerReviewTab() {
             <button key={t.userId} onClick={() => openTasker(t)}
               className="w-full text-left rounded-xl bg-white/[0.025] border border-white/[0.07] p-3 hover:border-blue-500/40 transition flex items-center gap-3">
               <div className="min-w-0 flex-1">
-                <div className="font-bold truncate">{t.username || 'Tasker'} <span className="text-slate-500 text-xs">{t.email || ''}</span></div>
+                <div className="font-bold truncate">{t.username || 'Tasker'} <span className="text-slate-500 text-xs">{t.email || ''}</span>
+                  {t.heldNaira > 0 && <span className="ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300">₦{t.heldNaira.toLocaleString()} held</span>}
+                </div>
                 <div className="text-[10px] text-slate-500">
                   {t.poolSize} new task{t.poolSize === 1 ? '' : 's'} · review {Math.min(t.poolSize, Math.max(2, Math.ceil(t.poolSize * 0.4)))} · threshold {t.threshold}
                   {t.status && t.status !== 'never_reviewed' ? ` · was ${t.status}${t.redoOwed ? ` · owes ${t.redoOwed} redo` : ''}` : ' · never reviewed'}

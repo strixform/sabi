@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
   // order id), siblings (other proofs on the same task).
   const sp = req.nextUrl.searchParams;
   const qs: string[] = [];
-  for (const k of ['userId', 'search', 'siblings'] as const) {
+  for (const k of ['userId', 'search', 'siblings', 'heldQueue'] as const) {
     const v = sp.get(k);
     if (v) qs.push(`${k}=${encodeURIComponent(v)}`);
   }
