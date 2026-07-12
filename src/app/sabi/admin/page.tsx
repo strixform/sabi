@@ -1312,6 +1312,11 @@ export default function AdminPage() {
         if (tab === 'Users') {
           const p: any = { limit: LIMIT, offset: userPage * LIMIT };
           if (search) p.search = search;
+          // Sort on the SERVER so the whole user base is ordered, not just this page —
+          // otherwise the default "recent" sort shows only buyers-with-orders and hides
+          // new signups (who haven't ordered yet). Default = newest signups first.
+          const SV: Record<string, string> = { createdAt: 'created', totalSpent: 'spent', orderCount: 'orders', balance: 'balance', totalOrderValue: 'ordervalue', lastOrderAt: 'lastorder' };
+          p.sort = (userSort.col === 'createdAt' && userSort.dir === 'asc') ? 'created_asc' : (SV[userSort.col] || 'created');
           const d = await adminFetch('/api/sabi/admin/users' + qs(p)).then(r => r.json());
           if (d.success) { setUsers(d.users || []); setUserTotal(d.total ?? 0); }
         }
@@ -1340,7 +1345,7 @@ export default function AdminPage() {
       finally { setLoading(false); }
     };
     go();
-  }, [authorized, tab, orderPage, userPage, payPage, search, statusFilter, serviceFilter, reqStatusFilter, adminFetch]);
+  }, [authorized, tab, orderPage, userPage, payPage, search, statusFilter, serviceFilter, reqStatusFilter, userSort, adminFetch]);
 
   if (!authorized) return (
     <div className="min-h-screen bg-[#030507] flex items-center justify-center">

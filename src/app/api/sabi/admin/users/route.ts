@@ -23,10 +23,14 @@ export const preferredRegion = 'sfo1';
 export const maxDuration = 15;
 
 const SORTS: Record<string, string> = {
-  created: 'u.createdAt DESC',
-  spent:   'totalSpent DESC',
-  orders:  'orderCount DESC',
-  recent:  'lastOrderAt IS NULL, lastOrderAt DESC, u.createdAt DESC',
+  created:     'u.createdAt DESC, u.id DESC',   // newest signups first
+  created_asc: 'u.createdAt ASC, u.id ASC',
+  spent:       'totalSpent DESC',
+  orders:      'orderCount DESC',
+  balance:     'balance DESC',
+  ordervalue:  'totalOrderValue DESC',
+  lastorder:   'lastOrderAt IS NULL, lastOrderAt DESC',
+  recent:      'lastOrderAt IS NULL, lastOrderAt DESC, u.createdAt DESC',  // active buyers first
 };
 
 export async function GET(req: NextRequest) {
