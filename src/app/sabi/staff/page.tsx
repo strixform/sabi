@@ -1164,15 +1164,19 @@ function TaskerReviewTab() {
   const flaggedIds = () => Object.keys(marks).filter(id => marks[id] === 'flag');
   const approvedCount = () => Object.values(marks).filter(m => m === 'approve').length;
 
-  const apply = async () => {
-    if (!active || !sample) return;
+  // Apply the review from an EXPLICIT marks object (so "approve all & finish" can finalise
+  // in one click without waiting on React state). The outcome is driven by the FLAG count:
+  // 0 flags → approved + removed from the list; otherwise the flag-threshold rules apply.
+  const doApply = async (effMarks: Record<string, 'approve' | 'flag'>) => {
+    if (!active || !sample || busy) return;
+    if (!sample.poolIds?.length) { setMsg('Nothing to review for this tasker (no un-reviewed tasks).'); return; }
     const T = sample.threshold;
-    const flags = flaggedIds();
+    const flags = Object.keys(effMarks).filter(id => effMarks[id] === 'flag');
     const n = flags.length;
     const total = sample.sample?.length ?? 0;
-    if (Object.keys(marks).length < total && !confirm(`${total - Object.keys(marks).length} proof(s) not yet approved or flagged — treat the un-marked ones as OK and continue?`)) return;
-    const verdict = n === 0 ? 'clean → approved (48h)' : n < T ? `${n} flag(s) → approved, must redo (24h)` : n === T ? `${n} flags → held until fixed` : `${n} flags → SUSPENDED`;
-    if (!confirm(`Apply review for ${active.username || active.userId}?\n\nReviewed ${total} · approved ${approvedCount()} · flagged ${n} · threshold ${T}\nOutcome: ${verdict}\n\nFlagged tasks lose their points permanently.`)) return;
+    const approved = Object.values(effMarks).filter(m => m === 'approve').length;
+    const verdict = n === 0 ? 'clean → APPROVED (removed from list)' : n < T ? `${n} flag(s) → approved, must redo (24h)` : n === T ? `${n} flags → held until fixed` : `${n} flags → SUSPENDED`;
+    if (!confirm(`Apply review for ${active.username || active.userId}?\n\nReviewed ${total} · approved ${approved} · flagged ${n} · threshold ${T}\nOutcome: ${verdict}\n\nFlagged tasks lose their points permanently.`)) return;
     setBusy(true); setMsg('');
     try {
       const flaggedDetails = flags.map(id => ({ completionId: id, reason: flagDetails[id]?.reason || '', exampleImageUrl: flagDetails[id]?.exampleUrl || '' }));
@@ -1187,13 +1191,20 @@ function TaskerReviewTab() {
       } else setMsg(d.error || 'Apply failed.');
     } catch { setMsg('Network error.'); } finally { setBusy(false); }
   };
+  // "Apply Review" bottom bar — apply exactly what's marked.
+  const apply = () => doApply(marks);
+  // "Approve all & finish" — approve every un-flagged proof, keep flags, then apply.
+  const approveAllAndApply = () => {
+    const eff: Record<string, 'approve' | 'flag'> = { ...marks };
+    for (const p of (sample?.sample || [])) if (!eff[p.completionId]) eff[p.completionId] = 'approve';
+    doApply(eff);
+  };
 
   if (active) {
     const isOrderView = !!active.orderView;
     const T = sample?.threshold ?? 2;
     const nFlag = flaggedIds().length;
     const trustCls = (sample?.trustScore ?? 50) <= 30 ? 'bg-red-500/15 text-red-300' : (sample?.trustScore ?? 50) < 60 ? 'bg-amber-500/15 text-amber-300' : 'bg-emerald-500/15 text-emerald-300';
-    const markAllRemaining = () => setMarks(prev => { const n = { ...prev }; for (const p of (sample?.sample || [])) if (!n[p.completionId]) n[p.completionId] = 'approve'; return n; });
     return (
       <div>
         <button onClick={() => { setActive(null); setSample(null); }} className="text-xs text-slate-400 hover:text-white mb-3">← Back to queue</button>
@@ -1222,7 +1233,10 @@ function TaskerReviewTab() {
           <>
             {!isOrderView && (
               <div className="flex justify-end mb-2">
-                <button onClick={markAllRemaining} className="text-[11px] font-bold text-emerald-300 hover:text-emerald-200">✓ Approve all remaining</button>
+                <button onClick={approveAllAndApply} disabled={busy}
+                  className="px-3 py-1.5 rounded-lg bg-emerald-600/25 text-emerald-200 text-[11px] font-bold hover:bg-emerald-600/40 disabled:opacity-40">
+                  {busy ? 'Applying…' : nFlag > 0 ? `✓ Approve rest & finish (${nFlag} flagged)` : '✓ Approve all & finish'}
+                </button>
               </div>
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pb-24">
