@@ -70,15 +70,48 @@ export async function GET(req: NextRequest) {
         if (credit.success) refunded = Math.round(unaccountedKobo / 100);
       }
 
+      // FULL AUDIT — every order (with its charge) and every wallet transaction, so a
+      // balance dispute can be traced line by line. Amounts in naira.
+      const N = (k: any) => Math.round(Number(k || 0) / 100);
+      const ordersDetailed = await sabiExecute({
+        sql: `SELECT id, serviceType, quantity, COALESCE(completedQuantity,0) AS completedQuantity, status,
+                     totalPrice, platformFee, COALESCE(discountAmount,0) AS discountAmount, createdAt
+              FROM SabiOrder WHERE userId = ? ORDER BY createdAt DESC LIMIT 100`,
+        args: [u.id],
+      }).catch(() => ({ rows: [] as any[] }));
+      const txns = await sabiExecute({
+        sql: `SELECT type, amount, reference, description, createdAt FROM SabiTransaction WHERE userId = ? ORDER BY createdAt DESC LIMIT 200`,
+        args: [u.id],
+      }).catch(() => ({ rows: [] as any[] }));
+
+      // Transaction totals by type (independent of the Wallet counters).
+      const txByType: Record<string, number> = {};
+      for (const t of txns.rows as any[]) txByType[String(t.type)] = (txByType[String(t.type)] || 0) + Number(t.amount || 0);
+
+      // Balance invariant: balance should equal totalFunded − totalSpent (refunds
+      // increase balance AND decrease totalSpent, so they cancel). A mismatch = a bug.
+      let balanceCheck: any = null;
+      try {
+        const w3 = await sabiExecute({ sql: `SELECT balance, totalFunded, totalSpent FROM SabiWallet WHERE userId = ? LIMIT 1`, args: [u.id] });
+        const row = w3.rows[0] as any;
+        if (row) {
+          const reconstructed = Number(row.totalFunded || 0) - Number(row.totalSpent || 0);
+          balanceCheck = { actualBalanceNaira: N(row.balance), reconstructedNaira: N(reconstructed), matches: Math.abs(reconstructed - Number(row.balance || 0)) < 100 };
+        }
+      } catch {}
+
       report.push({
         userId: u.id,
         email: u.email,
         name: u.name,
         orderCount: Number((cnt.rows[0] as any)?.c || 0),
         wallet,
+        balanceCheck,
         unaccountedSpendNaira: Math.round(unaccountedKobo / 100),
         refundedNaira: refunded,
-        recentOrders: (sample.rows as any[]).map(o => ({ id: o.id, serviceType: o.serviceType, quantity: o.quantity, status: o.status, createdAt: o.createdAt })),
+        txTotalsNaira: { funded: N(txByType.fund), spent: N(txByType.spend), refund: N(txByType.refund) },
+        transactions: (txns.rows as any[]).map(t => ({ type: t.type, naira: N(t.amount), reference: t.reference, description: t.description, at: t.createdAt })),
+        orders: (ordersDetailed.rows as any[]).map(o => ({ id: o.id, serviceType: o.serviceType, quantity: o.quantity, delivered: Number(o.completedQuantity || 0), status: o.status, chargeNaira: N(Number(o.totalPrice || 0) + Number(o.platformFee || 0) - Number(o.discountAmount || 0)), at: o.createdAt })),
       });
     }
 
