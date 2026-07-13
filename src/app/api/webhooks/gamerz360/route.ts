@@ -150,13 +150,28 @@ export async function POST(req: NextRequest) {
 
     // If the order still doesn't exist (unknown id we don't track), acknowledge
     // instead of throwing on the update below.
-    const present = await prisma.sabiOrder.findUnique({ where: { id: sabiOrderId }, select: { id: true } });
+    const present = await prisma.sabiOrder.findUnique({ where: { id: sabiOrderId }, select: { id: true, quantity: true } });
     if (!present) {
       return NextResponse.json({ success: true, skipped: "no-order" });
     }
 
-    // Map gamerz360 events → SABI order statuses
-    const isComplete = event === "order.completed";
+    // SILENT OVER-DELIVERY BACKSTOP: gamerz360 may fulfil to EXTRA taskers beyond what the
+    // buyer ordered (a cushion against drops/unfollows). The buyer must only ever see and
+    // complete at their ORDERED quantity, so clamp the reported count to it and decide
+    // completion from it here — regardless of any inflated count/percentage or a late
+    // 'order.completed' that only fires once the over-delivery finishes. Single control
+    // point: holds no matter which gamerz360 emitter (auto-approve, manual approve,
+    // auto-complete, dispute) sent this tick.
+    const orderedQty = Math.max(0, Math.floor(Number(present.quantity) || 0));
+    const rawCount = Math.max(0, Math.floor(Number(completedCount) || 0));
+    const cappedCount = orderedQty > 0 ? Math.min(rawCount, orderedQty) : rawCount;
+    const cappedPct = orderedQty > 0
+      ? Math.min(100, Math.round((cappedCount / orderedQty) * 100))
+      : Math.min(100, Math.max(0, Math.round(Number(completionPercentage) || 0)));
+
+    // Map gamerz360 events → SABI order statuses. Complete when the buyer's ordered amount
+    // is met (or gamerz signals completion) — never wait for the over-delivery buffer.
+    const isComplete = event === "order.completed" || (orderedQty > 0 && rawCount >= orderedQty);
     const newStatus = isComplete ? "completed" : "executing";
 
     // ROOT-CAUSE GUARD: a terminal order (completed/failed/cancelled) is FROZEN. A late
@@ -171,12 +186,13 @@ export async function POST(req: NextRequest) {
     const statusAdvanced = adv.count === 1;          // status actually changed this call
     const justCompleted = isComplete && statusAdvanced; // transitioned to completed now
 
-    // Live counts are always safe to refresh (even on a frozen terminal order).
+    // Live counts are always safe to refresh (even on a frozen terminal order) — store the
+    // CLAMPED values so the buyer never sees more than they ordered.
     const order = await prisma.sabiOrder.update({
       where: { id: sabiOrderId },
       data: {
-        completedQuantity: completedCount ?? 0,
-        completionPercentage: completionPercentage ?? 0,
+        completedQuantity: cappedCount,
+        completionPercentage: cappedPct,
       },
       include: {
         user: { select: { id: true, email: true, name: true, notifyEmail: true } },
@@ -211,7 +227,7 @@ export async function POST(req: NextRequest) {
 
     // Send push + email notifications at key milestones — not every single tick
     const milestones = [25, 50, 75, 100];
-    const pct = completionPercentage ?? 0;
+    const pct = cappedPct;
     // Only notify when the status actually moved this call — never for a late tick on a
     // frozen terminal order.
     const shouldNotify = statusAdvanced && (isComplete || milestones.includes(pct));
@@ -231,7 +247,7 @@ export async function POST(req: NextRequest) {
         } else {
           sendPushToUser(order.userId, {
             title: `📈 Order ${pct}% done`,
-            body: `${completedCount}/${targetCount} ${svcName} completed so far.`,
+            body: `${cappedCount}/${orderedQty} ${svcName} completed so far.`,
             url: `https://sability.io/sabi/orders/${sabiOrderId}`,
           }).catch(() => {});
         }
