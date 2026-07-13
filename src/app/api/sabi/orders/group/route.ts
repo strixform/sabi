@@ -45,6 +45,9 @@ export async function POST(req: NextRequest) {
         quantity: parseInt(i.quantity),
         // Per-action start count (current follower/like/etc. count) — optional, no screenshot.
         startCount: (i.startCount !== undefined && i.startCount !== null && i.startCount !== '' && Number.isFinite(Number(i.startCount))) ? Number(i.startCount) : undefined,
+        // Per-action brief for comment services / target for vote services.
+        commentInstructions: i.commentInstructions ? String(i.commentInstructions).slice(0, 1000) : undefined,
+        voteChoice: i.voteChoice ? String(i.voteChoice).slice(0, 200) : undefined,
       }))
       .filter((i: { serviceId: string; quantity: number }) => i.serviceId && Number.isFinite(i.quantity) && i.quantity > 0);
 
@@ -64,6 +67,8 @@ export async function POST(req: NextRequest) {
         audienceLocation,
         startScreenshotUrl: startScreenshotUrl || undefined,
         startCount: it.startCount,
+        commentInstructions: it.commentInstructions,
+        voteChoice: it.voteChoice,
       }).catch((e: any) => ({ success: false, error: e?.message?.slice(0, 160) || 'Order failed' }));
       results.push({ serviceId: it.serviceId, quantity: it.quantity, ...r });
       if (acct.delegated && (r as any)?.success) {

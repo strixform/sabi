@@ -31,13 +31,14 @@ export default function GroupOrderPage() {
   const [services, setServices] = useState<Svc[]>([]);
   const [qty, setQty] = useState<Record<string, string>>({});
   const [startCounts, setStartCounts] = useState<Record<string, string>>({});
+  const [briefs, setBriefs] = useState<Record<string, string>>({}); // comment brief / vote target per action
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [results, setResults] = useState<any[] | null>(null);
 
   useEffect(() => {
-    setLoading(true); setServices([]); setQty({}); setStartCounts({}); setResults(null);
+    setLoading(true); setServices([]); setQty({}); setStartCounts({}); setBriefs({}); setResults(null);
     fetch(`/api/sabi/services?category=${platform}`)
       .then(r => r.json())
       .then(d => setServices(Array.isArray(d.services) ? d.services : []))
@@ -46,6 +47,10 @@ export default function GroupOrderPage() {
   }, [platform]);
 
   const naira = (kobo: number) => Math.round((kobo || 0) / 100);
+  // Actions that need a buyer brief before they can be placed.
+  const isCommentAction = (a: string) => ['Comments', 'Replies', 'Chat Comments'].includes(a);
+  const isVoteAction = (a: string) => a === 'Vote';
+  const needsBrief = (a: string) => isCommentAction(a) || isVoteAction(a);
   const chosen = services
     .map(s => ({ s, q: parseInt(qty[s.id] || "") }))
     .filter(x => Number.isFinite(x.q) && x.q > 0);
@@ -57,12 +62,26 @@ export default function GroupOrderPage() {
     // Basic min-quantity guard so the buyer isn't surprised by a server rejection.
     const under = chosen.find(x => x.q < (x.s.minQuantity || 1));
     if (under) { setMsg(`${under.s.action}: minimum is ${under.s.minQuantity}.`); return; }
+    // Comment/vote actions must carry a brief, else the server rejects just that one.
+    const missingBrief = chosen.find(x => needsBrief(x.s.action) && !(briefs[x.s.id] || '').trim());
+    if (missingBrief) {
+      setMsg(isVoteAction(missingBrief.s.action)
+        ? `${missingBrief.s.action}: tell us who/what to vote for.`
+        : `${missingBrief.s.action}: describe what the comments should say.`);
+      return;
+    }
 
     setBusy(true); setMsg(""); setResults(null);
     try {
       const res = await fetch("/api/sabi/orders/group", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetUrl: link.trim(), items: chosen.map(x => ({ serviceId: x.s.id, quantity: x.q, startCount: startCounts[x.s.id] && Number.isFinite(Number(startCounts[x.s.id])) ? Number(startCounts[x.s.id]) : undefined })) }),
+        body: JSON.stringify({ targetUrl: link.trim(), items: chosen.map(x => ({
+          serviceId: x.s.id,
+          quantity: x.q,
+          startCount: startCounts[x.s.id] && Number.isFinite(Number(startCounts[x.s.id])) ? Number(startCounts[x.s.id]) : undefined,
+          ...(isCommentAction(x.s.action) ? { commentInstructions: (briefs[x.s.id] || '').trim() } : {}),
+          ...(isVoteAction(x.s.action) ? { voteChoice: (briefs[x.s.id] || '').trim() } : {}),
+        })) }),
       });
       const d = await res.json().catch(() => ({}));
       if (res.ok) { setMsg(d.message || "Done."); setResults(d.results || []); }
@@ -122,6 +141,19 @@ export default function GroupOrderPage() {
                       <input value={startCounts[s.id] || ""} onChange={e => setStartCounts(prev => ({ ...prev, [s.id]: e.target.value.replace(/[^0-9]/g, "") }))}
                         inputMode="numeric" placeholder="e.g. 200"
                         className="w-24 px-2 py-1.5 bg-black/40 border border-white/10 rounded-lg text-xs text-center outline-none focus:border-blue-500/50" />
+                    </div>
+                  )}
+                  {on && needsBrief(s.action) && (
+                    <div className="mt-2">
+                      <div className="text-[10px] font-bold text-gray-400 mb-1">
+                        {isVoteAction(s.action)
+                          ? <>🗳 Who should the votes go to? <span className="text-red-400">*</span></>
+                          : <>💬 What should the comments say? <span className="text-red-400">*</span></>}
+                      </div>
+                      <textarea value={briefs[s.id] || ""} onChange={e => setBriefs(prev => ({ ...prev, [s.id]: e.target.value.slice(0, 1000) }))}
+                        rows={2}
+                        placeholder={isVoteAction(s.action) ? "e.g. Adebokun Emmanuel Ayomide (Emmy Ray)" : "e.g. Positive comments about our launch, keep it casual"}
+                        className={`w-full px-3 py-2 bg-black/40 border rounded-lg text-xs outline-none focus:border-blue-500/50 resize-none ${(briefs[s.id] || '').trim() ? 'border-white/10' : 'border-red-500/40'}`} />
                     </div>
                   )}
                 </div>
