@@ -59,6 +59,19 @@ export async function GET(req: NextRequest) {
     const remainder = order.quantity - delivered;
     if (remainder <= 0) continue;
 
+    // GUARD — an order can be REOPENED to 'processing' by ongoing delivery after we
+    // already partial-refunded it, which previously let this cron refund the same order
+    // every run (10x on one order = a huge over-refund). If a partial refund already
+    // exists for this order, never refund again — just make sure it's closed.
+    const already = await sabiExecute({
+      sql: `SELECT 1 FROM SabiTransaction WHERE userId = ? AND type = 'refund' AND reference = ? LIMIT 1`,
+      args: [order.userId, `partial-refund:${order.id}`],
+    }).catch(() => ({ rows: [] as any[] }));
+    if (already.rows.length > 0) {
+      await prisma.sabiOrder.updateMany({ where: { id: order.id, status: { in: ['executing', 'processing'] } }, data: { status: 'completed' } }).catch(() => {});
+      continue;
+    }
+
     // Pro-rata of the unit cost (totalPrice covers `quantity` units). The platform
     // fee is the service charge and isn't pro-rated.
     const refundKobo = Math.round((order.totalPrice / order.quantity) * remainder);
@@ -77,7 +90,7 @@ export async function GET(req: NextRequest) {
       if (win.count !== 1) { continue; } // another run already closed/refunded it
       if (refundKobo > 0) {
         // Credit + ledger atomically; the win guard makes this run exactly once.
-        await creditSabiRefund({ userId: order.userId, amountKobo: refundKobo, orderId: order.id, reason: `Partial delivery (${delivered}/${order.quantity}) — remainder refunded` });
+        await creditSabiRefund({ userId: order.userId, amountKobo: refundKobo, orderId: order.id, reference: `partial-refund:${order.id}`, reason: `Partial delivery (${delivered}/${order.quantity}) — remainder refunded` });
       }
       results.push({ id: order.id, refundKobo, delivered, quantity: order.quantity });
 
