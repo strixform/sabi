@@ -68,6 +68,7 @@ export interface CreateOrderInput {
   audienceLocation?: string;
   commentGender?: 'male' | 'female' | 'both';
   commentInstructions?: string | null;
+  voteChoice?: string | null; // voting services: which option/candidate the votes go to
   durationMinutes?: number;    // live-stream "stop view time" (watch-time) in minutes
   promoCodeId?: string;
   discountAmount?: number;
@@ -149,6 +150,17 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
     if (COMMENT_ACTIONS.includes(service.action) && !(input.commentInstructions || '').trim()) {
       return { success: false, error: 'Please describe what the comments should say before placing this order.' };
     }
+
+    // Voting services MUST carry the exact target (which option/candidate to vote for),
+    // otherwise the tasker has no way to know who to pick on the poll. Required both here
+    // (server) and on the order form.
+    const VOTE_ACTIONS = ['Vote'];
+    const isVoting = VOTE_ACTIONS.includes(service.action);
+    const voteChoice = String(input.voteChoice || '').trim().slice(0, 200);
+    if (isVoting && !voteChoice) {
+      return { success: false, error: 'Please specify exactly who/what the votes should go to (the option or candidate name shown on the poll).' };
+    }
+    const voteLine = isVoting ? `🗳 VOTE FOR: ${stripSourceMentions(voteChoice)}` : '';
 
     // Live-stream watch-time → normalise to a valid option (never trust the
     // client's number) so the charge always matches what we deliver.
@@ -275,6 +287,7 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
           commentInstructions: isCustomComments
             ? '✍️ Custom comment — your exact text is shown when you start the job.'
             : [
+                voteLine,
                 durationMinutes ? `Watch time: ${durationMinutes} min` : '',
                 stripSourceMentions(input.commentInstructions),
               ].filter(Boolean).join(' | ') || null,
@@ -307,6 +320,7 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
           audienceLocation: input.audienceLocation || null,
           commentGender: input.commentGender || null,
           commentInstructions: [
+            voteLine,
             durationMinutes ? `Watch time: ${durationMinutes} min` : '',
             stripSourceMentions(input.commentInstructions),
           ].filter(Boolean).join(' | ') || null,

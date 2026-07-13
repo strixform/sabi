@@ -197,7 +197,7 @@ export async function GET(req: NextRequest) {
           order.audienceGender && order.audienceGender !== 'both' ? `Audience: ${order.audienceGender}` : null,
           order.audienceLocation && order.audienceLocation !== 'All Nigeria' ? `Location: ${order.audienceLocation}` : null,
           order.commentGender && order.commentGender !== 'both' ? `Commenters: ${order.commentGender}` : null,
-          order.commentInstructions ? `Comment brief: ${order.commentInstructions}` : null,
+          order.commentInstructions ? (order.commentInstructions.startsWith('🗳') ? order.commentInstructions : `Comment brief: ${order.commentInstructions}`) : null,
         ].filter(Boolean).join(' | ') || undefined,
       };
 

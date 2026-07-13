@@ -346,6 +346,7 @@ export default function OrderPage() {
       : audienceState;
   const [commentGender, setCommentGender] = useState<'both' | 'male' | 'female'>('both');
   const [commentInstructions, setCommentInstructions] = useState('');
+  const [voteChoice, setVoteChoice] = useState(''); // voting services: which option/candidate to vote for
   const [customMode, setCustomMode] = useState(false);   // buyer provides exact comments
   const [customComments, setCustomComments] = useState(''); // one comment per line
   const [services, setServices] = useState<Service[]>([]);
@@ -619,13 +620,16 @@ export default function OrderPage() {
   const isCommentLikeService = !!selectedService && (selectedService.action === 'Comment Likes' || selectedService.action === 'Post Comment Likes');
   // Show the "specific instructions" field on all comment/engagement services.
   const showInstructions = commentBriefRequired || isCommentLikeService;
+  // Voting services need the buyer to specify WHO/WHAT to vote for on the poll.
+  const isVotingSvc = !!selectedService && selectedService.action === 'Vote';
+  const voteChoiceMissing = isVotingSvc && voteChoice.trim().length === 0;
 
   const handleNextStep = () => {
     if (currentStep === 'platform' && selectedPlatform) {
       setCurrentStep('service');
     } else if (currentStep === 'service' && selectedService) {
       setCurrentStep('details');
-    } else if (currentStep === 'details' && targetUrl && quantity && !commentBriefMissing && !customCommentsMissing) {
+    } else if (currentStep === 'details' && targetUrl && quantity && !commentBriefMissing && !customCommentsMissing && !voteChoiceMissing) {
       setCurrentStep('review');
     }
   };
@@ -737,6 +741,7 @@ export default function OrderPage() {
         ...(selectedService.action === 'Comment Likes'
           ? { commentInstructions: `Add ${quantity} like(s) to the BUYER'S OWN comment/reply at the link (NOT the post itself).${commentInstructions.trim() ? ` Buyer note: ${commentInstructions.trim()}` : ''}` }
           : {}),
+        ...(isVotingSvc ? { voteChoice: voteChoice.trim() } : {}),
         ...(durationMins ? { durationMinutes: durationMins } : {}),
         ...(startShot ? { startScreenshotUrl: startShot } : {}),
         ...(startCount !== '' && Number.isFinite(Number(startCount)) ? { startCount: Number(startCount) } : {}),
@@ -1530,6 +1535,26 @@ export default function OrderPage() {
                     </motion.div>
                   )}
 
+                  {/* Voting: buyer specifies exactly who/what the votes go to */}
+                  {isVotingSvc && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-2">
+                      <label className="block text-sm font-semibold text-slate-300 mb-2">
+                        Who should the votes go to? <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={voteChoice}
+                        onChange={(e) => setVoteChoice(e.target.value.slice(0, 200))}
+                        placeholder="e.g. Adebokun Emmanuel Ayomide (Emmy Ray)"
+                        className={`w-full px-4 py-3 bg-slate-800/50 border rounded-lg text-white placeholder-slate-500 text-sm outline-none focus:border-purple-500/50 ${voteChoiceMissing ? 'border-red-500/60' : 'border-slate-700/50'}`}
+                      />
+                      <p className="text-[11px] text-slate-400 mt-1">Type the exact option/candidate name as it appears on your poll link, so every voter picks the right one.</p>
+                      {voteChoiceMissing && (
+                        <p className="text-[11px] text-red-400 mt-1">Please enter exactly who/what to vote for before continuing.</p>
+                      )}
+                    </motion.div>
+                  )}
+
                   {/* Service Description Preview */}
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
@@ -1541,7 +1566,7 @@ export default function OrderPage() {
                       {selectedService.description.split('\n').slice(0, 3).join('\n')}...
                     </p>
                     <motion.button
-                      onClick={() => { if (!commentBriefMissing && !customCommentsMissing) setCurrentStep('review'); }}
+                      onClick={() => { if (!commentBriefMissing && !customCommentsMissing && !voteChoiceMissing) setCurrentStep('review'); }}
                       className="mt-4 text-blue-400 hover:text-blue-300 text-sm font-semibold"
                       whileHover={{ x: 4 }}
                     >
@@ -1930,7 +1955,7 @@ export default function OrderPage() {
               disabled={
                 (currentStep === 'platform' && !selectedPlatform) ||
                 (currentStep === 'service' && !selectedService) ||
-                (currentStep === 'details' && (!targetUrl || !quantity || commentBriefMissing || customCommentsMissing))
+                (currentStep === 'details' && (!targetUrl || !quantity || commentBriefMissing || customCommentsMissing || voteChoiceMissing))
               }
               className="ml-auto px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               whileHover={{ scale: 1.05 }}

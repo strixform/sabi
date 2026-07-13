@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     const {
       serviceId, quantity, targetUrl, paymentMethod,
       audienceGender, audienceLocation, commentGender, commentInstructions,
-      durationMinutes, customComments,
+      durationMinutes, customComments, voteChoice,
       promoCodeId, discountAmount, scheduledAt, startScreenshotUrl, startCount,
     } = body;
 
@@ -79,6 +79,7 @@ export async function POST(req: NextRequest) {
       audienceLocation,
       commentGender,
       commentInstructions,
+      voteChoice: voteChoice ? String(voteChoice) : undefined,
       durationMinutes: durationMinutes !== undefined && durationMinutes !== null ? Number(durationMinutes) : undefined,
       customComments: Array.isArray(customComments) ? customComments : undefined,
       promoCodeId: promoCodeId || undefined,
