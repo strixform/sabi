@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
     const r = await sabiExecute({
       sql: `SELECT o.id, o.serviceType, o.targetUrl, o.quantity, o.completedQuantity, o.status, o.createdAt,
                    COALESCE(o.staffChecked,0) AS staffChecked, o.staffCheckedAt, o.staffCheckedBy,
-                   o.startCount, o.startScreenshotUrl, o.customRef, o.paymentMethod,
+                   o.startCount, o.startScreenshotUrl, o.customRef, o.paymentMethod, o.commentInstructions,
                    u.email AS userEmail, u.name AS userName, u.businessName AS userBusiness
             FROM SabiOrder o LEFT JOIN SabiUser u ON u.id = o.userId
             WHERE ${whereSql}
@@ -66,6 +66,10 @@ export async function GET(req: NextRequest) {
         // 'refill' method — surface both so staff always see it as a refill.
         refillOf,
         isRefill: refillOf != null || o.paymentMethod === 'refill',
+        // Buyer brief (comment/vote target etc.) — e.g. "🗳 VOTE FOR: …" for poll orders.
+        instructions: o.commentInstructions || null,
+        voteTarget: typeof o.commentInstructions === 'string' && o.commentInstructions.includes('VOTE FOR:')
+          ? o.commentInstructions.split('VOTE FOR:')[1].split('|')[0].trim() : null,
         user: { email: o.userEmail || null, name: o.userName || null, businessName: o.userBusiness || null },
       };
     });

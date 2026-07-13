@@ -1632,6 +1632,12 @@ export default function OrderPage() {
                           <span className="text-slate-400">Target URL</span>
                           <span className="font-mono text-xs text-blue-400 truncate">{targetUrl}</span>
                         </div>
+                        {isVotingSvc && voteChoice.trim() && (
+                          <div className="flex justify-between items-start gap-3 pb-4 border-b border-slate-700/50">
+                            <span className="text-slate-400 shrink-0">🗳 Voting for</span>
+                            <span className="font-bold text-right text-purple-300">{voteChoice.trim()}</span>
+                          </div>
+                        )}
                         <div className="flex justify-between items-center pb-4 border-b border-slate-700/50">
                           <span className="text-slate-400">Speed</span>
                           <span className="font-bold capitalize">{selectedService.speed}</span>

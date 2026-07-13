@@ -40,6 +40,7 @@ interface Order {
   staffChecked?: boolean; staffCheckedAt?: string | null; staffCheckedBy?: string | null;
   startCount?: number | null; startScreenshotUrl?: string | null;
   refillOf?: string | null; isRefill?: boolean;
+  instructions?: string | null; voteTarget?: string | null;
   user?: { email: string; name: string; businessName?: string | null } | null;
 }
 interface ProofFlag { status: string; reason: string | null; reuploadedAt: string | null; }
@@ -659,6 +660,7 @@ function ProofsTab({ owner }: { owner: boolean }) {
                       {o.isRefill && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">↻ REFILL{o.refillOf ? ` of #${o.refillOf}` : ''}</span>}
                     </div>
                     <div className="font-bold capitalize text-sm">{fmtSvc(o.serviceType)} · <span className="text-cyan-400">{(o.completedQuantity ?? 0).toLocaleString()}/{o.quantity.toLocaleString()}</span></div>
+                    {o.voteTarget && <div className="text-[11px] font-bold text-purple-300 mt-0.5">🗳 Vote for: {o.voteTarget}</div>}
                     <span role="link" tabIndex={0}
                       onClick={(e) => { e.stopPropagation(); window.open(o.targetUrl, '_blank', 'noopener,noreferrer'); }}
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); window.open(o.targetUrl, '_blank', 'noopener,noreferrer'); } }}
@@ -1506,6 +1508,7 @@ function FindOrdersTab() {
                   : <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300/80">🕓 to review</span>}
               </div>
               <div className="text-sm font-bold capitalize truncate mt-1">{fmtSvc(o.serviceType)} · <span className="text-cyan-400">{(o.completedQuantity ?? 0).toLocaleString()}/{o.quantity.toLocaleString()}</span></div>
+              {o.voteTarget && <div className="text-[10px] font-bold text-purple-300">🗳 Vote for: {o.voteTarget}</div>}
               <div className="text-[10px] text-slate-500 truncate">
                 {o.user?.name || o.user?.businessName || '—'}{o.user?.email ? ` · ${o.user.email}` : ''} · {new Date(o.createdAt).toLocaleDateString()}
               </div>
