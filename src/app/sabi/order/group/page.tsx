@@ -30,13 +30,14 @@ export default function GroupOrderPage() {
   const [link, setLink] = useState("");
   const [services, setServices] = useState<Svc[]>([]);
   const [qty, setQty] = useState<Record<string, string>>({});
+  const [startCounts, setStartCounts] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [results, setResults] = useState<any[] | null>(null);
 
   useEffect(() => {
-    setLoading(true); setServices([]); setQty({}); setResults(null);
+    setLoading(true); setServices([]); setQty({}); setStartCounts({}); setResults(null);
     fetch(`/api/sabi/services?category=${platform}`)
       .then(r => r.json())
       .then(d => setServices(Array.isArray(d.services) ? d.services : []))
@@ -61,7 +62,7 @@ export default function GroupOrderPage() {
     try {
       const res = await fetch("/api/sabi/orders/group", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetUrl: link.trim(), items: chosen.map(x => ({ serviceId: x.s.id, quantity: x.q })) }),
+        body: JSON.stringify({ targetUrl: link.trim(), items: chosen.map(x => ({ serviceId: x.s.id, quantity: x.q, startCount: startCounts[x.s.id] && Number.isFinite(Number(startCounts[x.s.id])) ? Number(startCounts[x.s.id]) : undefined })) }),
       });
       const d = await res.json().catch(() => ({}));
       if (res.ok) { setMsg(d.message || "Done."); setResults(d.results || []); }
@@ -104,15 +105,25 @@ export default function GroupOrderPage() {
               const q = qty[s.id] || "";
               const on = Number.isFinite(parseInt(q)) && parseInt(q) > 0;
               return (
-                <div key={s.id} className={`flex items-center gap-3 rounded-lg p-2.5 border ${on ? "bg-blue-500/[0.06] border-blue-500/30" : "bg-white/[0.02] border-white/10"}`}>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-bold truncate">{s.action}</div>
-                    <div className="text-[11px] text-gray-500">₦{naira(s.pricePerUnit).toLocaleString()} each · min {s.minQuantity?.toLocaleString()}{s.maxQuantity ? ` · max ${s.maxQuantity.toLocaleString()}` : ""}</div>
+                <div key={s.id} className={`rounded-lg p-2.5 border ${on ? "bg-blue-500/[0.06] border-blue-500/30" : "bg-white/[0.02] border-white/10"}`}>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-bold truncate">{s.action}</div>
+                      <div className="text-[11px] text-gray-500">₦{naira(s.pricePerUnit).toLocaleString()} each · min {s.minQuantity?.toLocaleString()}{s.maxQuantity ? ` · max ${s.maxQuantity.toLocaleString()}` : ""}</div>
+                    </div>
+                    {on && <span className="text-xs text-emerald-300 shrink-0">≈₦{(naira(s.pricePerUnit) * parseInt(q)).toLocaleString()}</span>}
+                    <input value={q} onChange={e => setQty(prev => ({ ...prev, [s.id]: e.target.value.replace(/[^0-9]/g, "") }))}
+                      inputMode="numeric" placeholder="None"
+                      className="w-24 px-2 py-1.5 bg-black/40 border border-white/10 rounded-lg text-sm text-center outline-none focus:border-blue-500/50" />
                   </div>
-                  {on && <span className="text-xs text-emerald-300 shrink-0">≈₦{(naira(s.pricePerUnit) * parseInt(q)).toLocaleString()}</span>}
-                  <input value={q} onChange={e => setQty(prev => ({ ...prev, [s.id]: e.target.value.replace(/[^0-9]/g, "") }))}
-                    inputMode="numeric" placeholder="None"
-                    className="w-24 px-2 py-1.5 bg-black/40 border border-white/10 rounded-lg text-sm text-center outline-none focus:border-blue-500/50" />
+                  {on && (
+                    <div className="flex items-center justify-end gap-2 mt-2">
+                      <span className="text-[10px] text-gray-500">Current {s.action.toLowerCase()} now <span className="text-gray-600">(start count, optional)</span></span>
+                      <input value={startCounts[s.id] || ""} onChange={e => setStartCounts(prev => ({ ...prev, [s.id]: e.target.value.replace(/[^0-9]/g, "") }))}
+                        inputMode="numeric" placeholder="e.g. 200"
+                        className="w-24 px-2 py-1.5 bg-black/40 border border-white/10 rounded-lg text-xs text-center outline-none focus:border-blue-500/50" />
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -132,7 +143,7 @@ export default function GroupOrderPage() {
             {results.map((r, i) => (
               <div key={i} className={`flex items-center justify-between text-xs rounded-lg p-2 ${r.success ? "bg-emerald-500/10 text-emerald-200" : "bg-red-500/10 text-red-200"}`}>
                 <span>{r.serviceId} × {r.quantity?.toLocaleString?.() ?? r.quantity}</span>
-                <span>{r.success ? `✅ placed · ₦${Math.round((r.totalPrice || 0)).toLocaleString()}` : `❌ ${r.error || "failed"}`}</span>
+                <span>{r.success ? `✅ placed · ₦${naira(r.totalPrice || 0).toLocaleString()}` : `❌ ${r.error || "failed"}`}</span>
               </div>
             ))}
           </div>
