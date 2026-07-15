@@ -14,6 +14,7 @@ import {
 import { FaLinkedinIn } from 'react-icons/fa';
 import { FiArrowRight, FiArrowUpRight, FiGlobe } from 'react-icons/fi';
 import { LogoImage } from '@/components/LogoImage';
+import ChequeMateAd from '@/components/ChequeMateAd';
 
 // ─── Smooth cursor glow ───────────────────────────────────────────────────────
 function CursorGlow() {
@@ -597,6 +598,11 @@ export default function Home() {
           </FadeIn>
         </div>
       </section>
+
+      {/* ── ChequeMate cross-promo ──────────────────────────────────────── */}
+      <div className="relative z-10 flex justify-center px-6 pb-4">
+        <ChequeMateAd />
+      </div>
 
       {/* ── FOOTER ──────────────────────────────────────────────────────── */}
       <footer className="relative z-10 border-t border-white/[0.05] py-10 px-6">

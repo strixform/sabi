@@ -14,6 +14,7 @@ import { StaggerContainer, StaggerItem } from '@/components/StaggerContainer';
 import { InteractiveCard } from '@/components/InteractiveCard';
 import { AnimateInText } from '@/components/AnimateInText';
 import { CuteIconAnimation, FloatingIcon } from '@/components/CuteIconAnimation';
+import ChequeMateAd from '@/components/ChequeMateAd';
 
 const TIER_SYSTEM = {
   NOVICE: { level: 0, minSpent: 0, label: '🆕 Novice', color: 'from-blue-400 to-cyan-500', badge: 'Just Started' },
@@ -141,6 +142,8 @@ export default function DashboardPage() {
       <ModernSabiHeader showNavigation={true} />
 
       <div className="relative z-10 space-y-6 sm:space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+        {/* ChequeMate cross-promo */}
+        <div className="max-w-sm"><ChequeMateAd compact /></div>
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
