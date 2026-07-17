@@ -328,8 +328,8 @@ export default function Home() {
           <div className="grid grid-cols-2 md:grid-cols-4">
             {[
               { n: 300000, s: '+', l: 'Active Nigerians' },
-              { n: 50, s: '+', l: 'Services available' },
-              { n: 11, s: '', l: 'Platforms covered' },
+              { n: 130, s: '+', l: 'Services available' },
+              { n: 30, s: '+', l: 'Platforms covered' },
               liveActions > 0
                 ? { n: liveActions, s: '+', l: 'Real actions delivered' }
                 : { n: 99, s: '%', l: 'Orders delivered' },
@@ -344,6 +344,27 @@ export default function Home() {
               </FadeIn>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ── TRUST + NIGERIAN BREADTH ────────────────────────────────────── */}
+      <section className="relative z-10 border-b border-white/[0.05] py-10 px-6">
+        <div className="max-w-6xl mx-auto">
+          {/* Trust badges */}
+          <FadeIn className="flex flex-wrap justify-center gap-x-8 gap-y-3 mb-8">
+            {['🔒 Secured by Flutterwave', '💯 100% real Nigerian people', '↩️ Refund if we can’t deliver', '⚡ Starts in minutes'].map((b) => (
+              <span key={b} className="text-sm text-white/50 font-medium">{b}</span>
+            ))}
+          </FadeIn>
+          {/* Now covering Nigeria's own platforms — signals breadth */}
+          <FadeIn delay={0.1}>
+            <p className="text-center text-[11px] font-mono uppercase tracking-[0.2em] text-white/25 mb-4">Now covering Nigeria’s own platforms</p>
+            <div className="flex flex-wrap justify-center gap-2.5">
+              {['Chowdeck', 'Glovo', 'Bolt Food', 'Jumia', 'Konga', 'Selar', 'Jiji', 'Nairaland', 'Audiomack', 'Boomplay'].map((n) => (
+                <span key={n} className="px-3.5 py-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] text-sm text-white/70">{n}</span>
+              ))}
+            </div>
+          </FadeIn>
         </div>
       </section>
 
@@ -575,6 +596,34 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── SUCCESS STORIES ─────────────────────────────────────────────── */}
+      <section className="relative z-10 py-28 px-6 border-b border-white/[0.05]">
+        <div className="max-w-6xl mx-auto">
+          <FadeIn className="mb-14">
+            <p className="text-xs font-mono text-white/25 uppercase tracking-[0.2em] mb-6">What real engagement does</p>
+            <Reveal>
+              <h2 className="font-editorial text-[clamp(32px,4.5vw,58px)] font-bold leading-tight tracking-tight">
+                Small push.<br /><span className="text-white/30">Real momentum.</span>
+              </h2>
+            </Reveal>
+          </FadeIn>
+          <div className="grid md:grid-cols-3 gap-4">
+            {[
+              { tag: 'Restaurant · Chowdeck', quote: 'Steady 5-star reviews moved a lounge up its area listing — new orders started coming from people who’d never heard of them.', metric: 'Higher ranking, more orders' },
+              { tag: 'Creator · TikTok', quote: 'A cold post got real likes and comments early, the algorithm picked it up, and it reached far beyond their usual audience.', metric: 'Organic reach unlocked' },
+              { tag: 'Store · Jumia', quote: 'Genuine product reviews built the trust new buyers needed — add-to-cart and conversions followed.', metric: 'More trust → more sales' },
+            ].map((c, i) => (
+              <FadeIn key={i} delay={i * 0.1} className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 flex flex-col">
+                <p className="text-[11px] font-mono uppercase tracking-widest text-white/30 mb-4">{c.tag}</p>
+                <p className="text-white/70 text-[15px] leading-relaxed flex-1">“{c.quote}”</p>
+                <p className="mt-5 text-sm font-semibold text-white/80">→ {c.metric}</p>
+              </FadeIn>
+            ))}
+          </div>
+          <p className="text-center text-white/25 text-xs mt-8">Illustrative outcomes — results depend on your content, offer and market.</p>
+        </div>
+      </section>
+
       {/* ── FINAL CTA ───────────────────────────────────────────────────── */}
       <section className="relative z-10 py-40 px-6 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none"
@@ -639,7 +688,7 @@ export default function Home() {
       </div>
 
       {/* ── FOOTER ──────────────────────────────────────────────────────── */}
-      <footer className="relative z-10 border-t border-white/[0.05] py-10 px-6">
+      <footer className="relative z-10 border-t border-white/[0.05] pt-10 pb-28 sm:pb-10 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
             <LogoImage className="h-10 w-auto opacity-60" />
@@ -658,6 +707,15 @@ export default function Home() {
           <p className="text-white/15 text-xs font-mono">© 2026 Sabi · All rights reserved</p>
         </div>
       </footer>
+
+      {/* ── STICKY MOBILE CTA ───────────────────────────────────────────── */}
+      <div className="sm:hidden fixed inset-x-0 bottom-0 z-40 px-4 pb-[calc(env(safe-area-inset-bottom)+10px)] pt-3 bg-gradient-to-t from-black via-black/95 to-transparent pointer-events-none">
+        <Link href="/sabi/order"
+          className="pointer-events-auto flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-bold text-white shadow-2xl"
+          style={{ background: 'linear-gradient(135deg,#3b82f6,#9333ea)' }}>
+          Order now <FiArrowRight className="w-4 h-4" />
+        </Link>
+      </div>
     </div>
   );
 }
