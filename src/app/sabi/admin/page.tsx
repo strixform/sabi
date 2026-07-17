@@ -907,6 +907,21 @@ function UGCTab({ adminFetch }: { adminFetch: (url: string, opts?: RequestInit) 
   const [loading, setLoading] = useState(false);
   const [needsMigration, setNeedsMigration] = useState(false);
   const [err, setErr] = useState('');
+  const [cancelling, setCancelling] = useState<string | null>(null);
+  const [notice, setNotice] = useState('');
+
+  const cancelBooking = async (b: any) => {
+    if (!confirm(`Cancel this booking and refund ${ngn(b.agreedPriceKobo || b.escrowKobo || b.offeredPriceKobo)} to ${b.buyerName || b.buyerEmail || 'the buyer'}?`)) return;
+    setCancelling(b.id); setNotice(''); setErr('');
+    try {
+      const r = await adminFetch('/api/sabi/admin/ugc-cancel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookingId: b.id }) });
+      const d = await r.json();
+      if (!r.ok) { setErr(d.error || 'Failed to cancel'); return; }
+      setNotice(d.message || 'Cancelled and refunded.');
+      load();
+    } catch (e: any) { setErr(String(e?.message || e)); }
+    finally { setCancelling(null); }
+  };
 
   const load = async () => {
     setLoading(true); setErr('');
@@ -989,11 +1004,12 @@ function UGCTab({ adminFetch }: { adminFetch: (url: string, opts?: RequestInit) 
               <th className="text-left px-3 py-2">Status</th>
               <th className="text-left px-3 py-2">Proof</th>
               <th className="text-left px-3 py-2">Created</th>
+              <th className="text-right px-3 py-2">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800">
-            {loading && <tr><td colSpan={8} className="px-3 py-6 text-center text-slate-500">Loading…</td></tr>}
-            {!loading && rows.length === 0 && <tr><td colSpan={8} className="px-3 py-6 text-center text-slate-500">No bookings.</td></tr>}
+            {loading && <tr><td colSpan={9} className="px-3 py-6 text-center text-slate-500">Loading…</td></tr>}
+            {!loading && rows.length === 0 && <tr><td colSpan={9} className="px-3 py-6 text-center text-slate-500">No bookings.</td></tr>}
             {!loading && rows.map(b => (
               <tr key={b.id} className="hover:bg-slate-800/30">
                 <td className="px-3 py-2 font-mono text-[11px] text-slate-400">{String(b.id).slice(0, 10)}…</td>
@@ -1004,12 +1020,22 @@ function UGCTab({ adminFetch }: { adminFetch: (url: string, opts?: RequestInit) 
                 <td className="px-3 py-2"><span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${UGC_STATUS_COLOR[b.status] || 'bg-slate-700 text-slate-300'}`}>{String(b.status).replace('_', ' ')}</span></td>
                 <td className="px-3 py-2">{b.proofUrl ? <a href={b.proofUrl} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline">view</a> : <span className="text-slate-600">—</span>}</td>
                 <td className="px-3 py-2 text-slate-500 text-xs">{b.createdAt ? new Date(b.createdAt).toLocaleDateString() : ''}</td>
+                <td className="px-3 py-2 text-right">
+                  {['completed', 'cancelled'].includes(String(b.status)) ? (
+                    <span className="text-slate-600 text-xs">—</span>
+                  ) : (
+                    <button onClick={() => cancelBooking(b)} disabled={cancelling === b.id} className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-red-500/15 text-red-300 border border-red-500/30 hover:bg-red-500/25 disabled:opacity-50">
+                      {cancelling === b.id ? 'Refunding…' : 'Cancel & refund'}
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-slate-600">Read-only oversight. Escrow releases (payout / refund) happen automatically when the buyer confirms or cancels.</p>
+      {notice && <p className="text-xs text-emerald-400">{notice}</p>}
+      <p className="text-xs text-slate-600">Admin can cancel a booking to refund escrow to the buyer (for stuck or disputed bookings). Completed bookings have already paid the creator and can't be refunded.</p>
     </div>
   );
 }
