@@ -24,7 +24,8 @@ import { AnimateInText } from '@/components/AnimateInText';
 import { ModernSabiHeader } from '@/components/ModernSabiHeader';
 import { LiveFulfillmentFeed } from '@/components/LiveFulfillmentFeed';
 import type { Service } from '@/lib/servicesCatalog';
-import { PLATFORMS, computeServicePricing, computePricing, getServiceById } from '@/lib/servicesCatalog';
+import { PLATFORMS, SERVICES_CATALOG, computeServicePricing, computePricing, getServiceById, getPlatformLabel } from '@/lib/servicesCatalog';
+import { goalForService, goalsWithCounts, SERVICE_GOALS } from '@/lib/serviceGoals';
 
 // Custom comments: the buyer supplies the exact text for each comment. Premium —
 // ₦150 per comment (15,000 kobo), vs the much cheaper "random" comment services.
@@ -322,6 +323,16 @@ export default function OrderPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<Step>('platform');
   const [selectedPlatform, setSelectedPlatform] = useState<string>('');
+  const [selectedGoal, setSelectedGoal] = useState<string>('');   // outcome-first entry (Reviews, Traffic…)
+
+  // Pick a service directly from the goal grid → jump straight to details (skips the platform+
+  // service steps; the details step works from the service object alone).
+  const pickServiceByGoal = (s: Service) => {
+    setSelectedGoal('');
+    setSelectedPlatform(s.category);
+    setSelectedService(s);
+    setCurrentStep('details');
+  };
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [targetUrl, setTargetUrl] = useState('');
   const [quantity, setQuantity] = useState(100);
@@ -916,8 +927,43 @@ export default function OrderPage() {
                 <FiArrowRight className="w-5 h-5 text-emerald-400 group-hover:translate-x-1 transition-transform flex-shrink-0 ml-4" />
               </Link>
 
+              {/* Shop by GOAL — outcome-first ordering (Reviews, Traffic, Engagement…) */}
+              <div className="mb-5">
+                <p className="text-[11px] uppercase tracking-wider text-slate-500 font-bold mb-2 text-center">Or start with your goal</p>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {goalsWithCounts().map(({ goal, count }) => (
+                    <button key={goal.id} type="button" onClick={() => setSelectedGoal(selectedGoal === goal.id ? '' : goal.id)}
+                      className={`px-3 py-1.5 rounded-full text-sm font-semibold transition flex items-center gap-1.5 ${selectedGoal === goal.id ? 'bg-blue-500 text-white' : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700/60'}`}>
+                      <span>{goal.emoji}</span>{goal.label}<span className="opacity-60 text-xs">{count}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Goal-filtered services (across platforms) — pick one to jump straight to details */}
+              {selectedGoal && (
+                <div className="mb-8">
+                  {(() => { const g = SERVICE_GOALS.find(x => x.id === selectedGoal); return g ? (
+                    <div className="mb-3 rounded-xl bg-blue-500/10 border border-blue-500/25 p-3 text-[12px] text-slate-300 leading-relaxed"><b className="text-white">{g.emoji} {g.label}</b> — {g.helper}</div>
+                  ) : null; })()}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {SERVICES_CATALOG.filter(s => goalForService(s).id === selectedGoal).map(s => (
+                      <button key={s.id} type="button" onClick={() => pickServiceByGoal(s)}
+                        className="text-left p-4 rounded-xl border-2 border-slate-700/50 bg-slate-800/50 hover:border-blue-500 transition">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-bold text-white text-sm">{s.name}</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-700/60 text-slate-300 shrink-0">{getPlatformLabel(s.category)}</span>
+                        </div>
+                        <div className="text-xs text-slate-400 mt-1">{s.action} · from ₦{(s.pricePerUnit / 100).toLocaleString()}/unit</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!selectedGoal && (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
-                {Object.entries(PLATFORMS).map(([label, value]) => {
+                {Object.entries(PLATFORMS).map(([, value]) => {
                   const Icon = PLATFORM_ICONS[value];
                   return (
                     <motion.button
@@ -932,7 +978,7 @@ export default function OrderPage() {
                       whileTap={{ scale: 0.95 }}
                     >
                       {Icon && <Icon className="text-2xl sm:text-4xl mb-1 sm:mb-2" />}
-                      <p className="font-bold text-white text-xs sm:text-sm">{label}</p>
+                      <p className="font-bold text-white text-xs sm:text-sm">{getPlatformLabel(value)}</p>
                       {selectedPlatform === value && (
                         <motion.div
                           className="mt-2 flex items-center justify-center text-blue-400"
@@ -946,6 +992,7 @@ export default function OrderPage() {
                   );
                 })}
               </div>
+              )}
             </motion.div>
           )}
 
