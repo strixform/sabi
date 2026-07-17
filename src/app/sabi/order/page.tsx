@@ -351,8 +351,6 @@ export default function OrderPage() {
   const [currentStep, setCurrentStep] = useState<Step>('platform');
   const [selectedPlatform, setSelectedPlatform] = useState<string>('');
   const [selectedGoal, setSelectedGoal] = useState<string>('');   // outcome-first entry (Reviews, Traffic…)
-  const [hint, setHint] = useState('');                            // tiny "double-tap to continue" toast
-  const flashHint = (msg: string) => { setHint(msg); setTimeout(() => setHint(h => (h === msg ? '' : h)), 1800); };
 
   // Deep-link from the homepage goal cards: /sabi/order?goal=reviews opens the goal grid directly.
   useEffect(() => {
@@ -850,13 +848,6 @@ export default function OrderPage() {
             </div>
           </div>
 
-          {/* Tiny confirmation toast (double-tap to select & continue) */}
-          {hint && (
-            <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-blue-500 text-white text-sm font-semibold shadow-2xl animate-in fade-in slide-in-from-top-2">
-              {hint}
-            </div>
-          )}
-
           {/* Quick actions — proper tiles, not cramped pills */}
           <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4 sm:mb-6">
             <Link
@@ -1009,8 +1000,7 @@ export default function OrderPage() {
                   return (
                     <motion.button
                       key={value}
-                      onClick={() => setSelectedPlatform(value)}
-                      onDoubleClick={() => { setSelectedPlatform(value); flashHint(`${getPlatformLabel(value)} selected ✓`); setCurrentStep('service'); }}
+                      onClick={() => { if (selectedPlatform === value) { setCurrentStep('service'); } else { setSelectedPlatform(value); } }}
                       className={`p-3 sm:p-6 rounded-lg sm:rounded-xl border-2 transition-all ${
                         selectedPlatform === value
                           ? `border-blue-500 bg-blue-500/10`
@@ -1023,11 +1013,12 @@ export default function OrderPage() {
                       <p className="font-bold text-white text-xs sm:text-sm">{getPlatformLabel(value)}</p>
                       {selectedPlatform === value && (
                         <motion.div
-                          className="mt-2 flex items-center justify-center text-blue-400"
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
+                          className="mt-2 flex items-center justify-center gap-1 text-blue-300"
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
                         >
-                          <FiCheck className="w-5 h-5" />
+                          <span className="text-[10px] sm:text-[11px] font-bold">Tap again to continue</span>
+                          <FiArrowRight className="w-3.5 h-3.5" />
                         </motion.div>
                       )}
                     </motion.button>
@@ -1036,7 +1027,7 @@ export default function OrderPage() {
               </div>
               )}
               {!selectedGoal && (
-                <p className="text-center text-[11px] text-slate-500 -mt-2 mb-6">💡 Tip: <b className="text-slate-400">double-tap</b> a platform to select it and skip straight ahead.</p>
+                <p className="text-center text-[11px] text-slate-500 -mt-2 mb-6">💡 Tap a platform to pick it — then tap it again to continue.</p>
               )}
             </motion.div>
           )}
@@ -1070,8 +1061,7 @@ export default function OrderPage() {
                   {[...services].sort((a, b) => Number(favorites.includes(b.id)) - Number(favorites.includes(a.id))).map((service) => (
                     <motion.button
                       key={service.id}
-                      onClick={() => setSelectedService(service)}
-                      onDoubleClick={() => { setSelectedService(service); flashHint(`${service.name} selected ✓`); setCurrentStep('details'); }}
+                      onClick={() => { if (selectedService?.id === service.id) { setCurrentStep('details'); } else { setSelectedService(service); } }}
                       className={`w-full text-left p-6 rounded-xl border-2 transition-all ${
                         selectedService?.id === service.id
                           ? 'border-blue-500 bg-blue-500/10'
@@ -1104,12 +1094,12 @@ export default function OrderPage() {
                       </div>
                       {selectedService?.id === service.id && (
                         <motion.div
-                          className="mt-4 flex items-center gap-2 text-blue-400 text-sm"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
+                          className="mt-4 flex items-center justify-between gap-2 text-blue-300 text-sm rounded-lg bg-blue-500/10 border border-blue-500/25 px-3 py-2"
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
                         >
-                          <FiCheck className="w-4 h-4" />
-                          Selected
+                          <span className="flex items-center gap-2"><FiCheck className="w-4 h-4" /> Selected</span>
+                          <span className="flex items-center gap-1 font-bold">Tap again to continue <FiArrowRight className="w-3.5 h-3.5" /></span>
                         </motion.div>
                       )}
                     </motion.button>
