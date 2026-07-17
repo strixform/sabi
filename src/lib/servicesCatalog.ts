@@ -61,6 +61,11 @@ export const PLATFORMS = {
   NAIRALAND: 'nairaland',
   MARKETPLACE: 'marketplace',
   EVENTS: 'events',
+  CHOWDECK: 'chowdeck',
+  GLOVO: 'glovo',
+  SELAR: 'selar',
+  BOLT_FOOD: 'bolt_food',
+  JIJI: 'jiji',
 };
 
 export const SERVICES_CATALOG: Service[] = [
@@ -3107,6 +3112,44 @@ Each vote is cast by a genuine person on our crowd, **paid by the platform**, fr
     description: `📢 **Real Nigerians follow your WhatsApp Channel.** Grow your channel audience so every update reaches more people. You give your channel invite link.`,
     category: PLATFORMS.WHATSAPP, action: 'Channel Followers', pricePerUnit: 5000, minQuantity: 50, maxQuantity: 50000, speed: 'fast', refillable: true,
   },
+
+  // ============ NEW: Nigerian delivery / store / creator platforms (real taskers) ============
+  {
+    id: 'chowdeck_vendor_review',
+    name: 'Chowdeck Vendor Rating & Review',
+    description: `🍔 **5-star ratings & reviews from real Chowdeck users.** Rank higher in the app and win more food orders. You give your vendor/store link — real people leave genuine reviews.`,
+    category: PLATFORMS.CHOWDECK, action: 'Vendor Review', pricePerUnit: 25000, minQuantity: 3, maxQuantity: 200, speed: 'slow', refillable: false,
+  },
+  {
+    id: 'glovo_store_review',
+    name: 'Glovo Store Rating & Review',
+    description: `🛵 **Real Glovo customers rate and review your store.** Better ratings mean better placement and more orders. Share your store link and we handle the rest.`,
+    category: PLATFORMS.GLOVO, action: 'Store Review', pricePerUnit: 25000, minQuantity: 3, maxQuantity: 200, speed: 'slow', refillable: false,
+  },
+  {
+    id: 'bolt_food_review',
+    name: 'Bolt Food Rating & Review',
+    description: `🍲 **5-star Bolt Food reviews from real diners.** Climb the rankings and get discovered by more hungry customers. You give your restaurant link.`,
+    category: PLATFORMS.BOLT_FOOD, action: 'Restaurant Review', pricePerUnit: 25000, minQuantity: 3, maxQuantity: 200, speed: 'slow', refillable: false,
+  },
+  {
+    id: 'selar_product_review',
+    name: 'Selar Product Review',
+    description: `📚 **Genuine reviews on your Selar digital product.** Reviews build trust so more people buy your course, ebook or template. Share your Selar product link.`,
+    category: PLATFORMS.SELAR, action: 'Product Review', pricePerUnit: 25000, minQuantity: 3, maxQuantity: 200, speed: 'slow', refillable: false,
+  },
+  {
+    id: 'jiji_seller_review',
+    name: 'Jiji Seller Review',
+    description: `🤝 **Positive seller reviews on your Jiji profile.** Trusted sellers get more buyers reaching out. Share your Jiji seller link and real people vouch for you.`,
+    category: PLATFORMS.JIJI, action: 'Seller Review', pricePerUnit: 25000, minQuantity: 3, maxQuantity: 200, speed: 'slow', refillable: false,
+  },
+  {
+    id: 'jiji_ad_views',
+    name: 'Jiji Ad Views & Clicks',
+    description: `👀 **Real views and clicks on your Jiji listing.** More views push your ad up and signal demand so it sells faster. Share your listing link.`,
+    category: PLATFORMS.JIJI, action: 'Ad View', pricePerUnit: 3000, minQuantity: 100, maxQuantity: 50000, speed: 'fast', refillable: false,
+  },
 ];
 
 // ── Central pricing (in kobo) by action type — single source of truth ──
@@ -3334,6 +3377,11 @@ export function getPlatformLabel(platform: string): string {
     [PLATFORMS.NAIRALAND]:  'Nairaland',
     [PLATFORMS.MARKETPLACE]:'Jumia / Konga',
     [PLATFORMS.EVENTS]:     'Events & RSVP',
+    [PLATFORMS.CHOWDECK]:   'Chowdeck',
+    [PLATFORMS.GLOVO]:      'Glovo',
+    [PLATFORMS.SELAR]:      'Selar',
+    [PLATFORMS.BOLT_FOOD]:  'Bolt Food',
+    [PLATFORMS.JIJI]:       'Jiji',
   };
 
   return labels[platform] || platform;
