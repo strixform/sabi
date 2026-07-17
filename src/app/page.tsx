@@ -164,9 +164,9 @@ function CapCard({ number, title, body, accent, wide = false, tall = false }: an
     <motion.div
       whileHover={{ y: -3, scale: 1.005 }}
       transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-      className={`relative rounded-2xl overflow-hidden cursor-default
+      className={`group relative rounded-2xl overflow-hidden cursor-default backdrop-blur-xl transition-shadow duration-500 hover:shadow-[0_24px_70px_-28px_rgba(201,168,92,0.30)]
         ${wide ? 'md:col-span-2' : ''} ${tall ? 'md:row-span-2' : ''}`}
-      style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)', border: '1px solid rgba(255,255,255,0.06)' }}>
+      style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.015) 100%)', border: '1px solid rgba(255,255,255,0.07)' }}>
       {/* Inner glow on hover */}
       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
         style={{ background: `radial-gradient(ellipse at 20% 20%, ${accent}08, transparent 60%)` }} />
@@ -251,11 +251,13 @@ export default function Home() {
 
       {/* ── HERO ────────────────────────────────────────────────────────── */}
       <section ref={heroRef} className="relative min-h-screen flex flex-col items-center justify-center text-center px-6 pt-24 pb-16 overflow-hidden">
-        {/* Atmospheric glow — deep and restrained */}
+        {/* Atmospheric glow — deep blue base + a restrained warm-gold accent (premium dark) */}
         <motion.div style={{ y: heroY, opacity: heroO }}
           className="absolute inset-0 pointer-events-none flex items-center justify-center">
           <div className="w-[900px] h-[700px] rounded-full"
-            style={{ background: 'radial-gradient(ellipse, rgba(29,78,216,0.09) 0%, rgba(88,28,220,0.05) 40%, transparent 70%)', filter: 'blur(40px)' }} />
+            style={{ background: 'radial-gradient(ellipse, rgba(29,78,216,0.10) 0%, rgba(88,28,220,0.05) 40%, transparent 70%)', filter: 'blur(40px)' }} />
+          <div className="absolute w-[520px] h-[420px] rounded-full translate-x-40 -translate-y-32"
+            style={{ background: 'radial-gradient(ellipse, rgba(201,168,92,0.10) 0%, transparent 65%)', filter: 'blur(50px)' }} />
         </motion.div>
 
         {/* Badge */}
@@ -296,8 +298,8 @@ export default function Home() {
         {/* CTAs */}
         <FadeIn delay={0.65} className="flex flex-col sm:flex-row items-center gap-4 mb-20">
           <Link href="/sabi/register"
-            className="group flex items-center gap-3 px-8 py-4 rounded-2xl text-base font-semibold tracking-wide relative overflow-hidden">
-            <div className="absolute inset-0 bg-white/95 group-hover:bg-white transition-colors duration-500" />
+            className="group flex items-center gap-3 px-8 py-4 rounded-2xl text-base font-semibold tracking-wide relative overflow-hidden transition-shadow duration-500 shadow-[0_0_0_rgba(201,168,92,0)] hover:shadow-[0_10px_50px_-8px_rgba(201,168,92,0.45)]">
+            <div className="absolute inset-0 group-hover:brightness-105 transition" style={{ background: 'linear-gradient(135deg,#ffffff 0%,#F5E9CC 100%)' }} />
             <span className="relative text-black">Start growing</span>
             <FiArrowRight className="relative w-4 h-4 text-black group-hover:translate-x-0.5 transition-transform duration-300" />
           </Link>
@@ -337,7 +339,7 @@ export default function Home() {
               <FadeIn key={st.l} delay={i * 0.1}
                 className={`py-16 px-8 text-center ${i < 3 ? 'border-r border-white/[0.05]' : ''}`}>
                 <div className="font-editorial text-[clamp(48px,6vw,88px)] font-bold leading-none tracking-tight mb-3"
-                  style={{ background: 'linear-gradient(160deg, #ffffff 30%, rgba(255,255,255,0.35) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                  style={{ background: 'linear-gradient(160deg, #F5E9CC 20%, #C9A85C 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
                   <Counter target={st.n} suffix={st.s} />
                 </div>
                 <p className="text-white/30 text-sm font-mono tracking-widest uppercase">{st.l}</p>
@@ -373,7 +375,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-[1fr_2fr] gap-20 items-start">
             <FadeIn delay={0.1}>
-              <p className="text-xs font-mono text-white/25 uppercase tracking-[0.2em] pt-2">
+              <p className="text-xs font-mono text-amber-300/50 uppercase tracking-[0.2em] pt-2">
                 What makes SABI<br />different
               </p>
             </FadeIn>
@@ -402,7 +404,7 @@ export default function Home() {
       <section className="relative z-10 py-28 px-6 border-b border-white/[0.05]">
         <div className="max-w-6xl mx-auto">
           <FadeIn className="mb-14">
-            <p className="text-xs font-mono text-white/25 uppercase tracking-[0.2em] mb-6">What do you want to achieve?</p>
+            <p className="text-xs font-mono text-amber-300/50 uppercase tracking-[0.2em] mb-6">What do you want to achieve?</p>
             <Reveal>
               <h2 className="font-editorial text-[clamp(32px,4.5vw,58px)] font-bold leading-tight tracking-tight">
                 Pick your goal.<br />
@@ -414,8 +416,8 @@ export default function Home() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {SERVICE_GOALS.map((g) => (
               <Link key={g.id} href={`/sabi/order?goal=${g.id}`}
-                className="group relative rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 hover:border-white/25 hover:bg-white/[0.04] transition-all duration-300 overflow-hidden">
-                <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full blur-2xl bg-white/[0.04] group-hover:bg-white/[0.07] transition" />
+                className="group relative rounded-2xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl p-6 hover:border-amber-200/25 transition-all duration-300 overflow-hidden hover:-translate-y-0.5 hover:shadow-[0_20px_60px_-20px_rgba(201,168,92,0.35)]">
+                <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full blur-2xl bg-blue-500/[0.06] group-hover:bg-amber-300/[0.10] transition-colors duration-500" />
                 <div className="relative">
                   <div className="text-3xl mb-3">{g.emoji}</div>
                   <h3 className="text-lg font-bold text-white">{g.label}</h3>
@@ -435,7 +437,7 @@ export default function Home() {
       <section className="relative z-10 py-28 px-6 border-b border-white/[0.05]">
         <div className="max-w-6xl mx-auto">
           <FadeIn className="mb-16">
-            <p className="text-xs font-mono text-white/25 uppercase tracking-[0.2em] mb-6">Capabilities</p>
+            <p className="text-xs font-mono text-amber-300/50 uppercase tracking-[0.2em] mb-6">Capabilities</p>
             <Reveal>
               <h2 className="font-editorial text-[clamp(32px,4.5vw,58px)] font-bold leading-tight tracking-tight">
                 Built for results.<br />
@@ -489,7 +491,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-[1fr_2fr] gap-20 items-start mb-20">
             <FadeIn>
-              <p className="text-xs font-mono text-white/25 uppercase tracking-[0.2em] pt-2">How it works</p>
+              <p className="text-xs font-mono text-amber-300/50 uppercase tracking-[0.2em] pt-2">How it works</p>
             </FadeIn>
             <Reveal delay={0.1}>
               <h2 className="font-editorial text-[clamp(32px,4.5vw,58px)] font-bold leading-tight tracking-tight">
@@ -525,7 +527,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto relative z-10">
           <div className="grid md:grid-cols-[1fr_2fr] gap-20 items-center">
             <FadeIn>
-              <p className="text-xs font-mono text-white/25 uppercase tracking-[0.2em]">Only on SABI</p>
+              <p className="text-xs font-mono text-amber-300/50 uppercase tracking-[0.2em]">Only on SABI</p>
             </FadeIn>
             <div>
               <Reveal delay={0.1}>
@@ -566,7 +568,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-[1fr_2fr] gap-20 items-start mb-16">
             <FadeIn>
-              <p className="text-xs font-mono text-white/25 uppercase tracking-[0.2em] pt-2">Coverage</p>
+              <p className="text-xs font-mono text-amber-300/50 uppercase tracking-[0.2em] pt-2">Coverage</p>
             </FadeIn>
             <Reveal delay={0.1}>
               <h2 className="font-editorial text-[clamp(32px,4.5vw,58px)] font-bold leading-tight tracking-tight">
@@ -600,7 +602,7 @@ export default function Home() {
       <section className="relative z-10 py-28 px-6 border-b border-white/[0.05]">
         <div className="max-w-6xl mx-auto">
           <FadeIn className="mb-14">
-            <p className="text-xs font-mono text-white/25 uppercase tracking-[0.2em] mb-6">What real engagement does</p>
+            <p className="text-xs font-mono text-amber-300/50 uppercase tracking-[0.2em] mb-6">What real engagement does</p>
             <Reveal>
               <h2 className="font-editorial text-[clamp(32px,4.5vw,58px)] font-bold leading-tight tracking-tight">
                 Small push.<br /><span className="text-white/30">Real momentum.</span>
