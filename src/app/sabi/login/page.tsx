@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { FiMail, FiLock, FiArrowRight, FiEye, FiEyeOff } from 'react-icons/fi';
@@ -21,6 +21,10 @@ export default function LoginPage() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [savedEmail, setSavedEmail] = useState('');
+  // Remember the last account so returning mobile users log in with one tap (prefill → the
+  // phone's password manager offers the saved password). We never store the password ourselves.
+  useEffect(() => { try { const e = localStorage.getItem('sabi_last_email'); if (e) setSavedEmail(e); } catch {} }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +36,7 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
-      if (data.success) { window.location.href = '/sabi/dashboard'; }
+      if (data.success) { try { localStorage.setItem('sabi_last_email', email); } catch {} window.location.href = '/sabi/dashboard'; }
       else setError(String(data.error || 'Invalid email or password'));
     } catch { setError('Network error. Please try again.'); }
     finally { setLoading(false); }
@@ -128,6 +132,13 @@ export default function LoginPage() {
             <div className="flex-1 h-px bg-slate-800" />
           </div>
 
+          {savedEmail && email !== savedEmail && (
+            <button type="button" onClick={() => { setEmail(savedEmail); setTimeout(() => (document.querySelector('input[name=password]') as HTMLInputElement)?.focus(), 50); }}
+              className="w-full mb-4 flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-500/10 border border-blue-500/30 text-left hover:bg-blue-500/15 transition">
+              <span className="grid place-items-center w-9 h-9 rounded-full bg-blue-500/20 text-blue-300 font-bold shrink-0">{savedEmail[0]?.toUpperCase()}</span>
+              <span className="min-w-0"><span className="block text-sm font-semibold text-white truncate">Continue as {savedEmail}</span><span className="block text-xs text-slate-400">Tap to log in quickly</span></span>
+            </button>
+          )}
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-sm font-semibold text-slate-300 mb-1.5">Email</label>
@@ -135,6 +146,7 @@ export default function LoginPage() {
                 <FiMail className="absolute left-4 top-3.5 text-slate-500 w-4 h-4" />
                 <input
                   type="email" value={email} onChange={e => setEmail(e.target.value)}
+                  name="email" autoComplete="username" inputMode="email"
                   placeholder="you@example.com" required
                   className="w-full pl-11 pr-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:border-blue-500/60 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition"
                 />
@@ -150,6 +162,7 @@ export default function LoginPage() {
                 <FiLock className="absolute left-4 top-3.5 text-slate-500 w-4 h-4" />
                 <input
                   type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
+                  name="password" autoComplete="current-password"
                   placeholder="••••••••" required
                   className="w-full pl-11 pr-12 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:border-blue-500/60 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition"
                 />

@@ -146,7 +146,7 @@ export default function StaffConsole() {
     if (!role || role === 'loading') return;
     const poll = () => af('/api/sabi/admin/resubmitted').then(r => (r.ok ? r.json() : null)).then(d => d && setResub(d.count || 0)).catch(() => {});
     poll();
-    const i = setInterval(poll, 60000);
+    const i = setInterval(() => { if (document.visibilityState === 'visible') poll(); }, 60000);
     return () => clearInterval(i);
   }, [role]);
 

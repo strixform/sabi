@@ -214,7 +214,7 @@ export default function OrderTrackingPage() {
       .catch(() => {})
       .finally(() => { if (active) setProofsLoading(false); });
     load();
-    const t = setInterval(load, 20000);
+    const t = setInterval(() => { if (document.visibilityState === 'visible') load(); }, 20000);
     return () => { active = false; clearInterval(t); };
   }, [orderId]);
 
@@ -256,7 +256,7 @@ export default function OrderTrackingPage() {
     };
 
     fetchOrder();
-    const interval = setInterval(fetchOrder, 5000);
+    const interval = setInterval(() => { if (document.visibilityState === 'visible') fetchOrder(); }, 5000);
     return () => clearInterval(interval);
   }, [orderId]);
 
