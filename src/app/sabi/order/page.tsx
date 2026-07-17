@@ -8,7 +8,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   FiArrowRight, FiArrowLeft, FiCheck, FiShoppingCart, FiLoader,
-  FiAlertCircle, FiDollarSign, FiTrendingUp, FiStar, FiMusic, FiAward
+  FiAlertCircle, FiDollarSign, FiTrendingUp, FiStar, FiMusic, FiAward,
+  FiMessageSquare, FiShoppingBag, FiCalendar, FiCoffee, FiTruck, FiBookOpen, FiTag
 } from 'react-icons/fi';
 import {
   SiInstagram, SiX, SiYoutube, SiTiktok, SiSnapchat, SiSpotify,
@@ -31,7 +32,7 @@ import { goalForService, goalsWithCounts, SERVICE_GOALS } from '@/lib/serviceGoa
 // ₦150 per comment (15,000 kobo), vs the much cheaper "random" comment services.
 const CUSTOM_COMMENT_KOBO = 15000;
 
-const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
   instagram:  SiInstagram,
   twitter:    SiX,
   youtube:    SiYoutube,
@@ -54,6 +55,14 @@ const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string }>
   podcast:    SiApplepodcasts,
   website:    FiGlobe,
   rumble:     SiRumble,
+  nairaland:  FiMessageSquare,
+  marketplace: FiShoppingBag,
+  events:     FiCalendar,
+  chowdeck:   FiCoffee,
+  glovo:      FiTruck,
+  selar:      FiBookOpen,
+  bolt_food:  FiCoffee,
+  jiji:       FiTag,
 };
 
 // Intelligent URL detection patterns for each platform
@@ -247,6 +256,24 @@ const PLATFORM_COLORS: Record<string, string> = {
   podcast:   'from-purple-600 to-violet-800',
   website:   'from-cyan-500 to-blue-600',
   rumble:    'from-green-500 to-emerald-700',
+  nairaland: 'from-green-600 to-green-800',
+  marketplace: 'from-orange-500 to-amber-600',
+  events:    'from-fuchsia-500 to-purple-600',
+  chowdeck:  'from-lime-500 to-green-600',
+  glovo:     'from-yellow-400 to-amber-500',
+  selar:     'from-indigo-500 to-violet-600',
+  bolt_food: 'from-emerald-500 to-teal-600',
+  jiji:      'from-teal-500 to-cyan-600',
+};
+
+// Brand tint for the platform-tile ICON (so Facebook shows blue, Instagram pink, etc. — not flat white).
+const PLATFORM_TINT: Record<string, string> = {
+  instagram: '#E1306C', twitter: '#ffffff', youtube: '#FF0000', tiktok: '#ffffff', snapchat: '#FFFC00',
+  spotify: '#1DB954', audiomack: '#FF6C2F', boomplay: '#F73B57', apple_music: '#FA57C1', voting: '#F59E0B',
+  whatsapp: '#25D366', pinterest: '#E60023', threads: '#ffffff', telegram: '#2CA5E0', twitch: '#9146FF',
+  facebook: '#1877F2', google: '#4285F4', linkedin: '#0A66C2', app_store: '#A2AAAD', podcast: '#A855F7',
+  website: '#38BDF8', rumble: '#22C55E', nairaland: '#16A34A', marketplace: '#F97316', events: '#D946EF',
+  chowdeck: '#84CC16', glovo: '#F5C518', selar: '#6366F1', bolt_food: '#10B981', jiji: '#14B8A6',
 };
 
 // Nigerian states (audience targeting — Nigerian audience only for now)
@@ -324,6 +351,8 @@ export default function OrderPage() {
   const [currentStep, setCurrentStep] = useState<Step>('platform');
   const [selectedPlatform, setSelectedPlatform] = useState<string>('');
   const [selectedGoal, setSelectedGoal] = useState<string>('');   // outcome-first entry (Reviews, Traffic…)
+  const [hint, setHint] = useState('');                            // tiny "double-tap to continue" toast
+  const flashHint = (msg: string) => { setHint(msg); setTimeout(() => setHint(h => (h === msg ? '' : h)), 1800); };
 
   // Deep-link from the homepage goal cards: /sabi/order?goal=reviews opens the goal grid directly.
   useEffect(() => {
@@ -821,6 +850,13 @@ export default function OrderPage() {
             </div>
           </div>
 
+          {/* Tiny confirmation toast (double-tap to select & continue) */}
+          {hint && (
+            <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-blue-500 text-white text-sm font-semibold shadow-2xl animate-in fade-in slide-in-from-top-2">
+              {hint}
+            </div>
+          )}
+
           {/* Quick actions — proper tiles, not cramped pills */}
           <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4 sm:mb-6">
             <Link
@@ -974,6 +1010,7 @@ export default function OrderPage() {
                     <motion.button
                       key={value}
                       onClick={() => setSelectedPlatform(value)}
+                      onDoubleClick={() => { setSelectedPlatform(value); flashHint(`${getPlatformLabel(value)} selected ✓`); setCurrentStep('service'); }}
                       className={`p-3 sm:p-6 rounded-lg sm:rounded-xl border-2 transition-all ${
                         selectedPlatform === value
                           ? `border-blue-500 bg-blue-500/10`
@@ -982,7 +1019,7 @@ export default function OrderPage() {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
-                      {Icon && <Icon className="text-2xl sm:text-4xl mb-1 sm:mb-2" />}
+                      {Icon && <Icon className="text-2xl sm:text-4xl mb-1 sm:mb-2 mx-auto" style={{ color: PLATFORM_TINT[value] || '#ffffff' }} />}
                       <p className="font-bold text-white text-xs sm:text-sm">{getPlatformLabel(value)}</p>
                       {selectedPlatform === value && (
                         <motion.div
@@ -997,6 +1034,9 @@ export default function OrderPage() {
                   );
                 })}
               </div>
+              )}
+              {!selectedGoal && (
+                <p className="text-center text-[11px] text-slate-500 -mt-2 mb-6">💡 Tip: <b className="text-slate-400">double-tap</b> a platform to select it and skip straight ahead.</p>
               )}
             </motion.div>
           )}
@@ -1031,6 +1071,7 @@ export default function OrderPage() {
                     <motion.button
                       key={service.id}
                       onClick={() => setSelectedService(service)}
+                      onDoubleClick={() => { setSelectedService(service); flashHint(`${service.name} selected ✓`); setCurrentStep('details'); }}
                       className={`w-full text-left p-6 rounded-xl border-2 transition-all ${
                         selectedService?.id === service.id
                           ? 'border-blue-500 bg-blue-500/10'
