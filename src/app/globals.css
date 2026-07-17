@@ -39,6 +39,16 @@
 .premium-cta { transition: box-shadow .5s ease, filter .3s ease; }
 .premium-cta:hover { box-shadow: 0 10px 50px -8px rgba(201,168,92,0.45); filter: brightness(1.05); }
 
+/* Gold focus ring on every form field — overrides the old blue rings for a consistent accent.
+   Scoped to the SABI dark UI (text/email/number/password/search inputs, textareas, selects). */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
+textarea:focus,
+select:focus {
+  border-color: rgba(201,168,92,0.55) !important;
+  box-shadow: 0 0 0 3px rgba(201,168,92,0.16) !important;
+  outline: none !important;
+}
+
 /* Smooth text rendering for large display type */
 .display-text {
   -webkit-font-smoothing: antialiased;

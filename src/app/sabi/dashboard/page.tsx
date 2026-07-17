@@ -235,7 +235,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="space-y-2 flex-1">
                     <motion.div
-                      className="text-4xl font-black bg-gradient-to-r from-blue-400 to-blue-300 bg-clip-text text-transparent"
+                      className="text-4xl font-black gold-gradient-text"
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: 0.4 }}
@@ -290,7 +290,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="space-y-2 flex-1">
                     <motion.div
-                      className="text-4xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent"
+                      className="text-4xl font-black gold-gradient-text"
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: 0.5 }}
@@ -331,7 +331,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="space-y-2 flex-1">
                     <motion.div
-                      className="text-4xl font-black bg-gradient-to-r from-pink-400 to-rose-400 bg-clip-text text-transparent"
+                      className="text-4xl font-black gold-gradient-text"
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: 0.6 }}
@@ -610,7 +610,7 @@ export default function DashboardPage() {
           className="space-y-4"
         >
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-black">
+            <h2 className="text-2xl font-black border-l-2 border-amber-400/60 pl-3">
               <AnimateInText type="slide" delay={0.1}>
                 Recent Orders
               </AnimateInText>
