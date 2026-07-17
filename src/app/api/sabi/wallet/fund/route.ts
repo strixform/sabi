@@ -1,5 +1,6 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
-import { getSabiSession } from '@/lib/sabiAuth';
+import { resolveSabiCaller, apiRateLimit } from '@/lib/sabiApiAuth';
+import { rateLimitResponse } from '@/lib/rateLimit';
 import { generateFlwTxRef, initializeFlwPayment } from '@/lib/sabiFlutterwave';
 export const maxDuration = 15;
 export const preferredRegion = 'sfo1'; // Turso DB in Oregon (sfo1) — keeps latency minimal
@@ -7,8 +8,11 @@ export const preferredRegion = 'sfo1'; // Turso DB in Oregon (sfo1) — keeps la
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getSabiSession();
+    const session = await resolveSabiCaller(req);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const arl = await apiRateLimit(session, 'fund', 20, 60000);
+    if (!arl.allowed) return rateLimitResponse(20, arl.resetTime);
 
     const { amount } = await req.json();
 

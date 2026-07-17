@@ -1,8 +1,19 @@
 import type { NextRequest } from 'next/server';
 import { getSabiSession } from './sabiAuth';
 import { verifySabiApiKey } from './sabiApiKey';
+import { checkRateLimit } from './rateLimit';
 
 export interface SabiCaller { id: string; email: string; viaApiKey: boolean }
+
+/**
+ * Per-key rate limit for programmatic API traffic. Only applies to Bearer-key callers (the web
+ * app has its own IP limits) so one key can't hammer the API. Returns { allowed, resetTime };
+ * the route replies with rateLimitResponse(limit, resetTime) when not allowed.
+ */
+export async function apiRateLimit(caller: SabiCaller, action = 'api', limit = 60, windowMs = 60000): Promise<{ allowed: boolean; resetTime: number }> {
+  if (!caller.viaApiKey) return { allowed: true, resetTime: 0 };
+  return checkRateLimit(`sabi-api:${action}:${caller.id}`, limit, windowMs);
+}
 
 /**
  * Resolve the caller for a SABI endpoint from EITHER:

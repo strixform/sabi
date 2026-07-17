@@ -1,5 +1,6 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
-import { resolveSabiCaller } from '@/lib/sabiApiAuth';
+import { resolveSabiCaller, apiRateLimit } from '@/lib/sabiApiAuth';
+import { rateLimitResponse } from '@/lib/rateLimit';
 import { SERVICES_CATALOG, getServicesByCategory, getCategoriesWithServices, getPlatformLabel } from '@/lib/servicesCatalog';
 export const maxDuration = 15;
 export const preferredRegion = 'sfo1'; // Turso DB in Oregon (sfo1) — keeps latency minimal
@@ -11,6 +12,8 @@ export async function GET(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const arl = await apiRateLimit(session, 'read', 120, 60000);
+    if (!arl.allowed) return rateLimitResponse(120, arl.resetTime);
 
     const { searchParams } = new URL(req.url);
     const category = searchParams.get('category');

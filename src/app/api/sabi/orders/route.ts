@@ -1,5 +1,5 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
-import { resolveSabiCaller } from '@/lib/sabiApiAuth';
+import { resolveSabiCaller, apiRateLimit } from '@/lib/sabiApiAuth';
 import { createSabiOrder, getSabiOrders, getSabiOrder } from '@/lib/sabiOrderEngine';
 import { getCachedOrders, setCachedOrders } from '@/lib/redis';
 import { getRateLimitKey, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit';
@@ -12,6 +12,9 @@ export async function GET(req: NextRequest) {
   try {
     const session = await resolveSabiCaller(req);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const arl = await apiRateLimit(session, 'read', 120, 60000);
+    if (!arl.allowed) return rateLimitResponse(120, arl.resetTime);
 
     // Operate on the active workspace (own account, or one switched into).
     const acct = await getActingAccount(session.id);
@@ -50,6 +53,10 @@ export async function POST(req: NextRequest) {
   try {
     const session = await resolveSabiCaller(req);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // Per-key limit for API callers — 30 order-places/min.
+    const arl = await apiRateLimit(session, 'order', 30, 60000);
+    if (!arl.allowed) return rateLimitResponse(30, arl.resetTime);
 
     // Resolve the active workspace. A view-only teammate cannot place orders.
     const acct = await getActingAccount(session.id);
