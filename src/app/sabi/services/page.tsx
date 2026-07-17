@@ -19,6 +19,7 @@ import { ModernSabiHeader } from '@/components/ModernSabiHeader';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
 import { GradientText } from '@/components/AnimatedText';
 import { SERVICES_CATALOG, computePricing, computeServicePricing, getPlatformLabel } from '@/lib/servicesCatalog';
+import { goalForService, goalsWithCounts, SERVICE_GOALS, POPULAR_SERVICE_IDS } from '@/lib/serviceGoals';
 
 const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   instagram: SiInstagram, twitter: SiX,       youtube:   SiYoutube,  tiktok:    SiTiktok,
@@ -132,16 +133,22 @@ const SPEED_COLOR: Record<string, string> = {
 export default function ServicesPage() {
   const [search, setSearch] = useState('');
   const [platform, setPlatform] = useState('all');
+  const [goal, setGoal] = useState('all');   // outcome-based filter (Reviews, Traffic, …)
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
   const platforms = Array.from(new Set(SERVICES_CATALOG.map(s => s.category)));
+  const goalChips = goalsWithCounts();
+  const activeGoal = SERVICE_GOALS.find(g => g.id === goal) || null;
+  const popular = POPULAR_SERVICE_IDS.map(id => SERVICES_CATALOG.find(s => s.id === id)).filter(Boolean) as typeof SERVICES_CATALOG;
+
   const filtered = SERVICES_CATALOG.filter(s => {
     const matchSearch = search === '' ||
       s.name.toLowerCase().includes(search.toLowerCase()) ||
       s.action.toLowerCase().includes(search.toLowerCase());
     const matchPlatform = platform === 'all' || s.category === platform;
-    return matchSearch && matchPlatform;
+    const matchGoal = goal === 'all' || goalForService(s).id === goal;
+    return matchSearch && matchPlatform && matchGoal;
   });
 
   // Group by platform for display
@@ -202,6 +209,33 @@ export default function ServicesPage() {
             />
           </div>
 
+          {/* Browse by GOAL — what do you want to achieve? (the smart, outcome-first way to shop) */}
+          <div>
+            <p className="text-center text-[11px] uppercase tracking-wider text-slate-500 font-bold mb-2">What do you want to achieve?</p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              <button onClick={() => setGoal('all')}
+                className={`px-3.5 py-1.5 rounded-full text-sm font-semibold transition ${goal === 'all' ? 'bg-blue-500 text-white' : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700/60'}`}>
+                All goals
+              </button>
+              {goalChips.map(({ goal: g, count }) => (
+                <button key={g.id} onClick={() => setGoal(goal === g.id ? 'all' : g.id)}
+                  className={`px-3.5 py-1.5 rounded-full text-sm font-semibold transition flex items-center gap-1.5 ${goal === g.id ? 'bg-blue-500 text-white' : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700/60'}`}>
+                  <span>{g.emoji}</span>{g.label}<span className="opacity-60 text-xs">{count}</span>
+                </button>
+              ))}
+            </div>
+            {activeGoal && (
+              <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+                className="mt-3 mx-auto max-w-2xl rounded-xl bg-blue-500/10 border border-blue-500/25 p-3.5 flex items-start gap-3">
+                <span className="text-2xl leading-none">{activeGoal.emoji}</span>
+                <div>
+                  <div className="text-sm font-bold text-white">{activeGoal.label} — <span className="text-blue-300">{activeGoal.tagline}</span></div>
+                  <div className="text-[12px] text-slate-300 mt-0.5 leading-relaxed">{activeGoal.helper}</div>
+                </div>
+              </motion.div>
+            )}
+          </div>
+
           <div className="flex flex-wrap gap-2 justify-center">
             <button
               onClick={() => setPlatform('all')}
@@ -225,6 +259,21 @@ export default function ServicesPage() {
           </div>
         </motion.div>
       </section>
+
+      {/* Popular — quick order shortcuts (only when nothing is filtered, so it's a fast start) */}
+      {goal === 'all' && platform === 'all' && search === '' && popular.length > 0 && (
+        <section className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-4 mb-10">
+          <p className="text-center text-[11px] uppercase tracking-wider text-slate-500 font-bold mb-2">⚡ Popular — quick order</p>
+          <div className="flex gap-2 overflow-x-auto pb-2 sm:justify-center no-scrollbar">
+            {popular.map(s => (
+              <Link key={s.id} href={`/sabi/order?reorder=1&serviceId=${s.id}&quantity=${s.minQuantity}`}
+                className="shrink-0 rounded-xl bg-slate-800/60 border border-slate-700/50 hover:border-blue-500/50 px-3.5 py-2 text-sm text-slate-200 whitespace-nowrap transition">
+                {s.name} <span className="text-blue-300 font-semibold">→</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Audience Types */}
       <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-14">
