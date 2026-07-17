@@ -1983,7 +1983,7 @@ export default function OrderPage() {
                           <motion.button
                             onClick={handlePlaceOrder}
                             disabled={loading || !accepted}
-                            className="w-full px-4 py-3 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            className="premium-cta w-full px-4 py-3 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             whileHover={accepted ? { scale: 1.05 } : {}}
                             whileTap={accepted ? { scale: 0.95 } : {}}
                           >
@@ -2046,7 +2046,7 @@ export default function OrderPage() {
                 (currentStep === 'service' && !selectedService) ||
                 (currentStep === 'details' && (!targetUrl || !quantity || commentBriefMissing || customCommentsMissing || voteChoiceMissing))
               }
-              className="ml-auto px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="premium-cta ml-auto px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >

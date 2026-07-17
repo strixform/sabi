@@ -182,7 +182,7 @@ export default function LoginPage() {
 
             <button
               type="submit" disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold rounded-xl transition disabled:opacity-50 shadow-lg shadow-blue-500/25 mt-2"
+              className="premium-cta w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold rounded-xl transition disabled:opacity-50 shadow-lg shadow-blue-500/25 mt-2"
             >
               {loading ? 'Signing in...' : <><span>Sign In</span><FiArrowRight className="w-4 h-4" /></>}
             </button>

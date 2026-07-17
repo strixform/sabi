@@ -351,7 +351,7 @@ export default function ServicesPage() {
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.04 }}
-                        className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-5 hover:border-slate-600/70 transition flex flex-col"
+                        className="premium-glass premium-glow rounded-xl p-5 transition flex flex-col"
                       >
                         {/* Action badge */}
                         <div className="flex items-start justify-between mb-3">
@@ -393,7 +393,7 @@ export default function ServicesPage() {
 
                         <Link
                           href={`/sabi/order?reorder=1&serviceId=${service.id}&quantity=${service.minQuantity}`}
-                          className="block text-center py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-bold text-sm transition"
+                          className="premium-cta block text-center py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-bold text-sm transition"
                         >
                           Order Now <FiArrowRight className="inline w-4 h-4 ml-1" />
                         </Link>

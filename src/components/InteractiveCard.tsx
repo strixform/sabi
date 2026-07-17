@@ -36,10 +36,10 @@ export function InteractiveCard({ children, className = '', delay = 0, glowColor
         style={{ background: `radial-gradient(ellipse at 30% 30%, ${glow}, transparent 70%)` }} />
 
       <div
-        className="relative h-full rounded-2xl overflow-hidden transition-all duration-500 group-hover:border-white/10"
+        className="relative h-full rounded-2xl overflow-hidden backdrop-blur-xl transition-all duration-500 group-hover:border-white/12 group-hover:shadow-[0_24px_70px_-30px_rgba(201,168,92,0.28)]"
         style={{
-          background: 'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)',
-          border: '1px solid rgba(255,255,255,0.06)',
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.055) 0%, rgba(255,255,255,0.02) 100%)',
+          border: '1px solid rgba(255,255,255,0.07)',
         }}
       >
         {children}

@@ -17,6 +17,28 @@
   font-family: var(--font-playfair, 'Georgia', serif);
 }
 
+/* ── Refined premium-dark utilities (reused across pages) ─────────────── */
+/* Frosted-glass surface */
+.premium-glass {
+  background: linear-gradient(135deg, rgba(255,255,255,0.055) 0%, rgba(255,255,255,0.02) 100%);
+  border: 1px solid rgba(255,255,255,0.07);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+/* Soft gold hover glow */
+.premium-glow { transition: box-shadow .5s ease, transform .5s ease; }
+.premium-glow:hover { box-shadow: 0 24px 70px -30px rgba(201,168,92,0.30); transform: translateY(-2px); }
+/* Gold accent text (labels, numbers) */
+.gold-accent { color: #C9A85C; }
+.gold-gradient-text {
+  background: linear-gradient(160deg, #F5E9CC 20%, #C9A85C 100%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+/* Primary CTA with a gold glow on hover (keeps its own bg) */
+.premium-cta { transition: box-shadow .5s ease, filter .3s ease; }
+.premium-cta:hover { box-shadow: 0 10px 50px -8px rgba(201,168,92,0.45); filter: brightness(1.05); }
+
 /* Smooth text rendering for large display type */
 .display-text {
   -webkit-font-smoothing: antialiased;
