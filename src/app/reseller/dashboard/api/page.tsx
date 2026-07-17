@@ -22,10 +22,10 @@ export default function ApiDocsPage() {
     {
       id: 'create-order',
       method: 'POST',
-      path: '/api/owlet/orders',
+      path: '/api/sabi/orders',
       description: 'Create a new service order',
-      example: `curl -X POST https://api.sabi.ng/api/owlet/orders \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
+      example: `curl -X POST https://sability.io/api/sabi/orders \\
+  -H "Authorization: Bearer sabi_YOUR_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
     "serviceType": "followers",
@@ -37,26 +37,26 @@ export default function ApiDocsPage() {
     {
       id: 'get-orders',
       method: 'GET',
-      path: '/api/owlet/orders',
+      path: '/api/sabi/orders',
       description: 'Get list of your orders',
-      example: `curl -X GET https://api.sabi.ng/api/owlet/orders \\
-  -H "Authorization: Bearer YOUR_API_KEY"`,
+      example: `curl -X GET https://sability.io/api/sabi/orders \\
+  -H "Authorization: Bearer sabi_YOUR_KEY"`,
     },
     {
       id: 'get-order',
       method: 'GET',
-      path: '/api/owlet/orders/{id}',
+      path: '/api/sabi/orders/{id}',
       description: 'Get details of a specific order',
-      example: `curl -X GET https://api.sabi.ng/api/owlet/orders/ORD123 \\
-  -H "Authorization: Bearer YOUR_API_KEY"`,
+      example: `curl -X GET https://sability.io/api/sabi/orders/ORD123 \\
+  -H "Authorization: Bearer sabi_YOUR_KEY"`,
     },
     {
       id: 'get-wallet',
       method: 'GET',
-      path: '/api/owlet/wallet',
+      path: '/api/sabi/wallet',
       description: 'Get wallet balance and transaction history',
-      example: `curl -X GET https://api.sabi.ng/api/owlet/wallet \\
-  -H "Authorization: Bearer YOUR_API_KEY"`,
+      example: `curl -X GET https://sability.io/api/sabi/wallet \\
+  -H "Authorization: Bearer sabi_YOUR_KEY"`,
     },
   ];
 
@@ -80,6 +80,15 @@ export default function ApiDocsPage() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
+        {/* Single source of truth: the reseller API IS the SABI API. Keys come from the SABI account. */}
+        <div className="mb-8 rounded-2xl border border-blue-500/30 bg-blue-500/10 p-5">
+          <div className="text-white font-bold text-sm mb-1">🔑 Your API keys live in your SABI account</div>
+          <p className="text-slate-300 text-sm">This is the same SABI API that powers your site — one system, one set of keys. Create your account, generate a key, and share it with us to power your built site.</p>
+          <div className="flex flex-wrap gap-2 mt-3">
+            <a href="/sabi/api-keys" className="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-500 text-white">Get your API keys →</a>
+            <a href="/sabi/docs" className="px-4 py-2 rounded-lg text-sm font-semibold bg-slate-700 text-white">Full API reference</a>
+          </div>
+        </div>
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -123,15 +132,15 @@ export default function ApiDocsPage() {
                   <h3 className="font-bold text-white mb-3">2. Make Your First Request</h3>
                   <div className="bg-slate-900 rounded-lg p-4 border border-slate-800">
                     <code className="text-slate-300 text-sm font-mono block mb-3">
-                      curl -X GET https://api.sabi.ng/api/owlet/wallet \<br />
-                      &nbsp;&nbsp;-H "Authorization: Bearer YOUR_API_KEY"
+                      curl -X GET https://sability.io/api/sabi/wallet \<br />
+                      &nbsp;&nbsp;-H "Authorization: Bearer sabi_YOUR_KEY"
                     </code>
                     <div className="flex gap-2">
                       <button
                         onClick={() =>
                           handleCopy(
                             'quick-start',
-                            'curl -X GET https://api.sabi.ng/api/owlet/wallet \\\n  -H "Authorization: Bearer YOUR_API_KEY"'
+                            'curl -X GET https://sability.io/api/sabi/wallet \\\n  -H "Authorization: Bearer sabi_YOUR_KEY"'
                           )
                         }
                         className="px-3 py-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-300 text-xs font-semibold flex items-center gap-1"
