@@ -58,6 +58,9 @@ export const PLATFORMS = {
   WEBSITE: 'website',
   PODCAST: 'podcast',
   RUMBLE: 'rumble',
+  NAIRALAND: 'nairaland',
+  MARKETPLACE: 'marketplace',
+  EVENTS: 'events',
 };
 
 export const SERVICES_CATALOG: Service[] = [
@@ -3066,6 +3069,44 @@ Each vote is cast by a genuine person on our crowd, **paid by the platform**, fr
     description: `🥇 **Push your entry to the top of a public competition.** Real, paid Nigerian voters back your entry — authentic votes that survive anti-fraud checks bots can't pass.`,
     category: PLATFORMS.VOTING, action: 'Vote', pricePerUnit: 8000, minQuantity: 50, maxQuantity: 100000, speed: 'medium', refillable: false,
   },
+
+  // ============ NEW: local Nigerian services (real taskers) ============
+  {
+    id: 'nairaland_reply',
+    name: 'Nairaland Replies',
+    description: `🗣️ **Real Nigerians reply on your Nairaland thread.** Get authentic replies that keep your topic active and on the front page — you provide what to say, real people post it.`,
+    category: PLATFORMS.NAIRALAND, action: 'Forum Reply', pricePerUnit: 20000, minQuantity: 5, maxQuantity: 500, speed: 'medium', refillable: false,
+  },
+  {
+    id: 'google_search_click',
+    name: 'Google Search & Click (SEO signal)',
+    description: `🔎 **Real people search your keyword on Google and click your site.** Genuine search-then-click behaviour that signals relevance — a natural way to support your ranking. You give the keyword + your link.`,
+    category: PLATFORMS.GOOGLE, action: 'Search & Click', pricePerUnit: 4000, minQuantity: 50, maxQuantity: 20000, speed: 'medium', refillable: false,
+  },
+  {
+    id: 'marketplace_review',
+    name: 'Jumia / Konga Product Review',
+    description: `⭐ **5-star product reviews from real Nigerian shoppers.** Build trust on your store listing so more buyers add to cart. You provide the product link (and review text if you like).`,
+    category: PLATFORMS.MARKETPLACE, action: 'Store Review', pricePerUnit: 25000, minQuantity: 3, maxQuantity: 200, speed: 'slow', refillable: false,
+  },
+  {
+    id: 'marketplace_add_to_cart',
+    name: 'Jumia / Konga Add-to-Cart',
+    description: `🛒 **Real shoppers add your product to cart.** Add-to-cart activity signals demand to the marketplace algorithm and lifts your listing. You give the product link.`,
+    category: PLATFORMS.MARKETPLACE, action: 'Add to Cart', pricePerUnit: 5000, minQuantity: 20, maxQuantity: 5000, speed: 'medium', refillable: false,
+  },
+  {
+    id: 'event_rsvp',
+    name: 'Event RSVP / Attendance',
+    description: `🎟️ **Real people RSVP "attending" to your event.** Make your event look in-demand so more people join. Works for Eventbrite, Tix, Facebook events and more — you give the event link.`,
+    category: PLATFORMS.EVENTS, action: 'Event RSVP', pricePerUnit: 5000, minQuantity: 20, maxQuantity: 5000, speed: 'medium', refillable: false,
+  },
+  {
+    id: 'whatsapp_channel_followers',
+    name: 'WhatsApp Channel Followers',
+    description: `📢 **Real Nigerians follow your WhatsApp Channel.** Grow your channel audience so every update reaches more people. You give your channel invite link.`,
+    category: PLATFORMS.WHATSAPP, action: 'Channel Followers', pricePerUnit: 5000, minQuantity: 50, maxQuantity: 50000, speed: 'fast', refillable: true,
+  },
 ];
 
 // ── Central pricing (in kobo) by action type — single source of truth ──
@@ -3290,6 +3331,9 @@ export function getPlatformLabel(platform: string): string {
     [PLATFORMS.WEBSITE]:    'Website / Digital',
     [PLATFORMS.PODCAST]:    'Podcast',
     [PLATFORMS.RUMBLE]:     'Rumble',
+    [PLATFORMS.NAIRALAND]:  'Nairaland',
+    [PLATFORMS.MARKETPLACE]:'Jumia / Konga',
+    [PLATFORMS.EVENTS]:     'Events & RSVP',
   };
 
   return labels[platform] || platform;
