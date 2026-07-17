@@ -15,6 +15,7 @@ import { FaLinkedinIn } from 'react-icons/fa';
 import { FiArrowRight, FiArrowUpRight, FiGlobe } from 'react-icons/fi';
 import { LogoImage } from '@/components/LogoImage';
 import ChequeMateAd from '@/components/ChequeMateAd';
+import { SERVICE_GOALS } from '@/lib/serviceGoals';
 
 // ─── Smooth cursor glow ───────────────────────────────────────────────────────
 function CursorGlow() {
@@ -372,6 +373,39 @@ export default function Home() {
                 </p>
               </FadeIn>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── ACHIEVE (goal-based services) ───────────────────────────────── */}
+      <section className="relative z-10 py-28 px-6 border-b border-white/[0.05]">
+        <div className="max-w-6xl mx-auto">
+          <FadeIn className="mb-14">
+            <p className="text-xs font-mono text-white/25 uppercase tracking-[0.2em] mb-6">What do you want to achieve?</p>
+            <Reveal>
+              <h2 className="font-editorial text-[clamp(32px,4.5vw,58px)] font-bold leading-tight tracking-tight">
+                Pick your goal.<br />
+                <span className="text-white/30">Real people make it happen.</span>
+              </h2>
+            </Reveal>
+          </FadeIn>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {SERVICE_GOALS.map((g) => (
+              <Link key={g.id} href={`/sabi/order?goal=${g.id}`}
+                className="group relative rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 hover:border-white/25 hover:bg-white/[0.04] transition-all duration-300 overflow-hidden">
+                <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full blur-2xl bg-white/[0.04] group-hover:bg-white/[0.07] transition" />
+                <div className="relative">
+                  <div className="text-3xl mb-3">{g.emoji}</div>
+                  <h3 className="text-lg font-bold text-white">{g.label}</h3>
+                  <p className="text-sm text-white/40 mt-0.5">{g.tagline}</p>
+                  <p className="text-[13px] text-white/55 mt-3 leading-relaxed line-clamp-3">{g.helper}</p>
+                  <span className="inline-flex items-center gap-1.5 mt-4 text-[13px] font-semibold text-white/80 group-hover:text-white">
+                    Start now <FiArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                  </span>
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
       </section>

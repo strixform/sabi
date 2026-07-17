@@ -325,6 +325,11 @@ export default function OrderPage() {
   const [selectedPlatform, setSelectedPlatform] = useState<string>('');
   const [selectedGoal, setSelectedGoal] = useState<string>('');   // outcome-first entry (Reviews, Traffic…)
 
+  // Deep-link from the homepage goal cards: /sabi/order?goal=reviews opens the goal grid directly.
+  useEffect(() => {
+    try { const g = new URLSearchParams(window.location.search).get('goal'); if (g && SERVICE_GOALS.some(x => x.id === g)) setSelectedGoal(g); } catch { /* no param */ }
+  }, []);
+
   // Pick a service directly from the goal grid → jump straight to details (skips the platform+
   // service steps; the details step works from the service object alone).
   const pickServiceByGoal = (s: Service) => {
