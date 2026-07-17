@@ -899,6 +899,56 @@ const UGC_STATUS_COLOR: Record<string, string> = {
 };
 const ngn = (kobo: number) => '₦' + Math.round((Number(kobo) || 0) / 100).toLocaleString();
 
+function ApiDiscountCard({ adminFetch }: { adminFetch: (url: string, opts?: RequestInit) => Promise<Response> }) {
+  const [q, setQ] = useState('');
+  const [pct, setPct] = useState('');
+  const [found, setFound] = useState<{ id: string; email: string; name?: string; discountPct: number } | null>(null);
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const lookup = async () => {
+    if (!q.trim()) return;
+    setBusy(true); setMsg(''); setFound(null);
+    try {
+      const r = await adminFetch(`/api/sabi/admin/set-discount?user=${encodeURIComponent(q.trim())}`);
+      const d = await r.json();
+      if (!r.ok) { setMsg(d.error || 'Not found'); return; }
+      setFound({ ...d.user, discountPct: d.discountPct }); setPct(String(d.discountPct));
+    } catch { setMsg('Network error'); } finally { setBusy(false); }
+  };
+  const save = async () => {
+    if (!found) return;
+    setBusy(true); setMsg('');
+    try {
+      const r = await adminFetch('/api/sabi/admin/set-discount', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user: found.id, pct: parseInt(pct) || 0 }) });
+      const d = await r.json();
+      if (!r.ok) { setMsg(d.error || 'Failed'); return; }
+      setFound({ ...found, discountPct: d.discountPct }); setMsg(`Saved — ${found.email} now gets ${d.discountPct}% off every order.`);
+    } catch { setMsg('Network error'); } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="bg-slate-900 border border-blue-500/20 rounded-xl p-4 space-y-3">
+      <div className="text-sm font-bold text-white flex items-center gap-2">💸 API / account discount</div>
+      <p className="text-xs text-slate-500">Grant selected users a % off every order they place (web or API). Look up by email or user id.</p>
+      <div className="flex gap-2">
+        <input value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') lookup(); }} placeholder="user email or id" className="flex-1 px-3 py-2 bg-slate-800 border border-white/10 text-white text-sm rounded-lg focus:outline-none focus:border-blue-500/50" />
+        <button onClick={lookup} disabled={busy} className="px-4 py-2 rounded-lg text-sm font-semibold bg-slate-700 text-white disabled:opacity-50">Look up</button>
+      </div>
+      {found && (
+        <div className="flex items-center gap-2 flex-wrap bg-slate-800/50 rounded-lg p-3">
+          <div className="flex-1 min-w-0"><div className="text-sm text-white font-semibold truncate">{found.name || found.email}</div><div className="text-xs text-slate-500 truncate">{found.email} · currently {found.discountPct}%</div></div>
+          <input value={pct} onChange={e => setPct(e.target.value.replace(/[^0-9]/g, ''))} inputMode="numeric" className="w-20 px-3 py-2 bg-slate-900 border border-white/10 text-white text-sm rounded-lg" placeholder="%" />
+          <span className="text-slate-400 text-sm">%</span>
+          <button onClick={save} disabled={busy} className="px-4 py-2 rounded-lg text-sm font-bold bg-blue-500 text-white disabled:opacity-50">Save</button>
+        </div>
+      )}
+      {msg && <p className="text-xs text-emerald-400">{msg}</p>}
+      <p className="text-[10px] text-slate-600">Max 90%. The order still can’t sell below cost — the discount is capped by the margin floor.</p>
+    </div>
+  );
+}
+
 function UGCTab({ adminFetch }: { adminFetch: (url: string, opts?: RequestInit) => Promise<Response> }) {
   const [rows, setRows] = useState<any[]>([]);
   const [tally, setTally] = useState<any[]>([]);
@@ -1625,6 +1675,7 @@ export default function AdminPage() {
         {/* ── USERS tab ──────────────────────────────────────────────────── */}
         {tab === 'Users' && (
           <>
+            <ApiDiscountCard adminFetch={adminFetch} />
             <div className="flex gap-3">
               <div className="relative flex-1">
                 <FiSearch className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />

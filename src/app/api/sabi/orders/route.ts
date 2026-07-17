@@ -1,5 +1,5 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
-import { getSabiSession } from '@/lib/sabiAuth';
+import { resolveSabiCaller } from '@/lib/sabiApiAuth';
 import { createSabiOrder, getSabiOrders, getSabiOrder } from '@/lib/sabiOrderEngine';
 import { getCachedOrders, setCachedOrders } from '@/lib/redis';
 import { getRateLimitKey, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit';
@@ -10,7 +10,7 @@ export const preferredRegion = 'sfo1'; // Turso DB in Oregon (sfo1) — keeps la
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getSabiSession();
+    const session = await resolveSabiCaller(req);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     // Operate on the active workspace (own account, or one switched into).
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
   if (!rl.allowed) return rateLimitResponse(20, rl.resetTime);
 
   try {
-    const session = await getSabiSession();
+    const session = await resolveSabiCaller(req);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     // Resolve the active workspace. A view-only teammate cannot place orders.

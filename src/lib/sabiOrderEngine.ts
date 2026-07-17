@@ -244,11 +244,19 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
       if (rate > 0) loyaltyDiscountKobo = Math.round(pricing.baseKobo * rate);
     } catch { /* loyalty is best-effort */ }
 
+    // Per-account API discount — a % an admin grants selected users (e.g. big API resellers).
+    let accountDiscountKobo = 0;
+    try {
+      const { getAccountDiscountPct } = await import('./sabiDiscount');
+      const pct = await getAccountDiscountPct(input.userId);
+      if (pct > 0) accountDiscountKobo = Math.round(pricing.baseKobo * pct / 100);
+    } catch { /* best-effort */ }
+
     // Clamp the combined discount so the order never sells below cost + min
     // margin (baseKobo is the tasker budget = our cost). Protects margin from
-    // stacked promos (volume + loyalty + first-order + promo).
+    // stacked promos (volume + loyalty + first-order + promo + account discount).
     const { maxDiscountKobo } = await import('./sabiPerks');
-    const requestedDiscount = promoDiscountKobo + welcomeDiscountKobo + loyaltyDiscountKobo;
+    const requestedDiscount = promoDiscountKobo + welcomeDiscountKobo + loyaltyDiscountKobo + accountDiscountKobo;
     const totalDiscountKobo = Math.min(requestedDiscount, totalPrice, maxDiscountKobo(totalPrice, basePrice));
     const chargeKobo = totalPrice - totalDiscountKobo;
 

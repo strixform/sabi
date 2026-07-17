@@ -1,5 +1,5 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
-import { getSabiSession } from '@/lib/sabiAuth';
+import { resolveSabiCaller } from '@/lib/sabiApiAuth';
 import { SERVICES_CATALOG, getServicesByCategory, getCategoriesWithServices, getPlatformLabel } from '@/lib/servicesCatalog';
 export const maxDuration = 15;
 export const preferredRegion = 'sfo1'; // Turso DB in Oregon (sfo1) — keeps latency minimal
@@ -7,7 +7,7 @@ export const preferredRegion = 'sfo1'; // Turso DB in Oregon (sfo1) — keeps la
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getSabiSession();
+    const session = await resolveSabiCaller(req);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
 // Get available categories
 export async function POST(req: NextRequest) {
   try {
-    const session = await getSabiSession();
+    const session = await resolveSabiCaller(req);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

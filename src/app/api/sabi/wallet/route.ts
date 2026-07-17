@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSabiSession } from '@/lib/sabiAuth';
+import { resolveSabiCaller } from '@/lib/sabiApiAuth';
 import { getSabiWallet, getSabiTransactions } from '@/lib/sabiWallet';
 import { getCachedWallet, setCachedWallet } from '@/lib/redis';
 import { getActingAccount } from '@/lib/sabiTeam';
@@ -18,7 +19,7 @@ export const maxDuration = 10;
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getSabiSession();
+    const session = await resolveSabiCaller(req);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     // When acting inside a workspace, show that account's wallet (members spend it).
