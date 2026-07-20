@@ -16,6 +16,36 @@ export default function OwletImportPage() {
   const [busy, setBusy] = useState(false);
   const [log, setLog] = useState<string[]>([]);
   const [err, setErr] = useState('');
+  const [email, setEmail] = useState('');
+  const [diag, setDiag] = useState<any>(null);
+  const [gLog, setGLog] = useState<string[]>([]);
+  const [gBusy, setGBusy] = useState(false);
+
+  async function check() {
+    setDiag(null); setGBusy(true);
+    try { const d = await (await fetch(`/api/sabi/admin/owlet-grant?email=${encodeURIComponent(email.trim())}`, { credentials: 'include' })).json(); setDiag(d); } catch {}
+    setGBusy(false);
+  }
+  async function grantOne() {
+    setGBusy(true);
+    try { const d = await (await fetch('/api/sabi/admin/owlet-grant', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email.trim() }) })).json(); setDiag({ ...(d.diag || {}), reason: d.note, justGranted: d.granted > 0 }); if (d.granted > 0) loadStats(); } catch {}
+    setGBusy(false);
+  }
+  async function sweep() {
+    setGBusy(true); setGLog(['Starting retroactive sweep…']); let cursor: string | undefined; let total = 0, rounds = 0;
+    try {
+      while (rounds < 300) {
+        const d = await (await fetch('/api/sabi/admin/owlet-grant', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sweep: true, cursor, limit: 300 }) })).json();
+        if (!d.success) { setGLog(l => [...l, 'Stopped: ' + (d.error || 'error')]); break; }
+        total += d.granted || 0; rounds++;
+        setGLog(l => [...l.slice(-30), `Batch ${rounds}: scanned ${d.scanned}, granted ${d.granted} (total ${total})`]);
+        if (!d.nextCursor) { setGLog(l => [...l, `✅ Sweep complete — ${total} users credited ₦2,000.`]); break; }
+        cursor = d.nextCursor;
+      }
+      loadStats();
+    } catch (e: any) { setGLog(l => [...l, 'Error: ' + (e?.message || e)]); }
+    setGBusy(false);
+  }
 
   const loadStats = () => fetch('/api/sabi/admin/owlet-emails', { credentials: 'include' })
     .then(r => (r.ok ? r.json() : Promise.reject(r.status)))
@@ -80,6 +110,36 @@ export default function OwletImportPage() {
       {log.length > 0 && (
         <pre className="mt-5 text-[11px] bg-black/40 rounded-xl p-4 max-h-96 overflow-auto whitespace-pre-wrap">{log.join('\n')}</pre>
       )}
+
+      {/* ── Fix a missed ₦2,000 ── */}
+      <div className="mt-8 border-t border-white/10 pt-6">
+        <h2 className="text-lg font-bold">Fix a missed ₦2,000</h2>
+        <p className="text-slate-400 text-sm mt-1">A user says they registered with their Owlet email but didn't get it? Check why, then grant it retroactively. (Most common cause: they verified before their email was on the list — the grant only fires at verify.)</p>
+        <div className="flex gap-2 mt-3">
+          <input value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && check()} placeholder="user@email.com" className="flex-1 rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm outline-none focus:border-blue-500/50" />
+          <button onClick={check} disabled={gBusy || !email.trim()} className="px-4 rounded-xl bg-slate-700 hover:bg-slate-600 font-bold disabled:opacity-40">Check</button>
+        </div>
+        {diag && (
+          <div className="mt-3 rounded-xl bg-white/[0.03] border border-white/10 p-3 text-sm space-y-2">
+            <div className={diag.eligibleToGrant || diag.justGranted ? 'text-emerald-400 font-bold' : 'text-amber-300 font-bold'}>{diag.reason}</div>
+            <div className="text-[12px] text-slate-400 grid grid-cols-2 gap-x-4 gap-y-0.5">
+              <span>On allowlist: <b className="text-slate-200">{String(diag.onList)}</b></span>
+              <span>Already claimed: <b className="text-slate-200">{String(diag.claimed)}</b></span>
+              <span>SABI account: <b className="text-slate-200">{String(diag.userExists)}</b></span>
+              <span>Email verified: <b className="text-slate-200">{String(diag.emailVerified)}</b></span>
+              <span>Already credited: <b className="text-slate-200">{String(diag.alreadyCredited)}</b></span>
+              <span>Cap reached: <b className="text-slate-200">{String(diag.capReached)}</b></span>
+            </div>
+            {diag.eligibleToGrant && !diag.justGranted && <button onClick={grantOne} disabled={gBusy} className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 font-bold disabled:opacity-40">Grant ₦2,000 now</button>}
+            {diag.justGranted && <div className="text-emerald-400 font-bold">✅ ₦2,000 credited to their SABI wallet.</div>}
+          </div>
+        )}
+        <div className="mt-5">
+          <button onClick={sweep} disabled={gBusy} className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 font-bold disabled:opacity-40">{gBusy ? 'Working…' : 'Run retroactive sweep (fix everyone at once)'}</button>
+          <p className="text-[11px] text-slate-500 mt-1">Grants ₦2,000 to every verified allowlisted user who missed it, up to the cap. Idempotent — safe to re-run.</p>
+          {gLog.length > 0 && <pre className="mt-3 text-[11px] bg-black/40 rounded-xl p-3 max-h-64 overflow-auto whitespace-pre-wrap">{gLog.join('\n')}</pre>}
+        </div>
+      </div>
     </div>
   );
 }

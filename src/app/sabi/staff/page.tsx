@@ -1008,26 +1008,61 @@ function ReuploadsTab() {
           {msg && <p className="text-[11px] font-bold text-emerald-300">{msg}</p>}
           {items.map(it => (
             <div key={it.completionId} className="rounded-xl bg-white/[0.025] border border-yellow-500/30 p-3.5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  {it.sabiOrderId && <div className="text-[10px] font-mono text-violet-300">SABI #{it.sabiOrderId}</div>}
-                  <div className="text-sm font-bold text-white truncate mt-0.5">{fmtSvc(it.campaignTitle) || 'Re-uploaded proof'}</div>
-                  {/* Target link — staff cross-check the re-upload against THIS account */}
-                  {it.targetUrl && (
-                    <div className="flex items-center gap-2 mt-1 bg-blue-500/[0.07] border border-blue-500/20 rounded-lg px-2.5 py-1.5">
-                      <span className="text-[10px] text-slate-400 shrink-0">🎯</span>
-                      <a href={it.targetUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-400 hover:underline break-all flex-1 min-w-0">{it.targetUrl}</a>
-                      <a href={it.targetUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold text-blue-300 shrink-0">Open ↗</a>
-                    </div>
-                  )}
-                  {it.reason && <p className="text-[11px] mt-1 text-red-300/90">Original flag: {it.reason}</p>}
-                  <div className="text-[10px] text-slate-600 mt-1">re-uploaded {it.reuploadedAt ? new Date(it.reuploadedAt).toLocaleString() : '—'}</div>
+              <div className="min-w-0">
+                {it.sabiOrderId && <div className="text-[10px] font-mono text-violet-300">SABI #{it.sabiOrderId}</div>}
+                <div className="text-sm font-bold text-white mt-0.5">{fmtSvc(it.campaignTitle) || 'Re-uploaded proof'}</div>
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-slate-400 mt-0.5">
+                  {it.taskerUsername && <span>👤 Tasker: <b className="text-slate-200">{it.taskerUsername}</b></span>}
+                  {it.accountUsername && <span>🔗 Account: <b className="text-slate-200">@{String(it.accountUsername).replace(/^@/, '')}</b></span>}
                 </div>
-                {it.newProofUrl && (isImg(it.newProofUrl)
-                  // eslint-disable-next-line @next/next/no-img-element
-                  ? <a href={it.newProofUrl} target="_blank" rel="noreferrer" className="shrink-0"><img src={it.newProofUrl} alt="re-upload" loading="lazy" className="w-20 h-20 object-cover rounded-lg" /></a>
-                  : <a href={it.newProofUrl} target="_blank" rel="noreferrer" className="text-xs font-bold text-blue-400 hover:underline shrink-0">view ↗</a>)}
               </div>
+
+              {/* Target link — staff cross-check the re-upload against THIS account */}
+              {it.targetUrl && (
+                <div className="flex items-center gap-2 mt-2 bg-blue-500/[0.07] border border-blue-500/20 rounded-lg px-2.5 py-1.5">
+                  <span className="text-[10px] text-slate-400 shrink-0">🎯</span>
+                  <a href={it.targetUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-400 hover:underline break-all flex-1 min-w-0">{it.targetUrl}</a>
+                  <a href={it.targetUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold text-blue-300 shrink-0">Open ↗</a>
+                </div>
+              )}
+
+              {/* Reported numbers */}
+              {(it.countBefore != null || it.countAfter != null) && (() => {
+                const nb = it.countBefore ? parseFloat(String(it.countBefore).replace(/,/g, '')) : null;
+                const na = it.countAfter ? parseFloat(String(it.countAfter).replace(/,/g, '')) : null;
+                const down = nb != null && na != null && na <= nb;
+                return (
+                  <div className={`mt-2 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-bold ${down ? 'bg-red-500/15 text-red-300 border border-red-500/30' : 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'}`}>
+                    Count: {it.countBefore ?? '—'} → {it.countAfter ?? '—'}{down && ' ⚠️ no gain'}
+                  </div>
+                );
+              })()}
+
+              {/* BEFORE / AFTER screenshots side by side */}
+              <div className="grid grid-cols-2 gap-2 mt-2.5">
+                {[{ u: it.beforeUrl, l: 'BEFORE' }, { u: it.afterUrl || it.newProofUrl, l: 'AFTER · re-upload' }].map(({ u, l }) => (
+                  <div key={l} className="rounded-lg overflow-hidden border border-white/10 bg-black/30">
+                    <div className="text-[9px] font-bold uppercase tracking-wide text-slate-400 px-2 py-1 bg-white/[0.03]">{l}</div>
+                    {u && isImg(u)
+                      // eslint-disable-next-line @next/next/no-img-element
+                      ? <a href={u} target="_blank" rel="noreferrer"><img src={u} alt={l} loading="lazy" className="w-full h-40 object-cover hover:opacity-90" /></a>
+                      : u ? <a href={u} target="_blank" rel="noreferrer" className="flex items-center justify-center h-40 text-xs font-bold text-blue-400">view ↗</a>
+                        : <div className="flex items-center justify-center h-40 text-[10px] text-slate-600">no image</div>}
+                  </div>
+                ))}
+              </div>
+              {it.originalAfterUrl && it.originalAfterUrl !== (it.afterUrl || it.newProofUrl) && isImg(it.originalAfterUrl) && (
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-[10px] text-slate-500">Originally flagged shot:</span>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <a href={it.originalAfterUrl} target="_blank" rel="noreferrer"><img src={it.originalAfterUrl} alt="original" loading="lazy" className="w-12 h-12 object-cover rounded border border-white/10 opacity-70 hover:opacity-100" /></a>
+                </div>
+              )}
+
+              {it.reason && <p className="text-[11px] mt-2 text-red-300/90"><b>Original flag:</b> {it.reason}</p>}
+              {it.commentUsed && <p className="text-[11px] mt-1 text-slate-400">💬 Comment used: “{it.commentUsed}”</p>}
+              <div className="text-[10px] text-slate-600 mt-1">re-uploaded {it.reuploadedAt ? new Date(it.reuploadedAt).toLocaleString() : '—'}</div>
+
               <div className="flex gap-2 mt-2.5">
                 <button disabled={busy === it.completionId} onClick={() => act(it.completionId, 'clear')} className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold disabled:opacity-50">✅ Re-verify (approve)</button>
                 <button disabled={busy === it.completionId} onClick={() => { const r = prompt('Why is it still wrong? (tasker sees this)'); if (r) act(it.completionId, 'flag', r); }} className="px-3 py-1.5 rounded-lg bg-red-600/80 text-white text-xs font-bold disabled:opacity-50">⚠️ Flag again</button>

@@ -9,6 +9,7 @@
  */
 import { sabiExecute } from './tursoClient';
 import { creditSabiWallet } from './sabiWallet';
+import { prisma } from './prisma';
 
 export const OWLET_BONUS_KOBO = 200_000; // ₦2,000
 
@@ -75,6 +76,66 @@ export async function grantOwletBonus(userId: string, email: string): Promise<{ 
     return { granted: 0 };
   }
   return { granted: OWLET_BONUS_KOBO };
+}
+
+/**
+ * Diagnose why a specific email did/didn't get the ₦2,000 — the exact reason a
+ * user "registered with the same email but didn't get it". Admin support tool.
+ */
+export async function diagnoseOwletEmail(rawEmail: string) {
+  await ensure();
+  const email = String(rawEmail || '').trim().toLowerCase();
+  if (!email) return { email, onList: false, userExists: false };
+  const row = await sabiExecute({ sql: `SELECT claimed, claimedByUserId, claimedAt FROM OwletEmail WHERE email = ?`, args: [email] }).catch(() => ({ rows: [] as any[] }));
+  const onList = row.rows.length > 0;
+  const claimed = onList && Number((row.rows[0] as any).claimed) === 1;
+  const user = await prisma.sabiUser.findFirst({ where: { email }, select: { id: true, name: true, emailVerified: true } }).catch(() => null);
+  let alreadyCredited = false;
+  if (user) {
+    const dup = await sabiExecute({ sql: `SELECT id FROM SabiTransaction WHERE userId = ? AND type = 'fund' AND reference = ? LIMIT 1`, args: [user.id, `owlet_promo_${user.id}`] }).catch(() => ({ rows: [] as any[] }));
+    alreadyCredited = dup.rows.length > 0;
+  }
+  const stats = await owletStats();
+  const capReached = stats.claimed >= stats.maxClaims;
+  const eligibleToGrant = !!(onList && !claimed && user && user.emailVerified && !capReached && stats.enabled && !alreadyCredited);
+  // Human-readable reason it hasn't landed.
+  let reason = 'Eligible — grant it.';
+  if (alreadyCredited) reason = 'Already credited ₦2,000 (check their wallet/transactions).';
+  else if (!stats.enabled) reason = 'Promo is switched OFF (OWLET_PROMO=off).';
+  else if (!onList) reason = 'This email is NOT on the Owlet allowlist (maybe a different email, or not imported).';
+  else if (!user) reason = 'No SABI account exists with this email yet.';
+  else if (!user.emailVerified) reason = 'SABI email not verified — they must verify to claim (the grant fires on verify).';
+  else if (claimed) reason = 'Already claimed on the allowlist' + (row.rows[0] && (row.rows[0] as any).claimedByUserId ? ` (by user ${(row.rows[0] as any).claimedByUserId})` : '') + '.';
+  else if (capReached) reason = 'Promo claim cap reached — no more grants.';
+  return {
+    email, onList, claimed, claimedByUserId: onList ? (row.rows[0] as any).claimedByUserId : null, claimedAt: onList ? (row.rows[0] as any).claimedAt : null,
+    userExists: !!user, userId: user?.id || null, userName: user?.name || null, emailVerified: !!user?.emailVerified,
+    alreadyCredited, capReached, promoEnabled: stats.enabled, eligibleToGrant, reason,
+  };
+}
+
+/**
+ * Retroactive sweep: grant the ₦2,000 to every VERIFIED SABI user whose email is on
+ * the allowlist and hasn't claimed — fixes everyone who verified before the promo/
+ * import went live. Idempotent + cap-bounded (grantOwletBonus guards both). Paginated
+ * by user id so repeated calls cover the whole base without re-crediting anyone.
+ */
+export async function sweepRetroactiveGrants(limit = 300, cursor?: string): Promise<{ granted: number; scanned: number; nextCursor: string | null; grantedEmails: string[] }> {
+  await ensure();
+  if (process.env.OWLET_PROMO === 'off') return { granted: 0, scanned: 0, nextCursor: null, grantedEmails: [] };
+  const take = Math.max(1, Math.min(500, limit));
+  const users = await prisma.sabiUser.findMany({
+    where: { emailVerified: true, ...(cursor ? { id: { gt: cursor } } : {}) },
+    select: { id: true, email: true },
+    orderBy: { id: 'asc' }, take,
+  }).catch(() => [] as { id: string; email: string }[]);
+  let granted = 0; const grantedEmails: string[] = [];
+  for (const u of users) {
+    const g = await grantOwletBonus(u.id, u.email).catch(() => ({ granted: 0 }));
+    if (g.granted > 0) { granted++; if (grantedEmails.length < 50) grantedEmails.push(u.email); }
+  }
+  const nextCursor = users.length === take ? users[users.length - 1].id : null;
+  return { granted, scanned: users.length, nextCursor, grantedEmails };
 }
 
 export async function owletStats(): Promise<{ total: number; claimed: number; enabled: boolean; maxClaims: number }> {

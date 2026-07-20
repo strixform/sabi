@@ -223,6 +223,18 @@ export default function WalletPage() {
               <FiPlus className="w-5 h-5" /> Fund Wallet
             </button>
 
+            {/* Always-visible self-service reconcile — for a payment that hasn't landed yet. */}
+            <div className="mt-2 text-center">
+              <button
+                onClick={recheckFunding}
+                disabled={requeryLoading}
+                className="text-xs font-bold text-emerald-400 hover:text-emerald-300 underline disabled:opacity-40"
+              >
+                {requeryLoading ? 'Re-checking your payment…' : '💳 Paid but not showing? Tap to re-check'}
+              </button>
+              {requeryMsg && <p className="text-[11px] text-slate-400 mt-1">{requeryMsg}</p>}
+            </div>
+
             {/* Inline fund panel */}
             {showFundPanel && (
               <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}

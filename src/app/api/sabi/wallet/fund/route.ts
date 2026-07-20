@@ -2,6 +2,7 @@
 import { resolveSabiCaller, apiRateLimit } from '@/lib/sabiApiAuth';
 import { rateLimitResponse } from '@/lib/rateLimit';
 import { generateFlwTxRef, initializeFlwPayment } from '@/lib/sabiFlutterwave';
+import { sabiExecute } from '@/lib/tursoClient';
 export const maxDuration = 15;
 export const preferredRegion = 'sfo1'; // Turso DB in Oregon (sfo1) — keeps latency minimal
 
@@ -34,6 +35,18 @@ export async function POST(req: NextRequest) {
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 500 });
     }
+
+    // Record a server-side pending funding row so this payment can be reconciled
+    // later even if the buyer's device/localStorage loses the ref (e.g. they paid
+    // by bank transfer from another phone). creditSabiWallet keys credits on the
+    // ref and is idempotent, so this never risks a double credit. Best-effort.
+    try {
+      await sabiExecute({
+        sql: `INSERT INTO SabiTransaction (id, userId, type, amount, reference, description, createdAt)
+              VALUES (?, ?, 'fund_pending', ?, ?, 'Funding initialized', datetime('now'))`,
+        args: [crypto.randomUUID(), session.id, Math.round(amount * 100), txRef],
+      });
+    } catch { /* non-critical — client-saved ref is the fallback */ }
 
     return NextResponse.json({
       success: true,

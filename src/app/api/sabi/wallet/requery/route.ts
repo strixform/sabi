@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSabiSession } from '@/lib/sabiAuth';
 import { verifyFlwTransaction } from '@/lib/sabiFlutterwave';
 import { creditSabiWallet } from '@/lib/sabiWallet';
+import { sabiExecute } from '@/lib/tursoClient';
 
 export const maxDuration = 20;
 export const preferredRegion = 'sfo1';
@@ -23,10 +24,22 @@ export async function POST(req: NextRequest) {
   const refsRaw: string[] = Array.isArray(body.txRefs) ? body.txRefs : (body.txRef ? [body.txRef] : []);
   // Only this user's refs (format: sabi_{userId[:8]}_…) — never let someone claim another's.
   const ownerPrefix = `sabi_${session.id.substring(0, 8)}_`;
-  const refs = [...new Set(refsRaw.map(String))].filter(r => r.startsWith(ownerPrefix)).slice(0, 8);
+
+  // Server-side pending refs: robust even when the buyer's device didn't save the
+  // ref (paid by bank transfer from another phone, cleared browser, etc.).
+  let serverRefs: string[] = [];
+  try {
+    const r = await sabiExecute({
+      sql: `SELECT reference FROM SabiTransaction WHERE userId = ? AND type = 'fund_pending' AND reference IS NOT NULL AND createdAt > datetime('now','-4 days') ORDER BY createdAt DESC LIMIT 15`,
+      args: [session.id],
+    });
+    serverRefs = r.rows.map((row: any) => String(row.reference)).filter(Boolean);
+  } catch { /* fall back to client refs */ }
+
+  const refs = [...new Set([...refsRaw.map(String), ...serverRefs])].filter(r => r.startsWith(ownerPrefix)).slice(0, 15);
 
   if (refs.length === 0) {
-    return NextResponse.json({ success: true, found: 0, creditedNaira: 0, message: 'No recent funding reference found on this device to re-check.' });
+    return NextResponse.json({ success: true, found: 0, creditedNaira: 0, message: 'No recent funding attempt found to re-check. If you were debited, please contact support with your receipt.' });
   }
 
   let newBalanceKobo: number | null = null;
