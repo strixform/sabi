@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { resolveSabiActor } from '@/lib/sabiApiAuth';
+import { NextRequest, NextResponse } from 'next/server';
 import { getSabiSession } from '@/lib/sabiAuth';
 import { sabiExecute } from '@/lib/tursoClient';
 
@@ -6,8 +7,8 @@ export const maxDuration = 30;
 export const preferredRegion = 'sfo1';
 
 /** The buyer's Auto Engagement packages, newest first, each with its submitted posts. */
-export async function GET() {
-  const session = await getSabiSession();
+export async function GET(req: NextRequest) {
+  const session = (await resolveSabiActor(req).catch(() => null)) ?? (await getSabiSession());
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const pkgRes = await sabiExecute({

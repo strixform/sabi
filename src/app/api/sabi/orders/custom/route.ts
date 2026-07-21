@@ -1,3 +1,4 @@
+import { resolveSabiActor } from '@/lib/sabiApiAuth';
 /**
  * SABI — Submit Custom Order Request
  * POST /api/sabi/orders/custom
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest) {
     // If user is logged in, attach their ID (not required — open to anyone)
     let userId: string | null = null;
     try {
-      const session = await getSabiSession();
+      const session = (await resolveSabiActor(req).catch(() => null)) ?? (await getSabiSession());
       if (session) userId = session.id;
     } catch { /* not logged in — fine */ }
 

@@ -1,3 +1,4 @@
+import { resolveSabiActor } from '@/lib/sabiApiAuth';
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { getSabiSession } from '@/lib/sabiAuth';
@@ -18,7 +19,7 @@ export const preferredRegion = 'sfo1';
  * package. Tasker dispatch happens in Phase 2 when posts are submitted.
  */
 export async function POST(req: NextRequest) {
-  const session = await getSabiSession();
+  const session = (await resolveSabiActor(req).catch(() => null)) ?? (await getSabiSession());
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const rl = await checkRateLimit(getRateLimitKey(req, 'ae-create'), 10, 60000);

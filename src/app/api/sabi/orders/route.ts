@@ -1,5 +1,5 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
-import { resolveSabiCaller, apiRateLimit } from '@/lib/sabiApiAuth';
+import { resolveSabiCaller, apiRateLimit, resolveSabiActor } from '@/lib/sabiApiAuth';
 import { createSabiOrder, getSabiOrders, getSabiOrder } from '@/lib/sabiOrderEngine';
 import { getCachedOrders, setCachedOrders } from '@/lib/redis';
 import { getRateLimitKey, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit';
@@ -10,7 +10,7 @@ export const preferredRegion = 'sfo1'; // Turso DB in Oregon (sfo1) — keeps la
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await resolveSabiCaller(req);
+    const session = await resolveSabiActor(req);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const arl = await apiRateLimit(session, 'read', 120, 60000);
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
   if (!rl.allowed) return rateLimitResponse(20, rl.resetTime);
 
   try {
-    const session = await resolveSabiCaller(req);
+    const session = await resolveSabiActor(req);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     // Per-key limit for API callers — 30 order-places/min.

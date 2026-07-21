@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSabiSession } from '@/lib/sabiAuth';
-import { resolveSabiCaller, apiRateLimit } from '@/lib/sabiApiAuth';
+import { resolveSabiCaller, apiRateLimit, resolveSabiActor } from '@/lib/sabiApiAuth';
 import { rateLimitResponse } from '@/lib/rateLimit';
 import { getSabiWallet, getSabiTransactions } from '@/lib/sabiWallet';
 import { getCachedWallet, setCachedWallet } from '@/lib/redis';
@@ -20,7 +20,7 @@ export const maxDuration = 10;
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await resolveSabiCaller(req);
+    const session = await resolveSabiActor(req);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const arl = await apiRateLimit(session, 'read', 120, 60000);
     if (!arl.allowed) return rateLimitResponse(120, arl.resetTime);

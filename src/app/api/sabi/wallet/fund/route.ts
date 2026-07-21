@@ -1,5 +1,5 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
-import { resolveSabiCaller, apiRateLimit } from '@/lib/sabiApiAuth';
+import { resolveSabiCaller, apiRateLimit, resolveSabiActor } from '@/lib/sabiApiAuth';
 import { rateLimitResponse } from '@/lib/rateLimit';
 import { generateFlwTxRef, initializeFlwPayment } from '@/lib/sabiFlutterwave';
 import { sabiExecute } from '@/lib/tursoClient';
@@ -9,7 +9,7 @@ export const preferredRegion = 'sfo1'; // Turso DB in Oregon (sfo1) — keeps la
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await resolveSabiCaller(req);
+    const session = await resolveSabiActor(req);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const arl = await apiRateLimit(session, 'fund', 20, 60000);

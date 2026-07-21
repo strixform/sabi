@@ -1,3 +1,4 @@
+import { resolveSabiActor } from '@/lib/sabiApiAuth';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSabiSession } from '@/lib/sabiAuth';
 import { createSabiOrder } from '@/lib/sabiOrderEngine';
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest) {
   const rl = await checkRateLimit(getRateLimitKey(req, 'order-bulk'), 5, 60 * 60000);
   if (!rl.allowed) return rateLimitResponse(5, rl.resetTime);
 
-  const session = await getSabiSession();
+  const session = (await resolveSabiActor(req).catch(() => null)) ?? (await getSabiSession());
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const acct = await getActingAccount(session.id);
