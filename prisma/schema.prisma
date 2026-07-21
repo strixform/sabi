@@ -24,6 +24,9 @@ model SabiUser {
 
   // OAuth integration
   googleId      String?   @unique
+  // Linked Owlet account (single sign-on). Users arriving from Owlet have no
+  // passwordHash, exactly like the Google path.
+  owletUserId   String?   @unique
 
   // Profile
   avatarUrl     String?
