@@ -503,6 +503,17 @@ function ProofsTab({ owner }: { owner: boolean }) {
   // screenshots, badge the mismatches, and PRE-SELECT them so staff bulk-flag in one click.
   const [vw, setVw] = useState<Record<string, { verdict: string; reason: string }>>({});
   const [vwBusy, setVwBusy] = useState<string | null>(null);
+  // Duplicate-image reuse-ring viewer — click a 🔁 badge to see every proof that reused the
+  // same screenshot (which taskers/accounts), so staff can tie them and suspend.
+  const [dupCluster, setDupCluster] = useState<{ loading: boolean; forId: string; items: any[]; distinctUsers: number } | null>(null);
+  const openDupCluster = async (completionId: string) => {
+    setDupCluster({ loading: true, forId: completionId, items: [], distinctUsers: 0 });
+    try {
+      const r = await af(`/api/sabi/admin/tasker-review?duplicates=${encodeURIComponent(completionId)}`);
+      const d = r.ok ? await r.json() : null;
+      setDupCluster({ loading: false, forId: completionId, items: d?.cluster || [], distinctUsers: d?.distinctUsers || 0 });
+    } catch { setDupCluster({ loading: false, forId: completionId, items: [], distinctUsers: 0 }); }
+  };
   const runVW = async (orderId: string) => {
     const items = proofs[orderId]?.items || [];
     const ids = items.map(p => p.id);
@@ -796,14 +807,14 @@ function ProofsTab({ owner }: { owner: boolean }) {
                                 {vw[p.id]?.verdict === 'uncertain' && (
                                   <div className="px-1.5 py-0.5 text-center bg-amber-500/15"><div className="text-[8px] font-black text-amber-300">🟡 VISION: UNSURE</div></div>
                                 )}
-                                {/* Auto-triage: this exact screenshot was reused on other proofs */}
+                                {/* Auto-triage: this exact screenshot was reused on other proofs — click to see the ring */}
                                 {dupImg && (
-                                  <div className="px-1.5 py-1 text-center bg-red-500/20">
+                                  <button onClick={() => openDupCluster(p.id)} className="w-full px-1.5 py-1 text-center bg-red-500/20 hover:bg-red-500/30 transition">
                                     <div className="text-[9px] font-black text-red-300">🔁 DUPLICATE IMAGE{p.duplicateCount ? ` ×${p.duplicateCount}` : ''}</div>
                                     <div className="text-[8px] font-bold text-red-400">
-                                      {p.duplicateCrossUser ? 'same shot used by other taskers — reuse ring' : 'same shot reused on another proof'}
+                                      {p.duplicateCrossUser ? 'same shot used by other taskers — reuse ring' : 'same shot reused on another proof'} · <span className="underline">see who</span>
                                     </div>
-                                  </div>
+                                  </button>
                                 )}
                                 {/* Auto-triage: OCR couldn't find the tasker's handle in the screenshot */}
                                 {noHandle && (
@@ -994,6 +1005,42 @@ function ProofsTab({ owner }: { owner: boolean }) {
               <button onClick={() => setFlagTarget(null)} className="px-4 py-2 rounded-lg text-sm font-bold bg-white/10 text-slate-300 hover:bg-white/20">Cancel</button>
               <button onClick={submitFlag} disabled={flagExampleBusy} className="px-5 py-2 rounded-lg text-sm font-bold bg-red-600 hover:bg-red-500 text-white disabled:opacity-40">Flag proof</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Duplicate-image reuse-ring — every proof that reused the same screenshot */}
+      {dupCluster && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setDupCluster(null)}>
+          <div className="bg-[#0F1420] border border-red-500/30 rounded-2xl max-w-2xl w-full max-h-[88vh] overflow-auto p-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="font-bold text-white">🔁 Reuse ring — same screenshot</h3>
+              <button onClick={() => setDupCluster(null)} className="text-slate-400 hover:text-white text-sm">✕</button>
+            </div>
+            {dupCluster.loading ? <p className="text-slate-500 py-6 text-center text-sm">Loading the ring…</p> : dupCluster.items.length === 0 ? (
+              <p className="text-slate-500 py-6 text-center text-sm">No other proofs share this image (it may have cleared).</p>
+            ) : (
+              <>
+                <p className="text-[11px] mb-3" style={{ color: dupCluster.distinctUsers > 1 ? '#f87171' : '#fbbf24' }}>
+                  {dupCluster.items.length} proofs reused this exact screenshot across <b>{dupCluster.distinctUsers}</b> tasker account{dupCluster.distinctUsers === 1 ? '' : 's'}.
+                  {dupCluster.distinctUsers > 1 ? ' Cross-account reuse ring — strong fraud signal.' : ' Same tasker reused one shot for multiple attempts.'}
+                </p>
+                <div className="space-y-2">
+                  {dupCluster.items.map((c: any) => (
+                    <div key={c.completionId} className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.03] p-2.5">
+                      {isImg(c.proofUrl) ? <a href={c.proofUrl} target="_blank" rel="noopener noreferrer"><img src={c.proofUrl} alt="proof" className="w-14 h-14 object-cover rounded" /></a> : <div className="w-14 h-14 rounded bg-white/5 flex items-center justify-center text-[9px] text-slate-500">no img</div>}
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-bold text-white truncate">{c.username || '—'} <span className="text-[10px] text-slate-500">{c.accountUsername ? `· used @${c.accountUsername}` : ''}</span></div>
+                        <div className="text-[10px] text-slate-500 truncate">{c.campaignTitle || 'task'}{c.sabiOrderId ? ` · SABI #${c.sabiOrderId}` : ''} · {c.status}</div>
+                      </div>
+                      <button onClick={() => { const id = c.email || c.username || ''; try { navigator.clipboard?.writeText(id); } catch {} alert(`Copied "${id}".\n\nGo to the Tasker Review tab and paste it into search to open this tasker and suspend them.`); }}
+                        className="shrink-0 text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-red-600/20 text-red-300 border border-red-600/30 hover:bg-red-600/30">Copy for Review →</button>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[10px] text-slate-500 mt-3">Open a tasker in <b>Tasker Review</b> to flag their proofs → the flag threshold suspends them (points forfeited).</p>
+              </>
+            )}
           </div>
         </div>
       )}
