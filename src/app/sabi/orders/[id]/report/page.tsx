@@ -114,17 +114,25 @@ export default function OrderReportPage() {
           <div style={{ color: '#94a3b8', fontSize: 13 }}>No receipts uploaded yet.</div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-            {proofs.map((p) => (
-              <div key={p.id} className="rcpt" style={{ border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'hidden' }}>
+            {proofs.map((p) => {
+              // A flagged proof was caught by our quality checks and is being redone — shown
+              // to the buyer as proof we actively police the work (not silently passed).
+              const flagged = !!p.flag && (p.flag.status === 'flagged' || p.flag.status === 'resubmitted');
+              return (
+              <div key={p.id} className="rcpt" style={{ border: flagged ? '1px solid #f59e0b' : '1px solid #e2e8f0', borderRadius: 8, overflow: 'hidden', position: 'relative' }}>
+                {flagged && (
+                  <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, fontSize: 8, fontWeight: 800, padding: '2px 6px', borderRadius: 4, background: '#f59e0b', color: '#fff', letterSpacing: '0.03em' }}>⚑ QUALITY-FLAGGED · REDOING</div>
+                )}
                 {isImg(p.proofUrl)
-                  ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={p.proofUrl} alt="Proof" style={{ width: '100%', height: 130, objectFit: 'cover', display: 'block' }} />
+                  ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={p.proofUrl} alt="Proof" style={{ width: '100%', height: 130, objectFit: 'cover', display: 'block', filter: flagged ? 'grayscale(0.6) opacity(0.65)' : undefined }} />
                   : <div style={{ height: 130, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', fontSize: 11, color: '#64748b', padding: 6, textAlign: 'center', wordBreak: 'break-all' }}>{p.proofUrl || '✅ Completed'}</div>}
                 <div style={{ padding: '6px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
                   <span style={{ fontSize: 10, color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.proofText || 'Completed'}</span>
-                  <span style={{ fontSize: 8, fontWeight: 700, padding: '2px 5px', borderRadius: 4, background: p.status === 'approved' ? '#dcfce7' : '#fef9c3', color: p.status === 'approved' ? '#15803d' : '#a16207' }}>{p.status}</span>
+                  <span style={{ fontSize: 8, fontWeight: 700, padding: '2px 5px', borderRadius: 4, background: flagged ? '#fef3c7' : p.status === 'approved' ? '#dcfce7' : '#fef9c3', color: flagged ? '#b45309' : p.status === 'approved' ? '#15803d' : '#a16207' }}>{flagged ? 'redoing' : p.status}</span>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
