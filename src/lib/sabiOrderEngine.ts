@@ -475,11 +475,17 @@ async function createGamesz360Campaign(
     // the parent order so the campaign is linked (shows as a refill, not a duplicate,
     // and reaches fresh taskers).
     let refillOfOrderId: string | undefined;
+    // The buyer's own "before"/start screenshot of the target — bridged to gamerz so the
+    // tasker sees the exact target AND the proof-vision check can match against it.
+    let buyerStartImageUrl: string | undefined;
+    let buyerStartCount: number | undefined;
     try {
-      const ord = await prisma.sabiOrder.findUnique({ where: { id: orderId }, select: { customRef: true } });
-      const ref = ord?.customRef || '';
+      const ord = await prisma.sabiOrder.findUnique({ where: { id: orderId }, select: { customRef: true, startScreenshotUrl: true, startCount: true } as any });
+      const ref = (ord as any)?.customRef || '';
       if (ref.startsWith('refill:')) refillOfOrderId = ref.slice('refill:'.length);
-    } catch { /* customRef unavailable — push as a normal order */ }
+      if ((ord as any)?.startScreenshotUrl) buyerStartImageUrl = String((ord as any).startScreenshotUrl);
+      if ((ord as any)?.startCount != null) buyerStartCount = Number((ord as any).startCount);
+    } catch { /* columns unavailable — push as a normal order */ }
 
     const payload = {
       sabiOrderId: orderId,
@@ -492,6 +498,8 @@ async function createGamesz360Campaign(
       targetingNote,
       webhookUrl: `${process.env.SABI_BASE_URL || 'https://sability.io'}/api/webhooks/gamerz360`,
       ...(refillOfOrderId ? { refillOfOrderId } : {}),
+      ...(buyerStartImageUrl ? { buyerStartImageUrl } : {}),
+      ...(buyerStartCount != null && !Number.isNaN(buyerStartCount) ? { buyerStartCount } : {}),
     };
 
     // 15s timeout — gamerz360 must respond before SABI's function times out
