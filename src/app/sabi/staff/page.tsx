@@ -1118,6 +1118,7 @@ function TaskerReviewTab() {
   const [flagExampleBusy, setFlagExampleBusy] = useState(false);
   const [flagDetails, setFlagDetails] = useState<Record<string, { reason: string; exampleUrl: string }>>({});
   const [vwBusy, setVwBusy] = useState(false);
+  const [vwProg, setVwProg] = useState<{ done: number; total: number } | null>(null);
   const [vw, setVw] = useState<Record<string, { verdict: string; reason: string }>>({});
 
   // "Use Vision Watcher" — Claude checks the loaded proofs' BEFORE screenshots vs the task
@@ -1125,22 +1126,26 @@ function TaskerReviewTab() {
   // badges them. Staff review and click Apply Review to COMMIT — punishment stays manual.
   const runVW = async () => {
     if (!sample?.sample?.length) return;
-    setVwBusy(true); setMsg('🔍 Vision Watcher is checking the loaded proofs…');
+    const ids = sample.sample.map((p: any) => p.completionId);
+    setVwBusy(true); setVwProg({ done: 0, total: ids.length }); setMsg('🔍 Vision Watcher is checking the loaded proofs…');
+    const map: Record<string, any> = {}; const newMarks: Record<string, 'approve' | 'flag'> = {}; const newDetails: Record<string, { reason: string; exampleUrl: string }> = {}; let mism = 0;
     try {
-      const ids = sample.sample.map((p: any) => p.completionId);
-      const res = await af('/api/sabi/admin/tasker-review', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'vision-watch', completionIds: ids }) });
-      const d = res.ok ? await res.json() : null;
-      if (!d?.success) { setMsg(d?.error || 'Vision Watcher failed.'); return; }
-      const map: Record<string, any> = {}; const newMarks: Record<string, 'approve' | 'flag'> = {}; const newDetails: Record<string, { reason: string; exampleUrl: string }> = {};
-      for (const r of (d.results || [])) {
-        map[r.completionId] = { verdict: r.verdict, reason: r.reason };
-        if (r.mismatch) { newMarks[r.completionId] = 'flag'; newDetails[r.completionId] = { reason: r.suggestedFlagReason || `Doesn't match the task: ${r.reason}`, exampleUrl: '' }; }
+      for (let i = 0; i < ids.length; i += 4) {
+        const chunk = ids.slice(i, i + 4);
+        const res = await af('/api/sabi/admin/tasker-review', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'vision-watch', completionIds: chunk }) });
+        const d = res.ok ? await res.json() : null;
+        if (!d?.success) { setMsg(d?.error || 'Vision Watcher failed.'); break; }
+        for (const r of (d.results || [])) {
+          map[r.completionId] = { verdict: r.verdict, reason: r.reason };
+          if (r.mismatch) { mism++; newMarks[r.completionId] = 'flag'; newDetails[r.completionId] = { reason: r.suggestedFlagReason || `Doesn't match the task: ${r.reason}`, exampleUrl: '' }; }
+        }
+        setVwProg({ done: Math.min(i + 4, ids.length), total: ids.length });
+        setVw({ ...map }); // live badges as chunks land
       }
-      setVw(map);
       setMarks(prev => ({ ...prev, ...newMarks }));
       setFlagDetails(prev => ({ ...prev, ...newDetails }));
-      setMsg(d.message || `Checked ${d.checked} · ${d.mismatches} pre-flagged — review, then Apply.`);
-    } catch { setMsg('Vision Watcher failed.'); } finally { setVwBusy(false); }
+      setMsg(`Checked ${ids.length} · ${mism} pre-flagged — review, then Apply.`);
+    } catch { setMsg('Vision Watcher failed.'); } finally { setVwBusy(false); setVwProg(null); }
   };
 
   const openFlag = (id: string) => { const ex = flagDetails[id]; setFlagPresets(ex?.reason ? [] : []); setFlagNote(''); setFlagExampleUrl(ex?.exampleUrl || ''); setFlagModal(id); };
@@ -1297,7 +1302,7 @@ function TaskerReviewTab() {
               <div className="flex justify-end gap-2 mb-2">
                 <button onClick={runVW} disabled={vwBusy || busy}
                   className="px-3 py-1.5 rounded-lg bg-violet-600/25 text-violet-200 text-[11px] font-bold hover:bg-violet-600/40 disabled:opacity-40">
-                  {vwBusy ? '🔍 Checking…' : '🔍 Use Vision Watcher'}
+                  {vwBusy ? `🔍 Checking ${vwProg?.done ?? 0}/${vwProg?.total ?? 0}…` : '🔍 Use Vision Watcher'}
                 </button>
                 <button onClick={approveAllAndApply} disabled={busy}
                   className="px-3 py-1.5 rounded-lg bg-emerald-600/25 text-emerald-200 text-[11px] font-bold hover:bg-emerald-600/40 disabled:opacity-40">
