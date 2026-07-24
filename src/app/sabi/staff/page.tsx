@@ -499,6 +499,26 @@ function ProofsTab({ owner }: { owner: boolean }) {
   const setAllSel = (orderId: string, ids: string[]) => setSelected(s => ({ ...s, [orderId]: new Set(ids) }));
   const clearSel = (orderId: string) => setSelected(s => ({ ...s, [orderId]: new Set() }));
 
+  // ── Vision Watcher (per order) ── run Claude over this order's loaded proofs' BEFORE
+  // screenshots, badge the mismatches, and PRE-SELECT them so staff bulk-flag in one click.
+  const [vw, setVw] = useState<Record<string, { verdict: string; reason: string }>>({});
+  const [vwBusy, setVwBusy] = useState<string | null>(null);
+  const runVW = async (orderId: string) => {
+    const items = proofs[orderId]?.items || [];
+    const ids = items.map(p => p.id);
+    if (!ids.length) return;
+    setVwBusy(orderId);
+    try {
+      const res = await af('/api/sabi/admin/tasker-review', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'vision-watch', completionIds: ids }) });
+      const d = res.ok ? await res.json() : null;
+      if (!d?.success) return;
+      const map: Record<string, any> = { ...vw }; const flagIds: string[] = [];
+      for (const r of (d.results || [])) { map[r.completionId] = { verdict: r.verdict, reason: r.reason }; if (r.mismatch) flagIds.push(r.completionId); }
+      setVw(map);
+      if (flagIds.length) setSelected(s => ({ ...s, [orderId]: new Set([...(s[orderId] || []), ...flagIds]) }));
+    } finally { setVwBusy(null); }
+  };
+
   const bulkAct = async (orderId: string, action: 'approve' | 'flag') => {
     const ids = [...(selected[orderId] || [])];
     if (!ids.length) return;
@@ -708,6 +728,8 @@ function ProofsTab({ owner }: { owner: boolean }) {
                             const allSel = selectable.length > 0 && selectable.every(id => selected[o.id]?.has(id));
                             return (
                               <div className="flex items-center gap-1.5">
+                                <button disabled={vwBusy === o.id} onClick={() => runVW(o.id)}
+                                  className="px-2 py-1 rounded bg-violet-600/60 text-violet-100 text-[10px] font-bold hover:bg-violet-600/80 disabled:opacity-40">{vwBusy === o.id ? '🔍 Checking…' : '🔍 Vision Watcher'}</button>
                                 <button onClick={() => allSel ? clearSel(o.id) : setAllSel(o.id, selectable)}
                                   className="px-2 py-1 rounded bg-white/10 text-slate-300 text-[10px] font-bold hover:bg-white/20">{allSel ? 'Unselect all' : 'Select all'}</button>
                                 <button disabled={selCount(o.id) === 0 || !!proofBusy} onClick={() => bulkAct(o.id, 'approve')}
@@ -763,6 +785,16 @@ function ProofsTab({ owner }: { owner: boolean }) {
                                     </div>
                                     {badNums && <div className="text-[8.5px] font-bold text-red-400 mt-0.5">⚠️ NO GAIN — after ≤ before</div>}
                                   </div>
+                                )}
+                                {/* Vision Watcher verdict on the BEFORE screenshot */}
+                                {vw[p.id]?.verdict === 'mismatch' && (
+                                  <div className="px-1.5 py-1 text-center bg-red-500/25">
+                                    <div className="text-[9px] font-black text-red-200">🔴 VISION: DOESN&apos;T MATCH</div>
+                                    {vw[p.id].reason && <div className="text-[8px] font-bold text-red-300/90">{vw[p.id].reason}</div>}
+                                  </div>
+                                )}
+                                {vw[p.id]?.verdict === 'uncertain' && (
+                                  <div className="px-1.5 py-0.5 text-center bg-amber-500/15"><div className="text-[8px] font-black text-amber-300">🟡 VISION: UNSURE</div></div>
                                 )}
                                 {/* Auto-triage: this exact screenshot was reused on other proofs */}
                                 {dupImg && (

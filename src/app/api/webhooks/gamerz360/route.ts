@@ -148,6 +148,51 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, refill: true });
     }
 
+    // ── INVALID LINK auto-cancel + refund ──────────────────────────────────────
+    // Fired by gamerz360 when enough taskers report the target link is wrong/broken.
+    // Cancel the order and refund the buyer — idempotent via an atomic status claim so a
+    // webhook retry can never double-refund. (gamerz360 has already cancelled its campaign.)
+    if (event === "order.invalid_link") {
+      const claim = await prisma.sabiOrder.updateMany({
+        where: { id: sabiOrderId, status: { notIn: ["cancelled", "completed", "failed"] } },
+        data: { status: "cancelled" },
+      });
+      if (claim.count !== 1) return NextResponse.json({ success: true, skipped: "already-terminal" });
+      const order = await prisma.sabiOrder.findUnique({ where: { id: sabiOrderId }, include: { user: { select: { id: true, email: true, name: true } } } });
+      if (!order) return NextResponse.json({ success: true, skipped: "no-order" });
+      const refundKobo = order.totalPrice + order.platformFee - (order.discountAmount || 0);
+      const refundNaira = Math.round(refundKobo / 100);
+      await prisma.sabiWallet.update({
+        where: { userId: order.userId },
+        data: { balance: { increment: refundKobo }, totalSpent: { decrement: refundKobo }, totalRefunded: { increment: refundKobo } },
+      }).catch((e) => console.error("[webhooks/gamerz360] invalid_link refund wallet", e?.message));
+      await prisma.sabiTransaction.create({
+        data: { userId: order.userId, orderId: sabiOrderId, type: "refund", amount: refundKobo,
+          description: "Order auto-cancelled — the target link was reported invalid/incorrect by our crowd. Full refund.",
+          reference: `invalid-link-refund-${sabiOrderId}` },
+      }).catch(() => {});
+      invalidateOrdersCache(order.userId).catch(() => {});
+      try {
+        const { Resend } = await import("resend");
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        const APP_URL = process.env.SABI_BASE_URL || "https://sability.io";
+        await resend.emails.send({
+          from: process.env.SABI_FROM_EMAIL || "SABI <noreply@sability.io>",
+          to: order.user.email,
+          subject: `Order cancelled — your link was incorrect · ₦${refundNaira.toLocaleString()} refunded`,
+          html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:#f1f5f9;border-radius:12px;overflow:hidden">
+            <div style="background:linear-gradient(135deg,#f59e0b,#d97706);padding:32px;text-align:center"><h1 style="color:#fff;margin:0;font-size:22px">🔗 Link Problem — Order Cancelled</h1></div>
+            <div style="padding:32px">
+              <p>Hi <b>${order.user.name || "there"}</b>,</p>
+              <p>Our crowd tried to complete your order but reported that the <b>target link was incorrect or not working</b>, so we couldn't deliver it. We've cancelled the order and refunded you in full — <b style="color:#4ade80">₦${refundNaira.toLocaleString()}</b> is back in your wallet.</p>
+              <p style="color:#94a3b8">Please double-check the link (it must be the exact public profile/post URL, reachable without login) and place the order again.</p>
+              <div style="text-align:center;margin-top:24px"><a href="${APP_URL}/sabi/order" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Re-order with the correct link</a></div>
+            </div></div>`,
+        });
+      } catch (e: any) { console.error("[webhooks/gamerz360] invalid_link email", e?.message); }
+      return NextResponse.json({ success: true, cancelled: true, refundKobo });
+    }
+
     // If the order still doesn't exist (unknown id we don't track), acknowledge
     // instead of throwing on the update below.
     const present = await prisma.sabiOrder.findUnique({ where: { id: sabiOrderId }, select: { id: true, quantity: true } });
