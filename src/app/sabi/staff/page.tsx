@@ -1117,6 +1117,31 @@ function TaskerReviewTab() {
   const [flagExampleUrl, setFlagExampleUrl] = useState('');
   const [flagExampleBusy, setFlagExampleBusy] = useState(false);
   const [flagDetails, setFlagDetails] = useState<Record<string, { reason: string; exampleUrl: string }>>({});
+  const [vwBusy, setVwBusy] = useState(false);
+  const [vw, setVw] = useState<Record<string, { verdict: string; reason: string }>>({});
+
+  // "Use Vision Watcher" — Claude checks the loaded proofs' BEFORE screenshots vs the task
+  // target + buyer image, PRE-MARKS the mismatches as flagged (with the AI reason), and
+  // badges them. Staff review and click Apply Review to COMMIT — punishment stays manual.
+  const runVW = async () => {
+    if (!sample?.sample?.length) return;
+    setVwBusy(true); setMsg('🔍 Vision Watcher is checking the loaded proofs…');
+    try {
+      const ids = sample.sample.map((p: any) => p.completionId);
+      const res = await af('/api/sabi/admin/tasker-review', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'vision-watch', completionIds: ids }) });
+      const d = res.ok ? await res.json() : null;
+      if (!d?.success) { setMsg(d?.error || 'Vision Watcher failed.'); return; }
+      const map: Record<string, any> = {}; const newMarks: Record<string, 'approve' | 'flag'> = {}; const newDetails: Record<string, { reason: string; exampleUrl: string }> = {};
+      for (const r of (d.results || [])) {
+        map[r.completionId] = { verdict: r.verdict, reason: r.reason };
+        if (r.mismatch) { newMarks[r.completionId] = 'flag'; newDetails[r.completionId] = { reason: r.suggestedFlagReason || `Doesn't match the task: ${r.reason}`, exampleUrl: '' }; }
+      }
+      setVw(map);
+      setMarks(prev => ({ ...prev, ...newMarks }));
+      setFlagDetails(prev => ({ ...prev, ...newDetails }));
+      setMsg(d.message || `Checked ${d.checked} · ${d.mismatches} pre-flagged — review, then Apply.`);
+    } catch { setMsg('Vision Watcher failed.'); } finally { setVwBusy(false); }
+  };
 
   const openFlag = (id: string) => { const ex = flagDetails[id]; setFlagPresets(ex?.reason ? [] : []); setFlagNote(''); setFlagExampleUrl(ex?.exampleUrl || ''); setFlagModal(id); };
   const uploadFlagExample = async (file: File) => {
@@ -1165,7 +1190,7 @@ function TaskerReviewTab() {
   const resetQueue = () => { setWorklist(null); loadQueue(); };
 
   const openTasker = async (t: any) => {
-    setActive(t); setSample(null); setMarks({}); setFlagDetails({}); setMsg(''); setLoadingS(true);
+    setActive(t); setSample(null); setMarks({}); setFlagDetails({}); setVw({}); setMsg(''); setLoadingS(true);
     try {
       const r = await af(`/api/sabi/admin/tasker-review?userId=${encodeURIComponent(t.userId)}`);
       const d = r.ok ? await r.json() : null;
@@ -1269,7 +1294,11 @@ function TaskerReviewTab() {
         ) : (
           <>
             {!isOrderView && (
-              <div className="flex justify-end mb-2">
+              <div className="flex justify-end gap-2 mb-2">
+                <button onClick={runVW} disabled={vwBusy || busy}
+                  className="px-3 py-1.5 rounded-lg bg-violet-600/25 text-violet-200 text-[11px] font-bold hover:bg-violet-600/40 disabled:opacity-40">
+                  {vwBusy ? '🔍 Checking…' : '🔍 Use Vision Watcher'}
+                </button>
                 <button onClick={approveAllAndApply} disabled={busy}
                   className="px-3 py-1.5 rounded-lg bg-emerald-600/25 text-emerald-200 text-[11px] font-bold hover:bg-emerald-600/40 disabled:opacity-40">
                   {busy ? 'Applying…' : nFlag > 0 ? `✓ Approve rest & finish (${nFlag} flagged)` : '✓ Approve all & finish'}
@@ -1301,6 +1330,8 @@ function TaskerReviewTab() {
                       {(p.countBefore || p.countAfter) && <div className="text-center text-[11px] font-black text-white mt-1">{p.countBefore ?? '?'} → {p.countAfter ?? '?'}</div>}
                       {p.duplicateImage && <div className="text-[8px] font-black text-center px-1.5 py-0.5 mt-1 rounded bg-red-500/20 text-red-300">🔁 DUPLICATE IMAGE — reused shot</div>}
                       {p.handleMissing && <div className="text-[8px] font-black text-center px-1.5 py-0.5 mt-1 rounded bg-amber-500/20 text-amber-300">🕵 HANDLE NOT FOUND</div>}
+                      {vw[p.completionId]?.verdict === 'mismatch' && <div className="text-[8px] font-black text-center px-1.5 py-0.5 mt-1 rounded bg-red-500/25 text-red-200">🔴 VISION: DOESN&apos;T MATCH{vw[p.completionId].reason ? ` — ${vw[p.completionId].reason}` : ''}</div>}
+                      {vw[p.completionId]?.verdict === 'uncertain' && <div className="text-[8px] font-black text-center px-1.5 py-0.5 mt-1 rounded bg-amber-500/15 text-amber-300">🟡 VISION: UNSURE</div>}
                       <div className="text-[10px] text-slate-400 mt-1 truncate">{p.accountUsername ? `@${p.accountUsername}` : ''}</div>
                       {p.commentUsed && <div className="text-[9px] text-slate-500 truncate">“{p.commentUsed}”</div>}
                       {p.targetUrl && <a href={p.targetUrl} target="_blank" rel="noopener noreferrer" className="text-[9px] text-blue-400 hover:underline block truncate">{p.targetUrl}</a>}
