@@ -1218,17 +1218,21 @@ function TaskerReviewTab() {
         for (const r of (d.results || [])) {
           map[r.completionId] = { verdict: r.verdict, reason: r.reason };
           if (r.mismatch) { mism++; newMarks[r.completionId] = 'flag'; newDetails[r.completionId] = { reason: r.suggestedFlagReason || `Doesn't match the task: ${r.reason}`, exampleUrl: '' }; }
+          else if (r.verdict === 'match') { newMarks[r.completionId] = 'approve'; } // pre-tick the correct ones
         }
         setVwProg({ done: Math.min(i + 4, ids.length), total: ids.length });
         setVw({ ...map }); // live badges as chunks land
       }
+      const okCount = Object.values(newMarks).filter(v => v === 'approve').length;
       setMarks(prev => ({ ...prev, ...newMarks }));
       setFlagDetails(prev => ({ ...prev, ...newDetails }));
-      setMsg(`Checked ${ids.length} · ${mism} pre-flagged — review, then Apply.`);
+      setMsg(`Checked ${ids.length} · ✅ ${okCount} pre-approved · 🔴 ${mism} pre-flagged. Review the flagged ones (reasons are editable), then Apply.`);
     } catch { setMsg('Vision Watcher failed.'); } finally { setVwBusy(false); setVwProg(null); }
   };
 
-  const openFlag = (id: string) => { const ex = flagDetails[id]; setFlagPresets(ex?.reason ? [] : []); setFlagNote(''); setFlagExampleUrl(ex?.exampleUrl || ''); setFlagModal(id); };
+  // Prefill the note with any existing reason (e.g. the AI's suggested reason) so staff can
+  // EDIT and correct it before committing the flag — not just accept it as-is.
+  const openFlag = (id: string) => { const ex = flagDetails[id]; setFlagPresets([]); setFlagNote(ex?.reason || ''); setFlagExampleUrl(ex?.exampleUrl || ''); setFlagModal(id); };
   const uploadFlagExample = async (file: File) => {
     setFlagExampleBusy(true);
     try {
