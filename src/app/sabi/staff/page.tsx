@@ -187,6 +187,7 @@ export default function StaffConsole() {
         )}
 
         <div className="flex gap-2 mb-5 flex-wrap">
+          <a href="/sabi/admin/support" className="px-3 py-2 rounded-lg text-xs font-bold transition bg-violet-600/25 text-violet-200 hover:bg-violet-600/40">💬 Support Inbox</a>
           {([
             ['review', '🕵️ Tasker Review'],
             ['proofs', '🧾 Orders & Proofs'],

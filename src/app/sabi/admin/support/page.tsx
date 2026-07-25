@@ -4,6 +4,14 @@ export const dynamic = 'force-dynamic';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+// Auth works two ways for SABI admins: the owner's token-based main-admin login
+// (x-admin-token) OR a staff SabiSession cookie. Send the token when present so the
+// owner reaches this inbox from /sabi/admin, and fall back to the cookie for staff.
+function af(url: string, opts: RequestInit = {}) {
+  const token = typeof window !== 'undefined' ? sessionStorage.getItem('sabi_admin_token') : null;
+  return fetch(url, { ...opts, headers: { ...(opts.headers || {}), ...(token ? { 'x-admin-token': token } : {}) } });
+}
+
 type Conv = { id: string; subject: string; status: string; needsHuman: boolean; assignedAdmin?: string | null; lastMessage?: string; customer?: { name?: string; email?: string } };
 type Msg = { id: string; authorName: string; fromAdmin: number; internal: number; body: string; createdAt: string };
 
@@ -22,7 +30,7 @@ export default function AdminSupportPage() {
 
   const load = useCallback(() => {
     setLoading(true);
-    fetch(`/api/sabi/admin/support?${tab === 'human' ? 'human=1' : ''}`).then(r => r.ok ? r.json() : null).then(d => {
+    af(`/api/sabi/admin/support?${tab === 'human' ? 'human=1' : ''}`).then(r => r.ok ? r.json() : null).then(d => {
       setConvs(d?.conversations || []); setCounts({ openCount: d?.openCount || 0, humanCount: d?.humanCount || 0 });
     }).catch(() => {}).finally(() => setLoading(false));
   }, [tab]);
@@ -30,7 +38,7 @@ export default function AdminSupportPage() {
 
   const openThread = useCallback((c: Conv) => {
     setActive(c);
-    fetch(`/api/sabi/admin/support?conversationId=${c.id}`).then(r => r.ok ? r.json() : null).then(d => { if (d) setMessages(d.messages || []); }).catch(() => {});
+    af(`/api/sabi/admin/support?conversationId=${c.id}`).then(r => r.ok ? r.json() : null).then(d => { if (d) setMessages(d.messages || []); }).catch(() => {});
   }, []);
   useEffect(() => { endRef.current?.scrollIntoView(); }, [messages]);
 
@@ -38,7 +46,7 @@ export default function AdminSupportPage() {
     if (!active) return;
     setBusy(true);
     try {
-      const res = await fetch('/api/sabi/admin/support', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conversationId: active.id, action, body }) });
+      const res = await af('/api/sabi/admin/support', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conversationId: active.id, action, body }) });
       if (res.ok) {
         if (action === 'reply') { setReply(''); openThread(active); }
         if (action === 'resolve') { setActive(null); }

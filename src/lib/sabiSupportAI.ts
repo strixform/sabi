@@ -30,15 +30,18 @@ export async function ensureSupportTables() {
     body TEXT NOT NULL, createdAt TEXT NOT NULL DEFAULT (datetime('now')))` }).catch(() => {});
   // Customers can attach a screenshot (payment receipt, profile shot) — the AI reads it.
   await sabiExecute({ sql: `ALTER TABLE SabiSupportMessage ADD COLUMN imageUrl TEXT` }).catch(() => {});
+  // isAi distinguishes a genuine AI reply from a human staff reply (both post as "SABI
+  // Support") — used by the daily digest to count AI vs human accurately.
+  await sabiExecute({ sql: `ALTER TABLE SabiSupportMessage ADD COLUMN isAi INTEGER NOT NULL DEFAULT 0` }).catch(() => {});
   await sabiExecute({ sql: `CREATE INDEX IF NOT EXISTS idx_sabisupportmsg_conv ON SabiSupportMessage(conversationId, createdAt)` }).catch(() => {});
   await sabiExecute({ sql: `CREATE INDEX IF NOT EXISTS idx_sabisupportconv_status ON SabiSupportConversation(status, needsHuman, updatedAt)` }).catch(() => {});
   ready = true;
 }
 
-export async function postSupportMessage(conversationId: string, opts: { body: string; authorName: string; fromAdmin: boolean; internal?: boolean; imageUrl?: string | null }) {
+export async function postSupportMessage(conversationId: string, opts: { body: string; authorName: string; fromAdmin: boolean; internal?: boolean; imageUrl?: string | null; isAi?: boolean }) {
   await sabiExecute({
-    sql: `INSERT INTO SabiSupportMessage (id, conversationId, authorName, fromAdmin, internal, body, imageUrl) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    args: [crypto.randomUUID(), conversationId, opts.authorName, opts.fromAdmin ? 1 : 0, opts.internal ? 1 : 0, String(opts.body).slice(0, 4000), opts.imageUrl || null],
+    sql: `INSERT INTO SabiSupportMessage (id, conversationId, authorName, fromAdmin, internal, body, imageUrl, isAi) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: [crypto.randomUUID(), conversationId, opts.authorName, opts.fromAdmin ? 1 : 0, opts.internal ? 1 : 0, String(opts.body).slice(0, 4000), opts.imageUrl || null, opts.isAi ? 1 : 0],
   }).catch(() => {});
   await sabiExecute({ sql: `UPDATE SabiSupportConversation SET updatedAt = datetime('now'), lastMessageFromAdmin = ? WHERE id = ?`, args: [opts.fromAdmin && !opts.internal ? 1 : 0, conversationId] }).catch(() => {});
 }
@@ -161,7 +164,7 @@ export async function aiAutoReply(conversationId: string): Promise<{ replied: bo
     return { replied: false, escalated: true, note: 'model-failed' };
   }
 
-  await postSupportMessage(conversationId, { body: out.message, authorName: 'SABI Support', fromAdmin: true });
+  await postSupportMessage(conversationId, { body: out.message, authorName: 'SABI Support', fromAdmin: true, isAi: true });
   const willEscalate = !!out.escalate;
   const willResolve = !willEscalate && !!out.resolved;
   await sabiExecute({
