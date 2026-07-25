@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiLogOut, FiHome, FiShoppingCart, FiKey, FiBook, FiMenu, FiX, FiCreditCard, FiDownload, FiInbox, FiUser, FiGift, FiZap, FiGrid, FiCompass } from 'react-icons/fi';
-import { SiWhatsapp } from 'react-icons/si';
 import { LogoImage } from './LogoImage';
 
 interface ModernSabiHeaderProps {
@@ -22,7 +21,6 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   // WhatsApp support number — fetched from admin config
-  const [waNumber, setWaNumber] = useState<string | null>(null);
   const [acting, setActing] = useState<{ name: string; role: string } | null>(null);
 
   useEffect(() => {
@@ -41,13 +39,6 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
     };
     window.addEventListener('beforeinstallprompt', handler);
     window.addEventListener('appinstalled', () => setIsInstalled(true));
-
-    // Fetch WhatsApp support number from public config endpoint.
-    // /api/sabi/config returns { supportWhatsapp: "234..." } flat (not nested under config).
-    fetch('/api/sabi/config')
-      .then(r => r.json())
-      .then(d => { if (d.supportWhatsapp) setWaNumber(d.supportWhatsapp); })
-      .catch(() => {});
 
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
@@ -259,19 +250,17 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
               </motion.button>
             )}
 
-            {/* WhatsApp support icon — only shown when a number is configured in admin settings */}
-            {waNumber && (
+            {/* In-app support chat (replaced WhatsApp) — AI answers instantly, escalates to staff */}
+            {(
               <motion.a
-                href={`https://wa.me/${waNumber}?text=${encodeURIComponent('Hi SABI Support, I need help with my account.')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center w-8 h-8 rounded-lg border border-white/[0.07] text-[#25D366] hover:bg-[#25D366]/10 hover:border-[#25D366]/30 transition-all duration-200"
+                href="/sabi/support"
+                className="flex items-center justify-center w-8 h-8 rounded-lg border border-white/[0.07] text-blue-300 hover:bg-blue-500/10 hover:border-blue-500/30 transition-all duration-200"
                 whileHover={{ scale: 1.08 }}
                 whileTap={{ scale: 0.95 }}
-                title="WhatsApp Support"
-                aria-label="Chat on WhatsApp"
+                title="Support"
+                aria-label="Support chat"
               >
-                <SiWhatsapp className="w-4 h-4" />
+                <span className="text-sm">💬</span>
               </motion.a>
             )}
 
