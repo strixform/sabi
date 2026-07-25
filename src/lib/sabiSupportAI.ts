@@ -28,15 +28,17 @@ export async function ensureSupportTables() {
     id TEXT PRIMARY KEY, conversationId TEXT NOT NULL, authorName TEXT,
     fromAdmin INTEGER NOT NULL DEFAULT 0, internal INTEGER NOT NULL DEFAULT 0,
     body TEXT NOT NULL, createdAt TEXT NOT NULL DEFAULT (datetime('now')))` }).catch(() => {});
+  // Customers can attach a screenshot (payment receipt, profile shot) — the AI reads it.
+  await sabiExecute({ sql: `ALTER TABLE SabiSupportMessage ADD COLUMN imageUrl TEXT` }).catch(() => {});
   await sabiExecute({ sql: `CREATE INDEX IF NOT EXISTS idx_sabisupportmsg_conv ON SabiSupportMessage(conversationId, createdAt)` }).catch(() => {});
   await sabiExecute({ sql: `CREATE INDEX IF NOT EXISTS idx_sabisupportconv_status ON SabiSupportConversation(status, needsHuman, updatedAt)` }).catch(() => {});
   ready = true;
 }
 
-export async function postSupportMessage(conversationId: string, opts: { body: string; authorName: string; fromAdmin: boolean; internal?: boolean }) {
+export async function postSupportMessage(conversationId: string, opts: { body: string; authorName: string; fromAdmin: boolean; internal?: boolean; imageUrl?: string | null }) {
   await sabiExecute({
-    sql: `INSERT INTO SabiSupportMessage (id, conversationId, authorName, fromAdmin, internal, body) VALUES (?, ?, ?, ?, ?, ?)`,
-    args: [crypto.randomUUID(), conversationId, opts.authorName, opts.fromAdmin ? 1 : 0, opts.internal ? 1 : 0, String(opts.body).slice(0, 4000)],
+    sql: `INSERT INTO SabiSupportMessage (id, conversationId, authorName, fromAdmin, internal, body, imageUrl) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    args: [crypto.randomUUID(), conversationId, opts.authorName, opts.fromAdmin ? 1 : 0, opts.internal ? 1 : 0, String(opts.body).slice(0, 4000), opts.imageUrl || null],
   }).catch(() => {});
   await sabiExecute({ sql: `UPDATE SabiSupportConversation SET updatedAt = datetime('now'), lastMessageFromAdmin = ? WHERE id = ?`, args: [opts.fromAdmin && !opts.internal ? 1 : 0, conversationId] }).catch(() => {});
 }
@@ -66,6 +68,8 @@ async function loadContext(userId: string) {
 const SYSTEM = `You are "SABI Support" — the friendly, sharp support agent for SABI (sability.io), a Nigerian social-media marketing service where customers buy followers, likes, views, comments and engagement for their own social accounts.
 
 Answer the customer's LATEST message using ONLY the account facts provided (their orders, wallet, transactions) and general SABI knowledge. Be warm, concise, and human — the customer must never know you are an AI.
+
+If the customer attached a screenshot, READ it (a payment receipt, a profile shot, an error message) and use what it shows — the amount, reference, whether their profile is private, etc.
 
 MIRROR THE CUSTOMER'S LANGUAGE exactly: if they write Nigerian Pidgin, reply in Pidgin ("No wahala, I don check am for you…"); Yoruba→Yoruba, Hausa→Hausa, Igbo→Igbo; plain English→English.
 
@@ -97,9 +101,25 @@ export async function aiAutoReply(conversationId: string): Promise<{ replied: bo
     return { replied: false, escalated: true, note: 'max-ai-replies' };
   }
 
-  const msgs = (await sabiExecute({ sql: `SELECT authorName, fromAdmin, internal, body FROM SabiSupportMessage WHERE conversationId = ? ORDER BY createdAt ASC LIMIT 16`, args: [conversationId] }).catch(() => ({ rows: [] as any[] }))).rows as any[];
-  const transcript = msgs.filter(m => Number(m.internal) !== 1).map(m => `${Number(m.fromAdmin) === 1 ? 'Support' : 'Customer'}: ${m.body}`).join('\n');
-  const context = await loadContext(String(conv.userId));
+  const msgs = (await sabiExecute({ sql: `SELECT authorName, fromAdmin, internal, body, imageUrl FROM SabiSupportMessage WHERE conversationId = ? ORDER BY createdAt ASC LIMIT 16`, args: [conversationId] }).catch(() => ({ rows: [] as any[] }))).rows as any[];
+  const visible = msgs.filter(m => Number(m.internal) !== 1);
+  const transcript = visible.map(m => `${Number(m.fromAdmin) === 1 ? 'Support' : 'Customer'}: ${m.body}${m.imageUrl ? ' [attached a screenshot]' : ''}`).join('\n');
+  let context = await loadContext(String(conv.userId));
+
+  // PAYMENT-hint: if they're asking about a payment/funding, re-verify their pending
+  // payments with Flutterwave FIRST (idempotent — only credits what genuinely landed) and
+  // feed the truth in, so the AI answers "it's now credited" instead of guessing.
+  const lastCustomer = [...visible].reverse().find(m => Number(m.fromAdmin) !== 1);
+  if (lastCustomer && /\b(paid|payment|fund|funded|deposit|debit|debited|transfer|receipt|money|wallet|top ?up|reflect|credited|charged)\b/i.test(String(lastCustomer.body))) {
+    try {
+      const { recheckUserPayments } = await import('@/lib/sabiWallet');
+      const r = await recheckUserPayments(String(conv.userId));
+      if (r?.summary) context += `\n\nLIVE PAYMENT RE-CHECK (just ran against Flutterwave): ${r.summary}`;
+    } catch { /* best-effort */ }
+  }
+
+  // Any screenshots the customer attached (last 2, public Blob URLs) → Claude vision blocks.
+  const images = visible.filter(m => Number(m.fromAdmin) !== 1 && m.imageUrl).map(m => String(m.imageUrl)).slice(-2);
 
   let out: { message: string; escalate: boolean; resolved: boolean; escalate_reason?: string } | null = null;
   try {
@@ -122,7 +142,13 @@ export async function aiAutoReply(conversationId: string): Promise<{ replied: bo
         },
       }],
       tool_choice: { type: 'tool', name: 'respond' },
-      messages: [{ role: 'user', content: `ACCOUNT CONTEXT:\n${context}\n\nCONVERSATION SO FAR:\n${transcript}\n\nReply to the customer's latest message.` }],
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'text', text: `ACCOUNT CONTEXT:\n${context}\n\nCONVERSATION SO FAR:\n${transcript}\n\n${images.length ? `The customer attached ${images.length} screenshot(s) below — read them (a payment receipt, a profile shot, an error, etc.) and use what they show.\n\n` : ''}Reply to the customer's latest message.` },
+          ...images.map((url) => ({ type: 'image' as const, source: { type: 'url' as const, url } })),
+        ],
+      }],
     });
     const block = res.content.find((b: any) => b.type === 'tool_use') as any;
     if (block?.input?.message) out = block.input;

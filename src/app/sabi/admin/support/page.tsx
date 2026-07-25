@@ -100,6 +100,7 @@ export default function AdminSupportPage() {
                           {Number(m.fromAdmin) === 1 ? m.authorName : (active.customer?.name || 'Customer')}
                           {m.authorName === 'SABI Support' && <span className="px-1 py-0.5 rounded bg-violet-500/20 text-violet-300">🤖 AI</span>}
                         </div>
+                        {(m as any).imageUrl && <a href={(m as any).imageUrl} target="_blank" rel="noreferrer"><img src={(m as any).imageUrl} alt="attachment" className="rounded-lg mb-1 max-h-56 object-contain" /></a>}
                         {m.body}
                       </div>
                     </div>

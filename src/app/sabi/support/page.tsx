@@ -14,6 +14,8 @@ export default function SupportPage() {
   const [needsHuman, setNeedsHuman] = useState(false);
   const [status, setStatus] = useState('open');
   const [input, setInput] = useState('');
+  const [attachUrl, setAttachUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [sending, setSending] = useState(false);
   const [composingNew, setComposingNew] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -39,15 +41,26 @@ export default function SupportPage() {
   }, [active, loadThread]);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
+  const uploadImage = async (file: File | null | undefined) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const fd = new FormData(); fd.append('file', file);
+      const res = await fetch('/api/sabi/upload', { method: 'POST', body: fd });
+      const d = await res.json().catch(() => ({}));
+      if (d.url) setAttachUrl(d.url); else alert(d.error || "Couldn't attach that image.");
+    } finally { setUploading(false); }
+  };
+
   const send = async () => {
     const text = input.trim();
-    if (!text || sending) return;
+    if ((!text && !attachUrl) || sending) return;
     setSending(true);
-    // optimistic
-    setMessages(m => [...m, { id: 'tmp', authorName: 'You', fromAdmin: 0, body: text, createdAt: new Date().toISOString() }]);
-    setInput('');
+    const img = attachUrl;
+    setMessages(m => [...m, { id: 'tmp', authorName: 'You', fromAdmin: 0, body: text || '(screenshot attached)', imageUrl: img || undefined, createdAt: new Date().toISOString() } as any]);
+    setInput(''); setAttachUrl(null);
     try {
-      const res = await fetch('/api/sabi/support', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conversationId: active || undefined, body: text }) });
+      const res = await fetch('/api/sabi/support', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conversationId: active || undefined, body: text, imageUrl: img }) });
       const d = await res.json();
       if (d.conversationId) { setActive(d.conversationId); setComposingNew(false); setTimeout(() => loadThread(d.conversationId), 900); }
       loadList();
@@ -109,6 +122,7 @@ export default function SupportPage() {
                 <div key={m.id} className={`flex ${m.fromAdmin ? 'justify-start' : 'justify-end'}`}>
                   <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-[13px] leading-relaxed whitespace-pre-wrap ${m.fromAdmin ? 'bg-white/[0.06] text-slate-100' : 'text-white'}`} style={m.fromAdmin ? {} : { background: 'linear-gradient(135deg,#3b82f6,#8b5cf6)' }}>
                     {m.fromAdmin && <div className="text-[9px] font-black text-slate-400 mb-0.5">{m.authorName || 'SABI Support'}</div>}
+                    {(m as any).imageUrl && <a href={(m as any).imageUrl} target="_blank" rel="noreferrer"><img src={(m as any).imageUrl} alt="attachment" className="rounded-lg mb-1 max-h-52 object-contain" /></a>}
                     {m.body}
                   </div>
                 </div>
@@ -118,10 +132,21 @@ export default function SupportPage() {
             {status !== 'resolved' && !needsHuman && active && (
               <div className="px-3.5 pb-1"><button onClick={talkToHuman} className="text-[10px] text-slate-500 hover:text-slate-300">🙋 Talk to a human</button></div>
             )}
+            {attachUrl && (
+              <div className="px-3.5 pb-1 flex items-center gap-2">
+                <img src={attachUrl} alt="attachment" className="h-10 w-10 rounded object-cover" />
+                <span className="text-[10px] text-slate-400">Screenshot attached</span>
+                <button onClick={() => setAttachUrl(null)} className="text-[10px] text-red-400">remove</button>
+              </div>
+            )}
             <div className="flex items-center gap-2 p-2.5 border-t border-white/[0.06]">
+              <label className="shrink-0 w-10 h-10 rounded-xl border border-white/10 flex items-center justify-center cursor-pointer hover:bg-white/5 text-lg" title="Attach a screenshot">
+                {uploading ? '…' : '📎'}
+                <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" onChange={e => uploadImage(e.target.files?.[0])} />
+              </label>
               <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') send(); }}
                 placeholder="Type your message…" className="flex-1 bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-500/50" />
-              <button onClick={send} disabled={sending || !input.trim()} className="px-4 py-2.5 rounded-xl text-sm font-bold disabled:opacity-40" style={{ background: 'linear-gradient(135deg,#3b82f6,#8b5cf6)', color: '#fff' }}>{sending ? '…' : 'Send'}</button>
+              <button onClick={send} disabled={sending || (!input.trim() && !attachUrl)} className="px-4 py-2.5 rounded-xl text-sm font-bold disabled:opacity-40" style={{ background: 'linear-gradient(135deg,#3b82f6,#8b5cf6)', color: '#fff' }}>{sending ? '…' : 'Send'}</button>
             </div>
           </div>
         )}

@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   if (convId) {
     const conv = (await sabiExecute({ sql: `SELECT c.id, c.subject, c.status, c.needsHuman, c.assignedAdmin, c.aiReplyCount, u.name, u.email FROM SabiSupportConversation c LEFT JOIN SabiUser u ON u.id = c.userId WHERE c.id = ? LIMIT 1`, args: [convId] })).rows[0] as any;
     if (!conv) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    const messages = (await sabiExecute({ sql: `SELECT id, authorName, fromAdmin, internal, body, createdAt FROM SabiSupportMessage WHERE conversationId = ? ORDER BY createdAt ASC LIMIT 300`, args: [convId] })).rows as any[];
+    const messages = (await sabiExecute({ sql: `SELECT id, authorName, fromAdmin, internal, body, imageUrl, createdAt FROM SabiSupportMessage WHERE conversationId = ? ORDER BY createdAt ASC LIMIT 300`, args: [convId] })).rows as any[];
     return NextResponse.json({ conversation: { id: conv.id, subject: conv.subject, status: conv.status, needsHuman: Number(conv.needsHuman) === 1, assignedAdmin: conv.assignedAdmin, customer: { name: conv.name, email: conv.email } }, messages });
   }
 

@@ -184,3 +184,44 @@ export async function getSabiTransactions(userId: string, limit: number = 50) {
     return [];
   }
 }
+
+/**
+ * Re-verify a user's recent pending payments directly with Flutterwave and credit any that
+ * genuinely succeeded (creditSabiWallet is idempotent → never double-credits). Shared by the
+ * self-service /wallet/requery route AND the AI support agent (so it answers payment
+ * questions from the live truth, not a guess). Returns a short summary for the AI.
+ */
+export async function recheckUserPayments(userId: string): Promise<{ found: number; newBalanceNaira: number | null; summary: string }> {
+  const { verifyFlwTransaction } = await import('./sabiFlutterwave');
+  const ownerPrefix = `sabi_${userId.substring(0, 8)}_`;
+  let refs: string[] = [];
+  try {
+    const r = await sabiExecute({
+      sql: `SELECT reference FROM SabiTransaction WHERE userId = ? AND type = 'fund_pending' AND reference IS NOT NULL AND createdAt > datetime('now','-4 days') ORDER BY createdAt DESC LIMIT 15`,
+      args: [userId],
+    });
+    refs = (r.rows as any[]).map(row => String(row.reference)).filter(Boolean).filter(x => x.startsWith(ownerPrefix)).slice(0, 15);
+  } catch { /* none */ }
+  if (refs.length === 0) return { found: 0, newBalanceNaira: null, summary: 'No recent (last 4 days) funding attempt on record to re-check.' };
+
+  let newBalanceKobo: number | null = null; let succeeded = 0;
+  for (const ref of refs) {
+    try {
+      const v = await verifyFlwTransaction(ref);
+      if (!v.success || v.status !== 'successful') continue;
+      if (v.txRef && !v.txRef.startsWith(ownerPrefix)) continue;
+      const kobo = Math.round((v.amount || 0) * 100);
+      if (kobo <= 0) continue;
+      succeeded++;
+      const cr = await creditSabiWallet(userId, kobo, v.txRef || ref);
+      if (cr.success && typeof cr.balance === 'number') newBalanceKobo = cr.balance;
+    } catch { /* skip */ }
+  }
+  return {
+    found: succeeded,
+    newBalanceNaira: newBalanceKobo != null ? Math.round(newBalanceKobo / 100) : null,
+    summary: succeeded > 0
+      ? `${succeeded} successful payment(s) verified and the wallet is up to date${newBalanceKobo != null ? ` (balance ₦${Math.round(newBalanceKobo / 100).toLocaleString()})` : ''}. Tell the customer it's now credited.`
+      : `Checked ${refs.length} recent funding attempt(s); NONE have succeeded at Flutterwave yet. Do NOT promise a credit — if they insist they were debited, ask for the receipt and escalate.`,
+  };
+}
