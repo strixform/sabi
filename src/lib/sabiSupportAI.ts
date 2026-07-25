@@ -180,7 +180,8 @@ export async function aiAutoReply(conversationId: string): Promise<{ replied: bo
 
 async function notifyOwnerOfEscalation(conversationId: string) {
   try {
-    const to = process.env.OWNER_EMAIL || process.env.SABI_OWNER_EMAIL;
+    // Falls back to the admin email SABI already knows — no new env needed.
+    const to = process.env.OWNER_EMAIL || process.env.SABI_OWNER_EMAIL || process.env.SABI_ADMIN_EMAIL || process.env.NEXT_PUBLIC_ADMIN_EMAIL;
     if (!to || !process.env.RESEND_API_KEY) return;
     const { Resend } = await import('resend');
     const resend = new Resend(process.env.RESEND_API_KEY);

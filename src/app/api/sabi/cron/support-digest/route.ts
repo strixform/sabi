@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
   const waiting = await n(`SELECT COUNT(*) v FROM SabiSupportConversation WHERE needsHuman = 1`);
   const newTickets = await n(`SELECT COUNT(*) v FROM SabiSupportConversation WHERE ${day}`);
 
-  const to = process.env.OWNER_EMAIL || process.env.SABI_OWNER_EMAIL;
+  const to = process.env.OWNER_EMAIL || process.env.SABI_OWNER_EMAIL || process.env.SABI_ADMIN_EMAIL || process.env.NEXT_PUBLIC_ADMIN_EMAIL;
   if (!to || !process.env.RESEND_API_KEY) {
     return NextResponse.json({ ok: true, sent: false, stats: { aiAnswered, escalated, humanReplies, resolved, waiting, newTickets } });
   }
