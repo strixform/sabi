@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { allowOwnerOrStaff, logStaffAction } from '@/lib/sabiStaff';
 
 export const preferredRegion = 'sfo1';
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 const G360_URL = process.env.GAMERZ360_API_URL || 'https://gamerz360.com';
 

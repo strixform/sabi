@@ -520,14 +520,17 @@ function ProofsTab({ owner }: { owner: boolean }) {
     const ids = items.map(p => p.id);
     if (!ids.length) return;
     setVwBusy(orderId);
+    const map: Record<string, any> = { ...vw }; const flagIds: string[] = [];
     try {
-      const res = await af('/api/sabi/admin/tasker-review', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'vision-watch', completionIds: ids }) });
-      const d = res.ok ? await res.json() : null;
-      if (!d?.success) return;
-      const map: Record<string, any> = { ...vw }; const flagIds: string[] = [];
-      for (const r of (d.results || [])) { map[r.completionId] = { verdict: r.verdict, reason: r.reason }; if (r.mismatch) flagIds.push(r.completionId); }
-      setVw(map);
-      if (flagIds.length) setSelected(s => ({ ...s, [orderId]: new Set([...(s[orderId] || []), ...flagIds]) }));
+      // Chunk (3 at a time) so a big order's proofs never exceed the request timeout.
+      for (let i = 0; i < ids.length; i += 3) {
+        const res = await af('/api/sabi/admin/tasker-review', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'vision-watch', completionIds: ids.slice(i, i + 3) }) });
+        const d = res.ok ? await res.json() : null;
+        if (!d?.success) break;
+        for (const r of (d.results || [])) { map[r.completionId] = { verdict: r.verdict, reason: r.reason }; if (r.mismatch) flagIds.push(r.completionId); }
+        setVw({ ...map });
+        if (flagIds.length) setSelected(s => ({ ...s, [orderId]: new Set([...(s[orderId] || []), ...flagIds]) }));
+      }
     } finally { setVwBusy(null); }
   };
 
@@ -1210,8 +1213,8 @@ function TaskerReviewTab() {
     setVwBusy(true); setVwProg({ done: 0, total: ids.length }); setMsg('🔍 Vision Watcher is checking the loaded proofs…');
     const map: Record<string, any> = {}; const newMarks: Record<string, 'approve' | 'flag'> = {}; const newDetails: Record<string, { reason: string; exampleUrl: string }> = {}; let mism = 0;
     try {
-      for (let i = 0; i < ids.length; i += 4) {
-        const chunk = ids.slice(i, i + 4);
+      for (let i = 0; i < ids.length; i += 3) {
+        const chunk = ids.slice(i, i + 3);
         const res = await af('/api/sabi/admin/tasker-review', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'vision-watch', completionIds: chunk }) });
         const d = res.ok ? await res.json() : null;
         if (!d?.success) { setMsg(d?.error || 'Vision Watcher failed.'); break; }
@@ -1220,7 +1223,7 @@ function TaskerReviewTab() {
           if (r.mismatch) { mism++; newMarks[r.completionId] = 'flag'; newDetails[r.completionId] = { reason: r.suggestedFlagReason || `Doesn't match the task: ${r.reason}`, exampleUrl: '' }; }
           else if (r.verdict === 'match') { newMarks[r.completionId] = 'approve'; } // pre-tick the correct ones
         }
-        setVwProg({ done: Math.min(i + 4, ids.length), total: ids.length });
+        setVwProg({ done: Math.min(i + 3, ids.length), total: ids.length });
         setVw({ ...map }); // live badges as chunks land
       }
       const okCount = Object.values(newMarks).filter(v => v === 'approve').length;
