@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSabiSession } from '@/lib/sabiAuth';
 import { sabiExecute } from '@/lib/tursoClient';
 import { allowOwnerOrStaff } from '@/lib/sabiStaff';
+import { resolveSabiActor } from '@/lib/sabiApiAuth';
+import { getActingAccount } from '@/lib/sabiTeam';
 
 export const maxDuration = 15;
 export const preferredRegion = 'sfo1';
@@ -15,21 +17,27 @@ const G360_URL = process.env.GAMERZ360_API_URL || 'https://gamerz360.com';
  * the proofs from gamerz360 via the integration token.
  */
 export async function GET(req: NextRequest) {
-  // Owner/staff (admin dashboard) may view ANY order's proofs; a customer only
-  // their own. Owner via token has no session — allowOwnerOrStaff covers both.
+  // Three ways in, each scoped correctly:
+  //  1. owner/staff (admin dashboard) — may view ANY order's proofs.
+  //  2. an API-key caller (e.g. Owlet routing through its funded account) — only
+  //     orders owned by that account. This is what lets Owlet relay the proofs.
+  //  3. a logged-in customer — only their own orders.
   const isAdminOrStaff = (await allowOwnerOrStaff(req)).ok;
-  const session = await getSabiSession();
-  if (!isAdminOrStaff && !session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const apiActor = isAdminOrStaff ? null : await resolveSabiActor(req);
+  const session = isAdminOrStaff || apiActor ? null : await getSabiSession();
+  if (!isAdminOrStaff && !apiActor && !session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const orderId = req.nextUrl.searchParams.get('orderId')?.trim();
   if (!orderId) return NextResponse.json({ error: 'orderId required' }, { status: 400 });
 
   try {
-    // Ownership check — skipped for owner/staff who moderate every order.
+    // Ownership check — skipped for owner/staff who moderate every order. An API
+    // caller is scoped to its acting account; a customer to their own id.
     if (!isAdminOrStaff) {
+      const ownerId = apiActor ? (await getActingAccount(apiActor.id)).accountId : session!.id;
       const own = await sabiExecute({
         sql: `SELECT id FROM SabiOrder WHERE id = ? AND userId = ? LIMIT 1`,
-        args: [orderId, session!.id],
+        args: [orderId, ownerId],
       });
       if (own.rows.length === 0) {
         return NextResponse.json({ error: 'Order not found' }, { status: 404 });
