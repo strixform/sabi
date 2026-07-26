@@ -258,7 +258,18 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
     const { maxDiscountKobo } = await import('./sabiPerks');
     const requestedDiscount = promoDiscountKobo + welcomeDiscountKobo + loyaltyDiscountKobo + accountDiscountKobo;
     const totalDiscountKobo = Math.min(requestedDiscount, totalPrice, maxDiscountKobo(totalPrice, basePrice));
-    const chargeKobo = totalPrice - totalDiscountKobo;
+
+    // Platform-fee WAIVER for designated accounts (the Owlet reseller account
+    // routes all its orders through one funded account and shouldn't pay the fee).
+    // Kept SEPARATE from the discount stack so the margin clamp can't limit it —
+    // it's a deliberate fee exemption, not a promo. SABI_FEE_WAIVED_ACCOUNTS is a
+    // comma-separated list of account emails and/or ids.
+    const feeWaiverList = (process.env.SABI_FEE_WAIVED_ACCOUNTS || '').toLowerCase().split(',').map((s) => s.trim()).filter(Boolean);
+    const feeWaived = feeWaiverList.length > 0 && (feeWaiverList.includes((user.email || '').toLowerCase()) || feeWaiverList.includes(input.userId.toLowerCase()));
+    const effectiveFee = feeWaived ? 0 : platformFee;
+    const feeWaiverKobo = feeWaived ? platformFee : 0;
+
+    const chargeKobo = Math.max(0, totalPrice - totalDiscountKobo - feeWaiverKobo);
 
     const debitResult = await debitSabiWallet(input.userId, chargeKobo, '');
     if (!debitResult.success) {
@@ -281,7 +292,7 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
           quantity: effectiveQuantity,
           pricePerUnit: isCustomComments ? CUSTOM_COMMENT_KOBO : service.pricePerUnit,
           totalPrice: basePrice,
-          platformFee: platformFee,
+          platformFee: effectiveFee,
           paymentMethod: input.paymentMethod,
           orderedVia: 'web',
           clientId: input.clientId,
@@ -321,7 +332,7 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
           quantity: effectiveQuantity,
           pricePerUnit: isCustomComments ? CUSTOM_COMMENT_KOBO : service.pricePerUnit,
           totalPrice: basePrice,
-          platformFee,
+          platformFee: effectiveFee,
           paymentMethod: input.paymentMethod,
           discountAmount: totalDiscountKobo,
           audienceGender: input.audienceGender || null,
