@@ -15,6 +15,7 @@ import {
 } from 'react-icons/si';
 import { FaLinkedinIn } from 'react-icons/fa';
 import { FiGlobe, FiMusic, FiAward } from 'react-icons/fi';
+import { BBNaijaIcon } from '@/components/BBNaijaIcon';
 import { ModernSabiHeader } from '@/components/ModernSabiHeader';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
 import { GradientText } from '@/components/AnimatedText';
@@ -24,7 +25,7 @@ import { goalForService, goalsWithCounts, SERVICE_GOALS, POPULAR_SERVICE_IDS } f
 const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   instagram: SiInstagram, twitter: SiX,       youtube:   SiYoutube,  tiktok:    SiTiktok,
   snapchat:  SiSnapchat,  spotify: SiSpotify, whatsapp:  SiWhatsapp, pinterest: SiPinterest,
-  audiomack: SiAudiomack, boomplay: FiMusic, apple_music: SiApplemusic, voting: FiAward,
+  audiomack: SiAudiomack, boomplay: FiMusic, apple_music: SiApplemusic, voting: FiAward, bbnaija: BBNaijaIcon,
   threads:   SiThreads,   telegram: SiTelegram, twitch:  SiTwitch,
   facebook:  SiFacebook,  google:  SiGoogle,  linkedin:  FaLinkedinIn,
   app_store: SiApple,     podcast: SiApplepodcasts, website: FiGlobe,
@@ -42,6 +43,7 @@ const PLATFORM_COLORS: Record<string, string> = {
   boomplay: 'from-orange-500 to-red-600',
   apple_music: 'from-pink-500 to-rose-600',
   voting: 'from-violet-500 to-purple-700',
+  bbnaija: 'from-fuchsia-500 to-pink-700',
   whatsapp: 'from-green-500 to-green-600',
   pinterest: 'from-red-500 to-red-700',
   threads: 'from-slate-600 to-slate-800',

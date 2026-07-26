@@ -47,6 +47,7 @@ export const PLATFORMS = {
   BOOMPLAY: 'boomplay',
   APPLE_MUSIC: 'apple_music',
   VOTING: 'voting',
+  BBNAIJA: 'bbnaija',
   WHATSAPP: 'whatsapp',
   PINTEREST: 'pinterest',
   THREADS: 'threads',
@@ -3075,6 +3076,23 @@ Each vote is cast by a genuine person on our crowd, **paid by the platform**, fr
     category: PLATFORMS.VOTING, action: 'Vote', pricePerUnit: 8000, minQuantity: 50, maxQuantity: 100000, speed: 'medium', refillable: false,
   },
 
+  // ============ BBNaija — vote for your favourite housemate ============
+  {
+    id: 'bbnaija_vote', name: 'BBNaija Votes',
+    description: `📺 **Vote for your favourite BBNaija housemate — with real Nigerians.**
+
+Every vote is cast by a genuine Nigerian on our crowd, **paid by the platform**, from a real device. Keep your fave in the house with authentic votes that the show's system counts — not bots.
+
+**WHAT YOU GET:**
+✓ Real, paid Nigerian voters (one vote per real person/device)
+✓ Naturally paced through the voting window so it never looks like a rush
+✓ You tell us which housemate to vote for — we handle the rest
+✓ Works for the official site, app, and any poll
+
+_Tip: paste the voting link and name your housemate in the instructions box. Housemates are added each season once the show announces them._`,
+    category: PLATFORMS.BBNAIJA, action: 'Vote', pricePerUnit: 8000, minQuantity: 50, maxQuantity: 500000, speed: 'medium', refillable: false, icon: '📺',
+  },
+
   // ============ NEW: local Nigerian services (real taskers) ============
   {
     id: 'nairaland_reply',
@@ -3362,6 +3380,7 @@ export function getPlatformLabel(platform: string): string {
     [PLATFORMS.BOOMPLAY]: 'Boomplay',
     [PLATFORMS.APPLE_MUSIC]: 'Apple Music',
     [PLATFORMS.VOTING]: 'Voting & Polls',
+    [PLATFORMS.BBNAIJA]: 'BBNaija Votes',
     [PLATFORMS.WHATSAPP]: 'WhatsApp',
     [PLATFORMS.PINTEREST]: 'Pinterest',
     [PLATFORMS.THREADS]: 'Threads',

@@ -11,6 +11,7 @@ import {
   FiAlertCircle, FiDollarSign, FiTrendingUp, FiStar, FiMusic, FiAward,
   FiMessageSquare, FiShoppingBag, FiCalendar, FiCoffee, FiTruck, FiBookOpen, FiTag
 } from 'react-icons/fi';
+import { BBNaijaIcon } from '@/components/BBNaijaIcon';
 import {
   SiInstagram, SiX, SiYoutube, SiTiktok, SiSnapchat, SiSpotify,
   SiWhatsapp, SiPinterest, SiThreads, SiTelegram, SiTwitch,
@@ -43,6 +44,7 @@ const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string; s
   boomplay:   FiMusic,
   apple_music: SiApplemusic,
   voting:     FiAward,
+  bbnaija:    BBNaijaIcon,
   whatsapp:   SiWhatsapp,
   pinterest:  SiPinterest,
   threads:    SiThreads,
@@ -269,7 +271,7 @@ const PLATFORM_COLORS: Record<string, string> = {
 // Brand tint for the platform-tile ICON (so Facebook shows blue, Instagram pink, etc. — not flat white).
 const PLATFORM_TINT: Record<string, string> = {
   instagram: '#E1306C', twitter: '#ffffff', youtube: '#FF0000', tiktok: '#ffffff', snapchat: '#FFFC00',
-  spotify: '#1DB954', audiomack: '#FF6C2F', boomplay: '#F73B57', apple_music: '#FA57C1', voting: '#F59E0B',
+  spotify: '#1DB954', audiomack: '#FF6C2F', boomplay: '#F73B57', apple_music: '#FA57C1', voting: '#F59E0B', bbnaija: '#E838B0',
   whatsapp: '#25D366', pinterest: '#E60023', threads: '#ffffff', telegram: '#2CA5E0', twitch: '#9146FF',
   facebook: '#1877F2', google: '#4285F4', linkedin: '#0A66C2', app_store: '#A2AAAD', podcast: '#A855F7',
   website: '#38BDF8', rumble: '#22C55E', nairaland: '#16A34A', marketplace: '#F97316', events: '#D946EF',
