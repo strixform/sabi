@@ -19,6 +19,17 @@ export default function ApiKeysPage() {
   const [showForm, setShowForm] = useState(false);
   const [creatingKey, setCreatingKey] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  // The just-created key, shown once in a copyable box (never again).
+  const [createdKey, setCreatedKey] = useState<string | null>(null);
+
+  const copyText = (text: string) => {
+    try {
+      navigator.clipboard?.writeText(text).then(() => {
+        setCopiedKey(text);
+        setTimeout(() => setCopiedKey((c) => (c === text ? null : c)), 2000);
+      });
+    } catch { /* clipboard blocked — the field is selectable as a fallback */ }
+  };
 
   useEffect(() => {
     fetchKeys();
@@ -52,7 +63,8 @@ export default function ApiKeysPage() {
         setKeys([...keys, { id: data.key.split('_')[1], name: newKeyName, createdAt: new Date().toISOString(), lastUsedAt: null }]);
         setNewKeyName('');
         setShowForm(false);
-        alert(`API Key created:\n\n${data.key}\n\nSave this somewhere safe - you won't see it again!`);
+        setCreatedKey(data.key); // shown once in a copyable box below
+        copyText(data.key);       // and auto-copied to the clipboard as a convenience
       }
     } finally {
       setCreatingKey(false);
@@ -195,6 +207,38 @@ export default function ApiKeysPage() {
                         </motion.button>
                       </div>
                     </div>
+                  </div>
+                </InteractiveCard>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Just-created key — shown ONCE in a copyable box (replaces the old
+              alert(), which wasn't selectable). Auto-copied on create too. */}
+          <AnimatePresence>
+            {createdKey && (
+              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                <InteractiveCard glowColor="green">
+                  <div className="p-6 sm:p-8">
+                    <h3 className="text-lg font-bold text-green-400 mb-1">✅ API key created</h3>
+                    <p className="text-slate-300 text-sm mb-4">Copy it now — for security you won&apos;t be able to see it again.</p>
+                    <div className="flex flex-col sm:flex-row items-stretch gap-2">
+                      <input
+                        readOnly
+                        value={createdKey}
+                        onFocus={(e) => e.currentTarget.select()}
+                        className="flex-1 min-w-0 px-4 py-3 bg-[#0A0D14] border border-white/[0.06] rounded-lg text-slate-200 font-mono text-xs sm:text-sm select-all"
+                      />
+                      <button
+                        onClick={() => copyText(createdKey)}
+                        className="px-5 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 whitespace-nowrap transition"
+                      >
+                        <FiCopy className="w-4 h-4" /> {copiedKey === createdKey ? 'Copied!' : 'Copy key'}
+                      </button>
+                    </div>
+                    <button onClick={() => setCreatedKey(null)} className="mt-4 text-sm text-slate-400 hover:text-white transition">
+                      I&apos;ve saved it — done
+                    </button>
                   </div>
                 </InteractiveCard>
               </motion.div>
