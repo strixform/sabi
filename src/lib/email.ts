@@ -34,6 +34,23 @@ export async function sendWelcomeBonusEmail(to: string, name: string, bonusNaira
         <p style="font-size:15px;line-height:1.6;color:#e2e8f0;">Hi ${esc(name) || 'there'},</p>
         <p style="font-size:15px;line-height:1.6;color:#e2e8f0;">We put <b>₦${bonusNaira.toLocaleString()}</b> in your wallet. No strings — just so you can see how it works.</p>
         <p style="font-size:15px;line-height:1.6;color:#e2e8f0;">Every action on SABI is done by a <b>real Nigerian</b>, and you get a <b>screenshot as proof</b>. Pick any service, spend your ₦${bonusNaira.toLocaleString()}, and watch it happen.</p>
+
+        <!-- Proof preview — shows what they'll actually receive (table layout = email-safe) -->
+        <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:20px 0;background:#0f172a;border:1px solid rgba(59,130,246,.25);border-radius:14px;">
+          <tr><td style="padding:16px;">
+            <div style="font-size:10.5px;font-weight:800;color:#22d3ee;text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px;">🟢 This is the proof you'll get</div>
+            <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+              <td style="vertical-align:middle;padding-right:12px;">
+                <div style="width:42px;height:42px;border-radius:11px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;font-size:22px;font-weight:900;text-align:center;line-height:42px;">✓</div>
+              </td>
+              <td style="vertical-align:middle;">
+                <div style="color:#fff;font-weight:800;font-size:14px;">Real person · verified action</div>
+                <div style="color:#94a3b8;font-size:12px;margin-top:2px;">A screenshot of every action, right in your dashboard</div>
+              </td>
+            </tr></table>
+          </td></tr>
+        </table>
+
         <div style="text-align:center;margin:24px 0;">
           <a href="${APP_URL}/sabi/order" style="display:inline-block;background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;text-decoration:none;font-weight:800;padding:12px 28px;border-radius:10px;font-size:15px;">Try it with your ₦${bonusNaira.toLocaleString()} →</a>
         </div>
