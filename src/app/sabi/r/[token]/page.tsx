@@ -45,7 +45,7 @@ export default function PublicReportPage() {
         </div>
 
         <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: '#5b21b6', marginBottom: 20 }}>
-          ✅ This campaign was delivered by <b>real Nigerians</b> on the Gamers360 crowd, paid per task — not bots. Below are the receipts they uploaded as proof.
+          ✅ This campaign was delivered by <b>real Nigerians</b> — genuine, verified people, not bots. Below are the receipts they uploaded as proof.
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 22 }}>

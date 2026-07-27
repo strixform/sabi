@@ -86,6 +86,17 @@ export default function OrderTrackingPage() {
   const [startShot, setStartShot] = useState<string | null>(null);
   const [startCount, setStartCount] = useState<number | null>(null);
   const [certCopied, setCertCopied] = useState(false);
+  // The PUBLIC, login-free proof link (minted once) — this is what makes sharing
+  // actually work: a recipient who isn't a SABI user can still open it.
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  async function ensureShareUrl(): Promise<string | null> {
+    if (shareUrl) return shareUrl;
+    try {
+      const d = await fetch(`/api/sabi/orders/share-token?orderId=${orderId}`).then((r) => r.json());
+      if (d?.url) { setShareUrl(d.url); return d.url; }
+    } catch { /* fall through */ }
+    return null;
+  }
 
   // Order rating & feedback (completed orders only)
   const [rating, setRating] = useState<number>(0);
@@ -768,18 +779,31 @@ export default function OrderTrackingPage() {
                   <p className="text-[10px] text-slate-600 tracking-wider">Verification ID · {String(orderId).slice(0, 8).toUpperCase()}</p>
                 </div>
 
-                {/* Actions */}
+                {/* Actions — share the PUBLIC proof link so anyone can open it. */}
                 <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
                   <button
-                    onClick={() => {
-                      const link = `${window.location.origin}/sabi/orders/${orderId}`;
-                      navigator.clipboard?.writeText(link).then(() => { setCertCopied(true); setTimeout(() => setCertCopied(false), 1800); }).catch(() => {});
+                    onClick={async () => {
+                      const url = await ensureShareUrl();
+                      if (!url) return;
+                      const msg = `Look 👀 real people just engaged my page — and I've got the receipts to prove it. Verified by SABI 👇\n${url}`;
+                      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+                    }}
+                    className="px-4 py-2 rounded-xl text-sm font-bold text-white transition"
+                    style={{ background: '#25D366' }}
+                  >
+                    💬 Share on WhatsApp
+                  </button>
+                  <button
+                    onClick={async () => {
+                      const url = await ensureShareUrl();
+                      if (!url) return;
+                      navigator.clipboard?.writeText(url).then(() => { setCertCopied(true); setTimeout(() => setCertCopied(false), 1800); }).catch(() => {});
                     }}
                     className="px-4 py-2 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-500 transition"
                   >
-                    {certCopied ? '✓ Link copied' : '🔗 Copy verification link'}
+                    {certCopied ? '✓ Link copied' : '🔗 Copy proof link'}
                   </button>
-                  <span className="text-[11px] text-slate-500">📸 Screenshot to share with brands & sponsors</span>
+                  <span className="text-[11px] text-slate-500 w-full text-center mt-1">Your friends can open it without signing in — real proof, your name on it.</span>
                 </div>
               </div>
             </InteractiveCard>
