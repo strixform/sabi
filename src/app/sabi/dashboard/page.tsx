@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiCreditCard, FiTrendingUp, FiArrowUpRight, FiInbox, FiAward, FiZap, FiTarget, FiShare2, FiCopy, FiBookmark, FiSettings, FiShoppingCart } from 'react-icons/fi';
 import { ModernSabiHeader } from '@/components/ModernSabiHeader';
+import SabiProofAnchor from '@/components/SabiProofAnchor';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
 import { GradientText } from '@/components/AnimatedText';
 import { FloatingElement } from '@/components/FloatingElement';
@@ -205,6 +206,9 @@ export default function DashboardPage() {
             </Link>
           </div>
         </motion.div>
+
+        {/* Real-people proof anchor — "it already works, right now" for new signups. */}
+        <SabiProofAnchor />
 
         {/* Stats Grid - Animated */}
         <StaggerContainer staggerDelay={0.15}>
