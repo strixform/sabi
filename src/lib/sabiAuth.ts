@@ -497,7 +497,7 @@ export async function requestPasswordReset(
 
     const resetToken = crypto.randomBytes(32).toString('hex');
     const resetTokenHash = hashToken(resetToken);
-    const resetExpiry = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour (ISO text)
+    const resetExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24h (ISO text) — 1h was too tight for slow/out-of-order mail; tokens are hashed + single-use so a longer window is safe
 
     await sabiExecute({
       sql: `UPDATE SabiUser SET resetToken = ?, resetTokenExpiry = ? WHERE id = ?`,

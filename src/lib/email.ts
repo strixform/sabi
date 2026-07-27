@@ -419,7 +419,7 @@ export async function sendPasswordResetEmail(
             </p>
 
             <p style="color: #666; line-height: 1.6; margin: 20px 0;">
-              <strong>Note:</strong> This link expires in 1 hour. If you didn't request this, ignore this email.
+              <strong>Note:</strong> This link expires in 24 hours. If you didn't request this, ignore this email.
             </p>
 
             <hr style="border: none; border-top: 1px solid #e8e8e8; margin: 30px 0;">
