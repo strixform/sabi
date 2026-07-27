@@ -43,6 +43,15 @@ export async function POST(req: NextRequest) {
         if (g.granted > 0) {
           const { sendOwletWelcomeEmail } = await import('@/lib/email');
           sendOwletWelcomeEmail(user.email, user.name, Math.round(OWLET_BONUS_KOBO / 100)).catch(() => {});
+        } else {
+          // Not on the Owlet allowlist → the universal ₦500 welcome taste instead
+          // (never both, so no one is double-gifted).
+          const { grantWelcomeBonus, WELCOME_BONUS_KOBO } = await import('@/lib/sabiWelcomeBonus');
+          const w = await grantWelcomeBonus(user.id);
+          if (w.granted > 0) {
+            const { sendWelcomeBonusEmail } = await import('@/lib/email');
+            sendWelcomeBonusEmail(user.email, user.name, Math.round(WELCOME_BONUS_KOBO / 100)).catch(() => {});
+          }
         }
       } catch { /* promo is best-effort */ }
     })();

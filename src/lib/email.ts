@@ -17,6 +17,34 @@ function baseHtml(title: string, body: string) {
   </div>`;
 }
 
+// The ₦500 "welcome taste" — a gift to try any service so a hesitant signup can
+// SEE real people work + get proof. Deliberately not salesy; discovered value.
+export async function sendWelcomeBonusEmail(to: string, name: string, bonusNaira = 500) {
+  if (!process.env.RESEND_API_KEY || !to) {
+    console.log(`[EMAIL-DEV] welcome bonus → ${to} (₦${bonusNaira})`);
+    return { success: true, dev: true };
+  }
+  const esc = (s: string) => String(s || '').replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c] || c));
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to,
+      subject: `You've got ₦${bonusNaira.toLocaleString()} to try real engagement — on us 🎁`,
+      html: baseHtml('A little gift to see it for yourself', `
+        <p style="font-size:15px;line-height:1.6;color:#e2e8f0;">Hi ${esc(name) || 'there'},</p>
+        <p style="font-size:15px;line-height:1.6;color:#e2e8f0;">We put <b>₦${bonusNaira.toLocaleString()}</b> in your wallet. No strings — just so you can see how it works.</p>
+        <p style="font-size:15px;line-height:1.6;color:#e2e8f0;">Every action on SABI is done by a <b>real Nigerian</b>, and you get a <b>screenshot as proof</b>. Pick any service, spend your ₦${bonusNaira.toLocaleString()}, and watch it happen.</p>
+        <div style="text-align:center;margin:24px 0;">
+          <a href="${APP_URL}/sabi/order" style="display:inline-block;background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;text-decoration:none;font-weight:800;padding:12px 28px;border-radius:10px;font-size:15px;">Try it with your ₦${bonusNaira.toLocaleString()} →</a>
+        </div>
+        <p style="font-size:12px;color:#64748b;">The credit is already in your wallet. Real people, real proof — see for yourself.</p>`),
+    });
+    return { success: true };
+  } catch {
+    return { success: false };
+  }
+}
+
 export async function sendOwletWelcomeEmail(to: string, name: string, bonusNaira = 2000) {
   if (!process.env.RESEND_API_KEY || !to) {
     console.log(`[EMAIL-DEV] Owlet welcome → ${to} (₦${bonusNaira})`);
