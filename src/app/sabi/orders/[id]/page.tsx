@@ -98,6 +98,25 @@ export default function OrderTrackingPage() {
     return null;
   }
 
+  // Celebratory share prompt — fires ONCE per order the first time a buyer opens
+  // a completed order, so more of them actually share (the growth loop) without
+  // being nagged on every visit.
+  const [showShare, setShowShare] = useState(false);
+  useEffect(() => {
+    if (order?.status === 'completed') {
+      try {
+        const k = `sabi_share_prompt_${orderId}`;
+        if (!localStorage.getItem(k)) { localStorage.setItem(k, '1'); setShowShare(true); }
+      } catch { /* storage blocked */ }
+    }
+  }, [order?.status, orderId]);
+  async function shareWhatsApp() {
+    const url = await ensureShareUrl();
+    if (!url) return;
+    const msg = `Look 👀 real people just engaged my page — and I've got the receipts. Verified by SABI 👇\n${url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+  }
+
   // Order rating & feedback (completed orders only)
   const [rating, setRating] = useState<number>(0);
   const [hoverStar, setHoverStar] = useState<number>(0);
@@ -725,6 +744,23 @@ export default function OrderTrackingPage() {
             </div>
           </InteractiveCard>
         </motion.div>
+
+        {/* One-time celebratory share prompt on a freshly-opened completed order. */}
+        {showShare && order.status === 'completed' && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/[0.12] to-transparent p-5 sm:p-6 text-center"
+          >
+            <div className="text-3xl mb-1">🎉</div>
+            <h3 className="text-lg sm:text-xl font-black text-white">Delivered — with proof!</h3>
+            <p className="text-sm text-slate-400 mb-4 max-w-sm mx-auto">Real Nigerians did the work. Show it off — your friends can open the receipts without signing in.</p>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <button onClick={shareWhatsApp} className="px-5 py-2.5 rounded-xl text-sm font-bold text-white transition" style={{ background: '#25D366' }}>💬 Share on WhatsApp</button>
+              <button onClick={() => setShowShare(false)} className="px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-400 hover:text-white transition">Maybe later</button>
+            </div>
+          </motion.div>
+        )}
 
         {/* ── AUTHENTICITY CERTIFICATE — shareable proof for brands (completed only) ─ */}
         {order.status === 'completed' && (
