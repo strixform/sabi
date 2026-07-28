@@ -3,20 +3,21 @@
 export const dynamic = 'force-dynamic';
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   FiArrowRight, FiArrowLeft, FiCheck, FiShoppingCart, FiLoader,
   FiAlertCircle, FiDollarSign, FiTrendingUp, FiStar, FiMusic, FiAward,
-  FiMessageSquare, FiShoppingBag, FiCalendar, FiCoffee, FiTruck, FiBookOpen, FiTag
+  FiMessageSquare, FiShoppingBag, FiCalendar, FiCoffee, FiTruck, FiBookOpen, FiTag,
+  FiMapPin, FiVideo
 } from 'react-icons/fi';
 import { BBNaijaIcon } from '@/components/BBNaijaIcon';
 import {
   SiInstagram, SiX, SiYoutube, SiTiktok, SiSnapchat, SiSpotify,
   SiWhatsapp, SiPinterest, SiThreads, SiTelegram, SiTwitch,
   SiFacebook, SiGoogle, SiApple, SiApplepodcasts, SiAudiomack, SiApplemusic, SiRumble,
-  SiDiscord, SiReddit, SiTrustpilot, SiQuora,
+  SiDiscord, SiReddit, SiTrustpilot, SiQuora, SiSoundcloud,
 } from 'react-icons/si';
 import { FaLinkedinIn } from 'react-icons/fa';
 import { FiGlobe } from 'react-icons/fi';
@@ -27,7 +28,7 @@ import { AnimateInText } from '@/components/AnimateInText';
 import { ModernSabiHeader } from '@/components/ModernSabiHeader';
 import { LiveFulfillmentFeed } from '@/components/LiveFulfillmentFeed';
 import type { Service } from '@/lib/servicesCatalog';
-import { PLATFORMS, SERVICES_CATALOG, computeServicePricing, computePricing, getServiceById, getPlatformLabel } from '@/lib/servicesCatalog';
+import { PLATFORMS, SERVICES_CATALOG, computeServicePricing, computePricing, getServiceById, getPlatformLabel, isServiceNew } from '@/lib/servicesCatalog';
 import { goalForService, goalsWithCounts, SERVICE_GOALS } from '@/lib/serviceGoals';
 
 // Custom comments: the buyer supplies the exact text for each comment. Premium —
@@ -70,7 +71,19 @@ const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string; s
   selar:      FiBookOpen,
   bolt_food:  FiCoffee,
   jiji:       FiTag,
+  soundcloud: SiSoundcloud,
+  deezer:     FiMusic,
+  tidal:      FiMusic,
+  amazon:     FiShoppingBag,
+  aliexpress: FiShoppingBag,
+  fintech:    FiDollarSign,
+  creative:   FiVideo,
+  gigs:       FiMapPin,
 };
+
+// Categories that currently contain at least one freshly-added service — powers
+// the "NEW" pill on the platform tiles. Auto-clears once every newUntil passes.
+const NEW_CATEGORIES = new Set(SERVICES_CATALOG.filter(isServiceNew).map((s) => s.category));
 
 // Intelligent URL detection patterns for each platform
 type URLType = 'profile' | 'post' | 'video' | 'channel' | 'tweet' | 'thread' | 'pin' | 'channel_post' | 'other';
@@ -282,6 +295,8 @@ const PLATFORM_TINT: Record<string, string> = {
   website: '#38BDF8', rumble: '#22C55E', nairaland: '#16A34A', marketplace: '#F97316', events: '#D946EF',
   chowdeck: '#84CC16', glovo: '#F5C518', selar: '#6366F1', bolt_food: '#10B981', jiji: '#14B8A6',
   discord: '#5865F2', reddit: '#FF4500', trustpilot: '#00B67A', quora: '#B92B27',
+  soundcloud: '#FF5500', deezer: '#A238FF', tidal: '#00FFFF', amazon: '#FF9900',
+  aliexpress: '#FF4747', fintech: '#22C55E', creative: '#EC4899', gigs: '#84CC16',
 };
 
 // Nigerian states (audience targeting — Nigerian audience only for now)
@@ -356,6 +371,7 @@ type Step = 'platform' | 'service' | 'details' | 'review';
 
 export default function OrderPage() {
   const router = useRouter();
+  const reduceMotion = useReducedMotion();
   const [currentStep, setCurrentStep] = useState<Step>('platform');
   const [selectedPlatform, setSelectedPlatform] = useState<string>('');
   const [selectedGoal, setSelectedGoal] = useState<string>('');   // outcome-first entry (Reviews, Traffic…)
@@ -1009,7 +1025,7 @@ export default function OrderPage() {
                     <motion.button
                       key={value}
                       onClick={() => { if (selectedPlatform === value) { setCurrentStep('service'); } else { setSelectedPlatform(value); } }}
-                      className={`p-3 sm:p-6 rounded-lg sm:rounded-xl border-2 transition-all ${
+                      className={`relative p-3 sm:p-6 rounded-lg sm:rounded-xl border-2 transition-all ${
                         selectedPlatform === value
                           ? `border-blue-500 bg-blue-500/10`
                           : 'border-slate-700/50 bg-slate-800/50 hover:border-slate-600'
@@ -1017,6 +1033,23 @@ export default function OrderPage() {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
+                      {NEW_CATEGORIES.has(value) && (
+                        <>
+                          <span className="absolute top-1.5 left-1.5 text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded-full bg-yellow-400 text-slate-900 leading-none shadow">NEW</span>
+                          {/* A little hand that "taps" on a ~2s loop — draws the eye
+                              to the fresh categories and literally says tap me.
+                              Silent for anyone with reduced-motion turned on. */}
+                          <motion.span
+                            aria-hidden
+                            className="absolute top-1 right-1.5 text-lg sm:text-xl pointer-events-none select-none"
+                            style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,.55))' }}
+                            animate={reduceMotion ? undefined : { y: [0, 6, 0], rotate: [0, -8, 0], scale: [1, 0.9, 1] }}
+                            transition={{ duration: 0.85, repeat: Infinity, repeatDelay: 0.9, ease: 'easeInOut' }}
+                          >
+                            👆
+                          </motion.span>
+                        </>
+                      )}
                       {Icon && <Icon className="text-2xl sm:text-4xl mb-1 sm:mb-2 mx-auto" style={{ color: PLATFORM_TINT[value] || '#ffffff' }} />}
                       <p className="font-bold text-white text-xs sm:text-sm">{getPlatformLabel(value)}</p>
                       {selectedPlatform === value && (
