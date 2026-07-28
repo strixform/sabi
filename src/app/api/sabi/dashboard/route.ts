@@ -17,6 +17,7 @@ import { getSabiSession } from '@/lib/sabiAuth';
 import { getSabiWallet, getSabiTransactions } from '@/lib/sabiWallet';
 import { getSabiOrders } from '@/lib/sabiOrderEngine';
 import { getCachedOrders, setCachedOrders } from '@/lib/redis';
+import { prisma } from '@/lib/prisma';
 
 export const preferredRegion = 'sfo1';
 export const maxDuration = 15;
@@ -28,8 +29,12 @@ export async function GET(req: NextRequest) {
     const session = await getSabiSession();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // Fetch everything in parallel — wallet, recent transactions, and orders
-    const [wallet, transactions, orders] = await Promise.all([
+    const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    // Fetch everything in parallel — wallet, recent transactions, orders, and the
+    // rolling 7-day totals the dashboard now surfaces (so a light lifetime figure
+    // never reads as "barely used").
+    const [wallet, transactions, orders, weekAgg] = await Promise.all([
       getSabiWallet(session.id),
       getSabiTransactions(session.id, 20),
       // Orders: try cache first, DB on miss
@@ -41,7 +46,16 @@ export async function GET(req: NextRequest) {
         setCachedOrders(session.id, fresh, 300);
         return fresh;
       })(),
+      prisma.sabiOrder.aggregate({
+        where: { userId: session.id, createdAt: { gte: weekStart } },
+        _count: { _all: true },
+        _sum: { totalPrice: true, platformFee: true, discountAmount: true },
+      }).catch(() => null),
     ]);
+
+    const week7Spent = weekAgg
+      ? (weekAgg._sum.totalPrice || 0) + (weekAgg._sum.platformFee || 0) - (weekAgg._sum.discountAmount || 0)
+      : 0;
 
     const response = NextResponse.json({
       success: true,
@@ -61,6 +75,10 @@ export async function GET(req: NextRequest) {
         transactions,
       },
       orders,
+      last7: {
+        orders: weekAgg?._count?._all || 0,
+        spentKobo: Math.max(0, week7Spent),
+      },
     });
 
     response.headers.set('Cache-Control', 'private, no-store');

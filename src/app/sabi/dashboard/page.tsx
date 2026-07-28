@@ -34,7 +34,7 @@ interface SessionUser {
 }
 
 export default function DashboardPage() {
-  const [wallet, setWallet] = useState({ balance: 0, spent: 0, active: 0 });
+  const [wallet, setWallet] = useState({ balance: 0, spent: 0, active: 0, spent7d: 0 });
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<SessionUser | null>(null);
   const [tier, setTier] = useState(TIER_SYSTEM.NOVICE);
@@ -118,6 +118,7 @@ export default function DashboardPage() {
           balance: walletData.balance || 0,
           spent: spent,
           active: activeOrders,
+          spent7d: data.last7?.spentKobo || 0,
         });
 
         setTier(currentTier);
@@ -283,7 +284,7 @@ export default function DashboardPage() {
                       transition={{ delay: 0.3 }}
                     >
                       <AnimateInText type="typewriter" delay={0.4}>
-                        TOTAL SPENT
+                        SPENT · 7 DAYS
                       </AnimateInText>
                     </motion.span>
                     <CuteIconAnimation type="pulse_glow" duration={1.5}>
@@ -299,10 +300,10 @@ export default function DashboardPage() {
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: 0.5 }}
                     >
-                      {loading ? '...' : showValues ? `₦${(wallet.spent / 100).toLocaleString('en-NG', { minimumFractionDigits: 2 })}` : '••••••'}
+                      {loading ? '...' : showValues ? `₦${(wallet.spent7d / 100).toLocaleString('en-NG', { minimumFractionDigits: 2 })}` : '••••••'}
                     </motion.div>
                     <AnimateInText type="fade" delay={0.6}>
-                      <p className="text-sm text-slate-400">All-time investment</p>
+                      <p className="text-sm text-slate-400">Last 7 days</p>
                     </AnimateInText>
                   </div>
                 </motion.div>
