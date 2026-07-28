@@ -94,7 +94,6 @@ export const PLATFORMS = {
   TIDAL: 'tidal',
   AMAZON: 'amazon',
   ALIEXPRESS: 'aliexpress',
-  FINTECH: 'fintech',
   CREATIVE: 'creative',
   GIGS: 'gigs',
 };
@@ -3420,32 +3419,6 @@ Real Nigerians like or comment on your entry so you top the leaderboard on socia
     newUntil: '2026-07-31T23:59:59Z',
   },
 
-  // ============ FINTECH REFERRALS ============ (real download → register → activate)
-  {
-    id: 'fintech_opay_referral', name: 'OPay App Signups',
-    description: `📲 **Real people download OPay and sign up with your referral.** Grow your referral rewards with genuine Nigerian users. Share your referral link/code.`,
-    category: PLATFORMS.FINTECH, action: 'App Signup', pricePerUnit: 50000, minQuantity: 5, maxQuantity: 5000, speed: 'slow', refillable: false, inputType: 'url',
-    newUntil: '2026-07-31T23:59:59Z',
-  },
-  {
-    id: 'fintech_palmpay_referral', name: 'PalmPay App Signups',
-    description: `📲 **Real people download PalmPay and sign up with your referral.** Genuine Nigerian users, real activations. Share your referral link/code.`,
-    category: PLATFORMS.FINTECH, action: 'App Signup', pricePerUnit: 50000, minQuantity: 5, maxQuantity: 5000, speed: 'slow', refillable: false, inputType: 'url',
-    newUntil: '2026-07-31T23:59:59Z',
-  },
-  {
-    id: 'fintech_kuda_referral', name: 'Kuda App Signups',
-    description: `📲 **Real people download Kuda and sign up with your referral.** Genuine Nigerian users. Share your referral link/code.`,
-    category: PLATFORMS.FINTECH, action: 'App Signup', pricePerUnit: 50000, minQuantity: 5, maxQuantity: 5000, speed: 'slow', refillable: false, inputType: 'url',
-    newUntil: '2026-07-31T23:59:59Z',
-  },
-  {
-    id: 'fintech_moniepoint_referral', name: 'Moniepoint App Signups',
-    description: `📲 **Real people download Moniepoint and sign up with your referral.** Genuine Nigerian users. Share your referral link/code.`,
-    category: PLATFORMS.FINTECH, action: 'App Signup', pricePerUnit: 50000, minQuantity: 5, maxQuantity: 5000, speed: 'slow', refillable: false, inputType: 'url',
-    newUntil: '2026-07-31T23:59:59Z',
-  },
-
   // ============ CREATIVE & UGC GIGS ============ (real creators make content for you)
   {
     id: 'ugc_testimonial_video', name: 'Testimonial / Review Video',
@@ -3787,7 +3760,6 @@ export function getPlatformLabel(platform: string): string {
     [PLATFORMS.TIDAL]:      'Tidal',
     [PLATFORMS.AMAZON]:     'Amazon Reviews',
     [PLATFORMS.ALIEXPRESS]: 'AliExpress Reviews',
-    [PLATFORMS.FINTECH]:    'Fintech Referrals',
     [PLATFORMS.CREATIVE]:   'Creative & UGC Gigs',
     [PLATFORMS.GIGS]:       'Real-World Gigs',
   };

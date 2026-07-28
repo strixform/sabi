@@ -76,7 +76,6 @@ const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string; s
   tidal:      FiMusic,
   amazon:     FiShoppingBag,
   aliexpress: FiShoppingBag,
-  fintech:    FiDollarSign,
   creative:   FiVideo,
   gigs:       FiMapPin,
 };
@@ -296,7 +295,7 @@ const PLATFORM_TINT: Record<string, string> = {
   chowdeck: '#84CC16', glovo: '#F5C518', selar: '#6366F1', bolt_food: '#10B981', jiji: '#14B8A6',
   discord: '#5865F2', reddit: '#FF4500', trustpilot: '#00B67A', quora: '#B92B27',
   soundcloud: '#FF5500', deezer: '#A238FF', tidal: '#00FFFF', amazon: '#FF9900',
-  aliexpress: '#FF4747', fintech: '#22C55E', creative: '#EC4899', gigs: '#84CC16',
+  aliexpress: '#FF4747', creative: '#EC4899', gigs: '#84CC16',
 };
 
 // Nigerian states (audience targeting — Nigerian audience only for now)

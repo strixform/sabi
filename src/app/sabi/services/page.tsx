@@ -31,7 +31,7 @@ const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string }>
   app_store: SiApple,     podcast: SiApplepodcasts, website: FiGlobe,
   rumble:    SiRumble,    discord: SiDiscord, reddit: SiReddit, trustpilot: SiTrustpilot, quora: SiQuora,
   soundcloud: SiSoundcloud, deezer: FiMusic, tidal: FiMusic, amazon: FiStar, aliexpress: FiGlobe,
-  fintech: FiTrendingUp, creative: FiStar, gigs: FiMapPin,
+  creative: FiStar, gigs: FiMapPin,
 };
 
 const PLATFORM_COLORS: Record<string, string> = {
@@ -67,7 +67,6 @@ const PLATFORM_COLORS: Record<string, string> = {
   tidal:     'from-slate-700 to-black',
   amazon:    'from-amber-500 to-orange-600',
   aliexpress:'from-red-500 to-orange-500',
-  fintech:   'from-teal-500 to-emerald-600',
   creative:  'from-pink-500 to-rose-600',
   gigs:      'from-lime-500 to-green-600',
 };
