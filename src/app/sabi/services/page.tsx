@@ -11,7 +11,7 @@ import {
   SiInstagram, SiX, SiYoutube, SiTiktok, SiSnapchat, SiSpotify,
   SiWhatsapp, SiPinterest, SiThreads, SiTelegram, SiTwitch,
   SiFacebook, SiGoogle, SiApple, SiApplepodcasts, SiAudiomack, SiApplemusic,
-  SiRumble, SiDiscord, SiReddit, SiTrustpilot, SiQuora,
+  SiRumble, SiDiscord, SiReddit, SiTrustpilot, SiQuora, SiSoundcloud,
 } from 'react-icons/si';
 import { FaLinkedinIn } from 'react-icons/fa';
 import { FiGlobe, FiMusic, FiAward } from 'react-icons/fi';
@@ -19,7 +19,7 @@ import { BBNaijaIcon } from '@/components/BBNaijaIcon';
 import { ModernSabiHeader } from '@/components/ModernSabiHeader';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
 import { GradientText } from '@/components/AnimatedText';
-import { SERVICES_CATALOG, computePricing, computeServicePricing, getPlatformLabel } from '@/lib/servicesCatalog';
+import { SERVICES_CATALOG, computePricing, computeServicePricing, getPlatformLabel, isServiceNew } from '@/lib/servicesCatalog';
 import { goalForService, goalsWithCounts, SERVICE_GOALS, POPULAR_SERVICE_IDS } from '@/lib/serviceGoals';
 
 const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -30,6 +30,8 @@ const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string }>
   facebook:  SiFacebook,  google:  SiGoogle,  linkedin:  FaLinkedinIn,
   app_store: SiApple,     podcast: SiApplepodcasts, website: FiGlobe,
   rumble:    SiRumble,    discord: SiDiscord, reddit: SiReddit, trustpilot: SiTrustpilot, quora: SiQuora,
+  soundcloud: SiSoundcloud, deezer: FiMusic, tidal: FiMusic, amazon: FiStar, aliexpress: FiGlobe,
+  fintech: FiTrendingUp, creative: FiStar, gigs: FiMapPin,
 };
 
 const PLATFORM_COLORS: Record<string, string> = {
@@ -60,6 +62,14 @@ const PLATFORM_COLORS: Record<string, string> = {
   reddit:    'from-orange-500 to-red-600',
   trustpilot:'from-emerald-500 to-green-600',
   quora:     'from-red-600 to-rose-700',
+  soundcloud:'from-orange-500 to-orange-600',
+  deezer:    'from-fuchsia-500 to-purple-600',
+  tidal:     'from-slate-700 to-black',
+  amazon:    'from-amber-500 to-orange-600',
+  aliexpress:'from-red-500 to-orange-500',
+  fintech:   'from-teal-500 to-emerald-600',
+  creative:  'from-pink-500 to-rose-600',
+  gigs:      'from-lime-500 to-green-600',
 };
 
 // What real Nigerian engagement uniquely unlocks
@@ -351,6 +361,8 @@ export default function ServicesPage() {
                       ? computeServicePricing(service, service.standardPack ?? service.minQuantity, minDuration)
                       : computePricing(service.pricePerUnit, service.minQuantity);
                     const unitPrice = (service.pricePerUnit / 100).toFixed(2);
+                    const isNew = isServiceNew(service);
+                    const soon = service.comingSoon === true;
                     return (
                       <motion.div
                         key={service.id}
@@ -360,15 +372,27 @@ export default function ServicesPage() {
                         className="premium-glass premium-glow rounded-xl p-5 transition flex flex-col"
                       >
                         {/* Action badge */}
-                        <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-start justify-between gap-2 mb-3">
                           <span className="text-xs px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/20 font-semibold">
                             {service.action}
                           </span>
-                          {service.refillable && (
-                            <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/20 font-semibold">
-                              Refillable
-                            </span>
-                          )}
+                          <div className="flex flex-wrap items-center justify-end gap-1.5">
+                            {isNew && (
+                              <span className="text-xs px-2.5 py-1 rounded-full bg-yellow-400/20 text-yellow-300 border border-yellow-400/30 font-bold">
+                                NEW
+                              </span>
+                            )}
+                            {soon && (
+                              <span className="text-xs px-2.5 py-1 rounded-full bg-orange-500/15 text-orange-300 border border-orange-500/25 font-semibold">
+                                Coming soon
+                              </span>
+                            )}
+                            {service.refillable && (
+                              <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/20 font-semibold">
+                                Refillable
+                              </span>
+                            )}
+                          </div>
                         </div>
 
                         <h3 className="text-white font-bold text-base mb-2">{service.name}</h3>
@@ -394,15 +418,26 @@ export default function ServicesPage() {
 
                         {/* Min order price */}
                         <p className="text-xs text-slate-500 text-center mb-4">
-                          Starts from <span className="text-slate-300 font-semibold">₦{(pricing.totalKobo / 100).toLocaleString()}</span> incl. fees
+                          {soon
+                            ? <>Indicative from <span className="text-slate-300 font-semibold">₦{(pricing.totalKobo / 100).toLocaleString()}</span> — we quote per request</>
+                            : <>Starts from <span className="text-slate-300 font-semibold">₦{(pricing.totalKobo / 100).toLocaleString()}</span> incl. fees</>}
                         </p>
 
-                        <Link
-                          href={`/sabi/order?reorder=1&serviceId=${service.id}&quantity=${service.minQuantity}`}
-                          className="premium-cta block text-center py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-bold text-sm transition"
-                        >
-                          Order Now <FiArrowRight className="inline w-4 h-4 ml-1" />
-                        </Link>
+                        {soon ? (
+                          <Link
+                            href="/sabi/support"
+                            className="premium-cta block text-center py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-sm transition"
+                          >
+                            Request this <FiArrowRight className="inline w-4 h-4 ml-1" />
+                          </Link>
+                        ) : (
+                          <Link
+                            href={`/sabi/order?reorder=1&serviceId=${service.id}&quantity=${service.minQuantity}`}
+                            className="premium-cta block text-center py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-bold text-sm transition"
+                          >
+                            Order Now <FiArrowRight className="inline w-4 h-4 ml-1" />
+                          </Link>
+                        )}
                       </motion.div>
                     );
                   })}

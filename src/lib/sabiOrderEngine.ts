@@ -142,6 +142,11 @@ export async function createSabiOrder(input: CreateOrderInput): Promise<OrderRes
     if (!service) {
       return { success: false, error: 'Service not found' };
     }
+    // Listed-but-not-yet-orderable gigs (e.g. real-world physical gigs). They show
+    // in the catalogue with a "Request this" path — direct ordering is blocked.
+    if (service.comingSoon) {
+      return { success: false, error: 'This gig is coming soon — tap "Request this" to arrange it with our team.' };
+    }
 
     // Comment services MUST carry a brief so taskers write exactly what this buyer
     // wants (and never improvise things like "coming from gamerz"). The order form
