@@ -33,6 +33,14 @@ export interface Service {
   //  - 'url' (default): a link
   //  - 'phone_whatsapp': their WhatsApp number (we turn it into a wa.me link)
   inputType?: 'url' | 'phone_whatsapp';
+  // Freshly-added services carry an ISO date; the UI shows a "NEW" badge until it
+  // passes (typically 3 days), then it disappears on its own — no cleanup needed.
+  newUntil?: string;
+}
+
+// Whether a service should still show its "NEW" badge right now.
+export function isServiceNew(s: Pick<Service, 'newUntil'>): boolean {
+  return Boolean(s.newUntil && Date.now() < Date.parse(s.newUntil));
 }
 
 export const PLATFORMS = {
@@ -3095,6 +3103,88 @@ Every vote is cast by a genuine Nigerian on our crowd, **paid by the platform**,
 
 _Tip: paste the voting link and name your housemate in the instructions box. Housemates are added each season once the show announces them._`,
     category: PLATFORMS.BBNAIJA, action: 'Vote', pricePerUnit: 8000, minQuantity: 50, maxQuantity: 500000, speed: 'medium', refillable: false, icon: '📺',
+  },
+
+  // ============ Nigerian votes — reality shows, awards & pageants (NEW) ============
+  {
+    id: 'voting_nigerian_idol', name: 'Nigerian Idol Votes',
+    description: `🎤 **Vote for your favourite Nigerian Idol contestant — with real Nigerians.**
+
+Every vote comes from a genuine Nigerian on our crowd, paid by the platform, from a real device — the kind the show's system actually counts, not bots.
+
+**WHAT YOU GET:**
+✓ Real, paid Nigerian voters (one vote per real person/device)
+✓ Naturally paced through the voting window
+✓ You name the contestant — we handle the rest
+
+_Paste the voting link and name your contestant in the instructions box._`,
+    category: PLATFORMS.VOTING, action: 'Vote', pricePerUnit: 8000, minQuantity: 50, maxQuantity: 500000, speed: 'medium', refillable: false, icon: '🎤',
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'voting_the_voice', name: 'The Voice Nigeria Votes',
+    description: `🎶 **Back your favourite on The Voice Nigeria — with real Nigerian votes.**
+
+Genuine people, real devices, cast within the voting window so it counts and never looks like a bot rush.
+
+**WHAT YOU GET:**
+✓ Real, paid Nigerian voters
+✓ Paced naturally through the show's voting window
+✓ You name the artist — we do the rest`,
+    category: PLATFORMS.VOTING, action: 'Vote', pricePerUnit: 8000, minQuantity: 50, maxQuantity: 500000, speed: 'medium', refillable: false, icon: '🎶',
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'voting_pageant', name: 'Pageant & Campus Queen Votes',
+    description: `👑 **Win any pageant or campus/most-beautiful contest with real votes.**
+
+From Miss Nigeria to campus queen and "face of" contests — real, paid Nigerian voters back your entry so it survives the anti-fraud checks bots can't.
+
+**WHAT YOU GET:**
+✓ Real Nigerian voters (one per person/device)
+✓ Paced to look organic
+✓ You name the contestant and paste the voting link`,
+    category: PLATFORMS.VOTING, action: 'Vote', pricePerUnit: 8000, minQuantity: 50, maxQuantity: 200000, speed: 'medium', refillable: false, icon: '👑',
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'voting_gospel_music_comp', name: 'Gospel & Music Competition Votes',
+    description: `🎵 **Push your entry to the top of any gospel or music talent hunt.**
+
+Church, radio and online music competitions — genuine Nigerian voters carry your entry, from real devices.
+
+**WHAT YOU GET:**
+✓ Real, paid Nigerian voters
+✓ Natural pacing
+✓ Name the entry, paste the link`,
+    category: PLATFORMS.VOTING, action: 'Vote', pricePerUnit: 8000, minQuantity: 50, maxQuantity: 200000, speed: 'medium', refillable: false, icon: '🎵',
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'voting_radio_tv_poll', name: 'Radio / TV Poll Votes',
+    description: `📻 **Win a radio or TV station's on-air / web poll.**
+
+Real Nigerians vote on the station's poll — authentic engagement that holds up.
+
+**WHAT YOU GET:**
+✓ Real, paid Nigerian voters
+✓ Paced naturally
+✓ Name your option and paste the poll link`,
+    category: PLATFORMS.VOTING, action: 'Vote', pricePerUnit: 8000, minQuantity: 50, maxQuantity: 200000, speed: 'medium', refillable: false, icon: '📻',
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'voting_social_contest', name: 'Instagram / TikTok "Like-to-Vote" Contest',
+    description: `❤️ **Win a like/comment-to-win contest on Instagram or TikTok.**
+
+Real Nigerians like or comment on your entry so you top the leaderboard on socials-based contests.
+
+**WHAT YOU GET:**
+✓ Real Nigerian engagement (likes/comments as the contest requires)
+✓ Paced to look organic
+✓ Paste your entry link and tell us what the contest counts (a like, or a specific comment)`,
+    category: PLATFORMS.VOTING, action: 'Vote', pricePerUnit: 8000, minQuantity: 50, maxQuantity: 200000, speed: 'medium', refillable: false, icon: '❤️',
+    newUntil: '2026-07-31T23:59:59Z',
   },
 
   // ============ Discord — grow real community members ============
