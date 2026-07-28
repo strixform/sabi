@@ -30,6 +30,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     entry('/buy', 0.9, 'weekly'),
     ...landingEntries,
     entry('/sabi/services', 0.9, 'weekly'),
+    entry('/sabi/bbnaija', 0.9, 'weekly'),
     entry('/sabi/calculator', 0.8, 'weekly'),
     entry('/sabi/docs', 0.7, 'weekly'),
     entry('/sabi/register', 0.8, 'monthly'),

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiLogOut, FiHome, FiShoppingCart, FiKey, FiBook, FiMenu, FiX, FiCreditCard, FiDownload, FiInbox, FiUser, FiGift, FiZap, FiGrid, FiCompass } from 'react-icons/fi';
+import { BBNaijaIcon } from '@/components/BBNaijaIcon';
 import { LogoImage } from './LogoImage';
 
 interface ModernSabiHeaderProps {
@@ -97,6 +98,7 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
     { href: '/sabi/order', label: 'New Order', icon: FiShoppingCart, badge: 'Quick' },
     { href: '/sabi/studio', label: 'Studio', icon: FiCompass, badge: 'New' },
     { href: '/sabi/services', label: 'Services', icon: FiGrid, badge: null },
+    { href: '/sabi/bbnaija', label: 'BBNaija Votes', icon: BBNaijaIcon, badge: 'Live' },
     { href: '/sabi/ai', label: 'AI Studio', icon: FiZap, badge: 'AI' },
     { href: '/sabi/orders', label: 'Orders', icon: FiInbox, badge: null },
     { href: '/sabi/partnership', label: 'Partnership', icon: FiKey, badge: 'Resell' },
