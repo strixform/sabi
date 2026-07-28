@@ -67,6 +67,9 @@ export const PLATFORMS = {
   SELAR: 'selar',
   BOLT_FOOD: 'bolt_food',
   JIJI: 'jiji',
+  DISCORD: 'discord',
+  REDDIT: 'reddit',
+  TRUSTPILOT: 'trustpilot',
 };
 
 export const SERVICES_CATALOG: Service[] = [
@@ -3093,6 +3096,52 @@ _Tip: paste the voting link and name your housemate in the instructions box. Hou
     category: PLATFORMS.BBNAIJA, action: 'Vote', pricePerUnit: 8000, minQuantity: 50, maxQuantity: 500000, speed: 'medium', refillable: false, icon: '📺',
   },
 
+  // ============ Discord — grow real community members ============
+  {
+    id: 'discord_members', name: 'Discord Members',
+    description: `🎮 **Real people join your Discord server.** Grow your community with genuine members who actually show up — perfect for creators, gaming clans, and crypto/trading communities.
+
+**WHAT YOU GET:**
+✓ Real accounts joining your server (not empty bots)
+✓ Naturally paced so it looks organic
+✓ Works with any public invite link`,
+    category: PLATFORMS.DISCORD, action: 'Join Server', pricePerUnit: 5000, minQuantity: 50, maxQuantity: 50000, speed: 'fast', refillable: true,
+  },
+  {
+    id: 'discord_reactions', name: 'Discord Reactions',
+    description: `💬 **Real reactions on your Discord message.** Get your announcement or drop noticed with genuine emoji reactions from real members.`,
+    category: PLATFORMS.DISCORD, action: 'React', pricePerUnit: 4000, minQuantity: 20, maxQuantity: 10000, speed: 'medium', refillable: false,
+  },
+
+  // ============ Reddit — upvotes, comments & members ============
+  {
+    id: 'reddit_upvotes', name: 'Reddit Upvotes',
+    description: `⬆️ **Real upvotes on your Reddit post or comment.** Push your post up the subreddit with genuine upvotes from real accounts — the honest way to get seen.`,
+    category: PLATFORMS.REDDIT, action: 'Upvote', pricePerUnit: 5000, minQuantity: 20, maxQuantity: 20000, speed: 'medium', refillable: false,
+  },
+  {
+    id: 'reddit_comments', name: 'Reddit Comments',
+    description: `🗨️ **Real Redditors comment on your post.** You provide the brief, real people write relevant comments that keep the thread active. Great for launches and AMAs.`,
+    category: PLATFORMS.REDDIT, action: 'Comment', pricePerUnit: 20000, minQuantity: 3, maxQuantity: 500, speed: 'medium', refillable: false,
+  },
+  {
+    id: 'reddit_members', name: 'Subreddit Members',
+    description: `👥 **Grow your subreddit with real members.** Genuine accounts join your community so it looks active and credible to new visitors.`,
+    category: PLATFORMS.REDDIT, action: 'Join', pricePerUnit: 6000, minQuantity: 50, maxQuantity: 50000, speed: 'medium', refillable: true,
+  },
+
+  // ============ Trustpilot — real business reviews ============
+  {
+    id: 'trustpilot_review', name: 'Trustpilot Reviews',
+    description: `⭐ **Real, positive Trustpilot reviews for your business.** Genuine people leave honest-looking reviews on your Trustpilot page — you tell us the tone and points to mention.
+
+**WHAT YOU GET:**
+✓ Real accounts (survive Trustpilot's checks bots can't pass)
+✓ You provide the brief — tone, rating, what to highlight
+✓ Naturally paced so it never looks like a review dump`,
+    category: PLATFORMS.TRUSTPILOT, action: 'Review', pricePerUnit: 25000, minQuantity: 3, maxQuantity: 200, speed: 'slow', refillable: false,
+  },
+
   // ============ NEW: local Nigerian services (real taskers) ============
   {
     id: 'nairaland_reply',
@@ -3401,6 +3450,9 @@ export function getPlatformLabel(platform: string): string {
     [PLATFORMS.SELAR]:      'Selar',
     [PLATFORMS.BOLT_FOOD]:  'Bolt Food',
     [PLATFORMS.JIJI]:       'Jiji',
+    [PLATFORMS.DISCORD]:    'Discord',
+    [PLATFORMS.REDDIT]:     'Reddit',
+    [PLATFORMS.TRUSTPILOT]: 'Trustpilot',
   };
 
   return labels[platform] || platform;

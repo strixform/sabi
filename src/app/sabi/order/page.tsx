@@ -16,6 +16,7 @@ import {
   SiInstagram, SiX, SiYoutube, SiTiktok, SiSnapchat, SiSpotify,
   SiWhatsapp, SiPinterest, SiThreads, SiTelegram, SiTwitch,
   SiFacebook, SiGoogle, SiApple, SiApplepodcasts, SiAudiomack, SiApplemusic, SiRumble,
+  SiDiscord, SiReddit, SiTrustpilot,
 } from 'react-icons/si';
 import { FaLinkedinIn } from 'react-icons/fa';
 import { FiGlobe } from 'react-icons/fi';
@@ -57,6 +58,9 @@ const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string; s
   podcast:    SiApplepodcasts,
   website:    FiGlobe,
   rumble:     SiRumble,
+  discord:    SiDiscord,
+  reddit:     SiReddit,
+  trustpilot: SiTrustpilot,
   nairaland:  FiMessageSquare,
   marketplace: FiShoppingBag,
   events:     FiCalendar,
@@ -276,6 +280,7 @@ const PLATFORM_TINT: Record<string, string> = {
   facebook: '#1877F2', google: '#4285F4', linkedin: '#0A66C2', app_store: '#A2AAAD', podcast: '#A855F7',
   website: '#38BDF8', rumble: '#22C55E', nairaland: '#16A34A', marketplace: '#F97316', events: '#D946EF',
   chowdeck: '#84CC16', glovo: '#F5C518', selar: '#6366F1', bolt_food: '#10B981', jiji: '#14B8A6',
+  discord: '#5865F2', reddit: '#FF4500', trustpilot: '#00B67A',
 };
 
 // Nigerian states (audience targeting — Nigerian audience only for now)
