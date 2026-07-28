@@ -36,6 +36,15 @@ export interface Service {
   // Freshly-added services carry an ISO date; the UI shows a "NEW" badge until it
   // passes (typically 3 days), then it disappears on its own — no cleanup needed.
   newUntil?: string;
+  // Listed but not yet orderable (e.g. real-world physical gigs). The UI shows the
+  // card with a "Coming soon" state and a "Request this" button instead of an
+  // order form. Ordering is blocked server-side too.
+  comingSoon?: boolean;
+}
+
+// Whether a service is listed-but-not-orderable yet.
+export function isComingSoon(s: Pick<Service, 'comingSoon'>): boolean {
+  return Boolean(s.comingSoon);
 }
 
 // Whether a service should still show its "NEW" badge right now.
@@ -79,6 +88,15 @@ export const PLATFORMS = {
   REDDIT: 'reddit',
   TRUSTPILOT: 'trustpilot',
   QUORA: 'quora',
+  // Newer additions
+  SOUNDCLOUD: 'soundcloud',
+  DEEZER: 'deezer',
+  TIDAL: 'tidal',
+  AMAZON: 'amazon',
+  ALIEXPRESS: 'aliexpress',
+  FINTECH: 'fintech',
+  CREATIVE: 'creative',
+  GIGS: 'gigs',
 };
 
 export const SERVICES_CATALOG: Service[] = [
@@ -3325,6 +3343,208 @@ Real Nigerians like or comment on your entry so you top the leaderboard on socia
     description: `👀 **Real views and clicks on your Jiji listing.** More views push your ad up and signal demand so it sells faster. Share your listing link.`,
     category: PLATFORMS.JIJI, action: 'Ad View', pricePerUnit: 3000, minQuantity: 100, maxQuantity: 50000, speed: 'fast', refillable: false,
   },
+
+  // ============ SOUNDCLOUD ============
+  {
+    id: 'soundcloud_plays', name: 'SoundCloud Plays',
+    description: `🎧 **Real plays on your SoundCloud track.** More plays push your song up the charts and into more feeds. Share your track link.`,
+    category: PLATFORMS.SOUNDCLOUD, action: 'Play', pricePerUnit: 1000, minQuantity: 500, maxQuantity: 1000000, speed: 'fast', refillable: false,
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'soundcloud_likes', name: 'SoundCloud Likes',
+    description: `❤️ **Likes on your SoundCloud track.** Likes tell the algorithm your song is a hit. Share your track link.`,
+    category: PLATFORMS.SOUNDCLOUD, action: 'Like', pricePerUnit: 3000, minQuantity: 50, maxQuantity: 100000, speed: 'fast', refillable: false,
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'soundcloud_reposts', name: 'SoundCloud Reposts',
+    description: `🔁 **Reposts that spread your track** to new listeners' feeds. Great for reach. Share your track link.`,
+    category: PLATFORMS.SOUNDCLOUD, action: 'Repost', pricePerUnit: 3500, minQuantity: 25, maxQuantity: 50000, speed: 'fast', refillable: false,
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'soundcloud_followers', name: 'SoundCloud Followers',
+    description: `👥 **Followers on your SoundCloud profile.** A bigger following makes new listeners take you seriously. Share your profile link.`,
+    category: PLATFORMS.SOUNDCLOUD, action: 'Follow', pricePerUnit: 5000, minQuantity: 25, maxQuantity: 100000, speed: 'medium', refillable: false,
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+
+  // ============ DEEZER ============
+  {
+    id: 'deezer_plays', name: 'Deezer Plays',
+    description: `🎵 **Real plays on your Deezer track.** Boost your streams and playlist odds. Share your track link.`,
+    category: PLATFORMS.DEEZER, action: 'Play', pricePerUnit: 1500, minQuantity: 500, maxQuantity: 500000, speed: 'medium', refillable: false,
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'deezer_followers', name: 'Deezer Followers',
+    description: `👥 **Followers on your Deezer artist profile.** Share your profile link.`,
+    category: PLATFORMS.DEEZER, action: 'Follow', pricePerUnit: 6000, minQuantity: 25, maxQuantity: 50000, speed: 'medium', refillable: false,
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+
+  // ============ TIDAL ============
+  {
+    id: 'tidal_plays', name: 'Tidal Plays',
+    description: `🎶 **Real plays on your Tidal track.** Grow your streams on the hi-fi platform. Share your track link.`,
+    category: PLATFORMS.TIDAL, action: 'Play', pricePerUnit: 1500, minQuantity: 500, maxQuantity: 500000, speed: 'medium', refillable: false,
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'tidal_followers', name: 'Tidal Followers',
+    description: `👥 **Followers on your Tidal artist profile.** Share your profile link.`,
+    category: PLATFORMS.TIDAL, action: 'Follow', pricePerUnit: 6000, minQuantity: 25, maxQuantity: 50000, speed: 'medium', refillable: false,
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+
+  // ============ AMAZON REVIEWS ============
+  {
+    id: 'amazon_product_review', name: 'Amazon Product Review',
+    description: `⭐ **Genuine written reviews on your Amazon product.** Reviews build trust and lift your product up the rankings. Share your product link.`,
+    category: PLATFORMS.AMAZON, action: 'Product Review', pricePerUnit: 30000, minQuantity: 3, maxQuantity: 300, speed: 'slow', refillable: false,
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'amazon_rating', name: 'Amazon Star Rating',
+    description: `🌟 **Star ratings on your Amazon product** to lift your average score. Share your product link.`,
+    category: PLATFORMS.AMAZON, action: 'Rating', pricePerUnit: 15000, minQuantity: 5, maxQuantity: 500, speed: 'slow', refillable: false,
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+
+  // ============ ALIEXPRESS REVIEWS ============
+  {
+    id: 'aliexpress_product_review', name: 'AliExpress Product Review',
+    description: `⭐ **Genuine reviews on your AliExpress store product.** Build buyer trust and rank higher. Share your product link.`,
+    category: PLATFORMS.ALIEXPRESS, action: 'Product Review', pricePerUnit: 30000, minQuantity: 3, maxQuantity: 300, speed: 'slow', refillable: false,
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+
+  // ============ FINTECH REFERRALS ============ (real download → register → activate)
+  {
+    id: 'fintech_opay_referral', name: 'OPay App Signups',
+    description: `📲 **Real people download OPay and sign up with your referral.** Grow your referral rewards with genuine Nigerian users. Share your referral link/code.`,
+    category: PLATFORMS.FINTECH, action: 'App Signup', pricePerUnit: 50000, minQuantity: 5, maxQuantity: 5000, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'fintech_palmpay_referral', name: 'PalmPay App Signups',
+    description: `📲 **Real people download PalmPay and sign up with your referral.** Genuine Nigerian users, real activations. Share your referral link/code.`,
+    category: PLATFORMS.FINTECH, action: 'App Signup', pricePerUnit: 50000, minQuantity: 5, maxQuantity: 5000, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'fintech_kuda_referral', name: 'Kuda App Signups',
+    description: `📲 **Real people download Kuda and sign up with your referral.** Genuine Nigerian users. Share your referral link/code.`,
+    category: PLATFORMS.FINTECH, action: 'App Signup', pricePerUnit: 50000, minQuantity: 5, maxQuantity: 5000, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'fintech_moniepoint_referral', name: 'Moniepoint App Signups',
+    description: `📲 **Real people download Moniepoint and sign up with your referral.** Genuine Nigerian users. Share your referral link/code.`,
+    category: PLATFORMS.FINTECH, action: 'App Signup', pricePerUnit: 50000, minQuantity: 5, maxQuantity: 5000, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+
+  // ============ CREATIVE & UGC GIGS ============ (real creators make content for you)
+  {
+    id: 'ugc_testimonial_video', name: 'Testimonial / Review Video',
+    description: `🎬 **A real Nigerian records a genuine testimonial video for your product or brand.** Perfect for ads and social proof. Tell us what to say and share your brand details.`,
+    category: PLATFORMS.CREATIVE, action: 'UGC Video', pricePerUnit: 350000, minQuantity: 1, maxQuantity: 100, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'ugc_unboxing_video', name: 'Unboxing Video',
+    description: `📦 **A real creator films an unboxing of your product.** Authentic, relatable content for your page or ads. Share the brief.`,
+    category: PLATFORMS.CREATIVE, action: 'UGC Video', pricePerUnit: 400000, minQuantity: 1, maxQuantity: 50, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'ugc_product_demo', name: 'Product Demo Video',
+    description: `🎥 **A creator demonstrates how your product works** in a short, clear video. Great for landing pages. Share the brief.`,
+    category: PLATFORMS.CREATIVE, action: 'UGC Video', pricePerUnit: 450000, minQuantity: 1, maxQuantity: 50, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'ugc_voice_over', name: 'Voice-Over Recording',
+    description: `🎙️ **A clear Nigerian voice-over for your advert, skit or explainer.** Send your script and preferred accent/tone.`,
+    category: PLATFORMS.CREATIVE, action: 'Voice-Over', pricePerUnit: 250000, minQuantity: 1, maxQuantity: 100, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'ugc_translation', name: 'Translation & Subtitling',
+    description: `🌍 **Translate or subtitle your content** (English ⇄ Pidgin, Yoruba, Hausa, Igbo & more). Share the text or video.`,
+    category: PLATFORMS.CREATIVE, action: 'Translation', pricePerUnit: 200000, minQuantity: 1, maxQuantity: 100, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'ugc_copywriting', name: 'Caption / Copywriting',
+    description: `✍️ **Punchy captions, ad copy or product descriptions** written by a real person. Tell us the product and vibe.`,
+    category: PLATFORMS.CREATIVE, action: 'Copywriting', pricePerUnit: 150000, minQuantity: 1, maxQuantity: 200, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'ugc_graphic_design', name: 'Flyer / Graphic Design',
+    description: `🎨 **A custom flyer, banner or social post designed for you.** Share your text, logo and colours.`,
+    category: PLATFORMS.CREATIVE, action: 'Design', pricePerUnit: 300000, minQuantity: 1, maxQuantity: 100, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'ugc_video_editing', name: 'Video Editing / Meme',
+    description: `✂️ **Turn your clips into a polished edit, reel or meme.** Send your footage and the style you want.`,
+    category: PLATFORMS.CREATIVE, action: 'Editing', pricePerUnit: 300000, minQuantity: 1, maxQuantity: 100, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'ugc_transcription', name: 'Transcription / Data Entry',
+    description: `⌨️ **Real people transcribe your audio/video or handle data-entry tasks.** Share the files and instructions.`,
+    category: PLATFORMS.CREATIVE, action: 'Transcription', pricePerUnit: 120000, minQuantity: 1, maxQuantity: 500, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+
+  // ============ REAL-WORLD GIGS ============ (listed now, ordering opens soon)
+  {
+    id: 'gig_mystery_shopping', name: 'Mystery Shopping',
+    description: `🕵️ **Real people visit your store/branch as secret shoppers** and report on service, cleanliness and staff. Tap "Request this" and we'll set it up with you.`,
+    category: PLATFORMS.GIGS, action: 'Field Gig', pricePerUnit: 500000, minQuantity: 1, maxQuantity: 100, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z', comingSoon: true,
+  },
+  {
+    id: 'gig_flyer_distribution', name: 'Flyer / Poster Distribution',
+    description: `📢 **Real people hand out your flyers or paste posters** in the areas you choose. Tap "Request this" to plan the campaign.`,
+    category: PLATFORMS.GIGS, action: 'Field Gig', pricePerUnit: 15000, minQuantity: 100, maxQuantity: 100000, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z', comingSoon: true,
+  },
+  {
+    id: 'gig_event_ushering', name: 'Event Ushering / Crowd',
+    description: `🎪 **Ushers, hype crowd or brand ambassadors for your event.** Tap "Request this" and tell us the date, venue and headcount.`,
+    category: PLATFORMS.GIGS, action: 'Field Gig', pricePerUnit: 800000, minQuantity: 1, maxQuantity: 500, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z', comingSoon: true,
+  },
+  {
+    id: 'gig_errands', name: 'Errands & Pickups',
+    description: `🛵 **Real people run local errands, pickups or drop-offs** for you. Tap "Request this" with the details.`,
+    category: PLATFORMS.GIGS, action: 'Field Gig', pricePerUnit: 250000, minQuantity: 1, maxQuantity: 100, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z', comingSoon: true,
+  },
+  {
+    id: 'gig_field_survey', name: 'Field Survey / Market Research',
+    description: `📋 **Real people collect survey responses on the ground** in your target area. Tap "Request this" to design the survey.`,
+    category: PLATFORMS.GIGS, action: 'Field Gig', pricePerUnit: 60000, minQuantity: 20, maxQuantity: 10000, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z', comingSoon: true,
+  },
+  {
+    id: 'gig_photography', name: 'Event / Product Photography',
+    description: `📸 **A local photographer shoots your event or products.** Tap "Request this" with the date, location and shot list.`,
+    category: PLATFORMS.GIGS, action: 'Field Gig', pricePerUnit: 1500000, minQuantity: 1, maxQuantity: 50, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z', comingSoon: true,
+  },
+  {
+    id: 'gig_product_sampling', name: 'Product Sampling / Activation',
+    description: `🧃 **Real people distribute samples or run a brand activation** in busy locations. Tap "Request this" to plan it.`,
+    category: PLATFORMS.GIGS, action: 'Field Gig', pricePerUnit: 700000, minQuantity: 1, maxQuantity: 200, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z', comingSoon: true,
+  },
 ];
 
 // ── Central pricing (in kobo) by action type — single source of truth ──
@@ -3562,6 +3782,14 @@ export function getPlatformLabel(platform: string): string {
     [PLATFORMS.REDDIT]:     'Reddit',
     [PLATFORMS.TRUSTPILOT]: 'Trustpilot',
     [PLATFORMS.QUORA]:      'Quora',
+    [PLATFORMS.SOUNDCLOUD]: 'SoundCloud',
+    [PLATFORMS.DEEZER]:     'Deezer',
+    [PLATFORMS.TIDAL]:      'Tidal',
+    [PLATFORMS.AMAZON]:     'Amazon Reviews',
+    [PLATFORMS.ALIEXPRESS]: 'AliExpress Reviews',
+    [PLATFORMS.FINTECH]:    'Fintech Referrals',
+    [PLATFORMS.CREATIVE]:   'Creative & UGC Gigs',
+    [PLATFORMS.GIGS]:       'Real-World Gigs',
   };
 
   return labels[platform] || platform;
