@@ -96,6 +96,8 @@ export const PLATFORMS = {
   ALIEXPRESS: 'aliexpress',
   CREATIVE: 'creative',
   GIGS: 'gigs',
+  WEBSTORE: 'webstore',
+  BIZ: 'biz',
 };
 
 export const SERVICES_CATALOG: Service[] = [
@@ -3518,6 +3520,110 @@ Real Nigerians like or comment on your entry so you top the leaderboard on socia
     category: PLATFORMS.GIGS, action: 'Field Gig', pricePerUnit: 700000, minQuantity: 1, maxQuantity: 200, speed: 'slow', refillable: false, inputType: 'url',
     newUntil: '2026-07-31T23:59:59Z', comingSoon: true,
   },
+  {
+    id: 'gig_store_audit', name: 'Store / Price Audit',
+    description: `📋 **Real people visit shops and record prices, stock and shelf placement** for you. Tap "Request this" to set the checklist.`,
+    category: PLATFORMS.GIGS, action: 'Field Gig', pricePerUnit: 400000, minQuantity: 1, maxQuantity: 200, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z', comingSoon: true,
+  },
+  {
+    id: 'gig_wall_branding', name: 'Wall / Vehicle Branding',
+    description: `🎨 **Get your brand painted or wrapped** on walls, kiosks or vehicles in the areas you choose. Tap "Request this" to plan the campaign.`,
+    category: PLATFORMS.GIGS, action: 'Field Gig', pricePerUnit: 1000000, minQuantity: 1, maxQuantity: 100, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z', comingSoon: true,
+  },
+  {
+    id: 'gig_business_verification', name: 'Business Verification Visit',
+    description: `✅ **A real person visits an address to confirm a business exists** and reports back with a photo. Tap "Request this" to arrange it.`,
+    category: PLATFORMS.GIGS, action: 'Field Gig', pricePerUnit: 300000, minQuantity: 1, maxQuantity: 200, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z', comingSoon: true,
+  },
+  {
+    id: 'gig_queue_standing', name: 'Queue / Line Standing',
+    description: `🧍 **Someone holds your place in a queue** (bank, embassy, event) so you save the wait. Tap "Request this" with the details.`,
+    category: PLATFORMS.GIGS, action: 'Field Gig', pricePerUnit: 200000, minQuantity: 1, maxQuantity: 100, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z', comingSoon: true,
+  },
+
+  // ============ ONLINE STORE REVIEWS ============
+  {
+    id: 'webstore_review_general', name: 'Online Store Review',
+    description: `⭐ **Genuine reviews on your online store's review page** — Shopify, WooCommerce, Etsy, Selar or any independent shop. Share your store's review link and real people leave honest feedback that builds buyer trust.`,
+    category: PLATFORMS.WEBSTORE, action: 'Store Review', pricePerUnit: 30000, minQuantity: 3, maxQuantity: 300, speed: 'slow', refillable: false,
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'webstore_testimonial', name: 'Written Testimonial',
+    description: `✍️ **A short written testimonial for your brand** you can post on your site or socials. Tell us what to highlight and share your store link.`,
+    category: PLATFORMS.WEBSTORE, action: 'Testimonial', pricePerUnit: 40000, minQuantity: 1, maxQuantity: 200, speed: 'slow', refillable: false,
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+
+  // ============ BUSINESS & DIGITAL GIGS ============ (real people do the work online)
+  {
+    id: 'biz_lead_generation', name: 'Lead Generation / List Building',
+    description: `🎯 **Real researchers build you a list of genuine leads** (name, contact, source) in your target niche. Share the brief — who you want to reach.`,
+    category: PLATFORMS.BIZ, action: 'Lead', pricePerUnit: 20000, minQuantity: 10, maxQuantity: 10000, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'biz_virtual_assistant', name: 'Virtual Assistant (per hour)',
+    description: `🧑‍💻 **A real Nigerian VA handles your admin, research or scheduling** by the hour. Share what you need done.`,
+    category: PLATFORMS.BIZ, action: 'VA Hour', pricePerUnit: 250000, minQuantity: 1, maxQuantity: 500, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'biz_support_chat', name: 'Customer Support Coverage (per hour)',
+    description: `💬 **Real agents cover your chat/DMs** and answer customers from a script you provide. Share your channel and FAQ.`,
+    category: PLATFORMS.BIZ, action: 'Support Hour', pricePerUnit: 250000, minQuantity: 1, maxQuantity: 500, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'biz_blog_article', name: 'Blog / SEO Article',
+    description: `📝 **A well-written, SEO-friendly article** on your topic (500–1,000 words). Share the topic and keywords.`,
+    category: PLATFORMS.BIZ, action: 'Article', pricePerUnit: 400000, minQuantity: 1, maxQuantity: 200, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'biz_cv_linkedin', name: 'CV / LinkedIn Revamp',
+    description: `📄 **A pro rewrites your CV and polishes your LinkedIn** so you stand out to recruiters. Share your current CV/profile.`,
+    category: PLATFORMS.BIZ, action: 'Revamp', pricePerUnit: 300000, minQuantity: 1, maxQuantity: 100, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'biz_data_entry', name: 'Data Entry (per task)',
+    description: `⌨️ **Real people handle bulk data-entry, formatting or clean-up** tasks. Share the files and instructions.`,
+    category: PLATFORMS.BIZ, action: 'Data Task', pricePerUnit: 120000, minQuantity: 1, maxQuantity: 1000, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+
+  // ============ MORE CREATIVE / UGC ============
+  {
+    id: 'ugc_skit_promo', name: 'Comedy Skit Promo',
+    description: `🎭 **A creator features your product in a short comedy skit** for their style of content. Great for reach. Share the brief.`,
+    category: PLATFORMS.CREATIVE, action: 'UGC Video', pricePerUnit: 500000, minQuantity: 1, maxQuantity: 50, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'ugc_dance_challenge', name: 'Dance / Hashtag Challenge',
+    description: `💃 **Real people join your branded dance or hashtag challenge** with your song/tag. Send the challenge details.`,
+    category: PLATFORMS.CREATIVE, action: 'UGC Video', pricePerUnit: 100000, minQuantity: 5, maxQuantity: 5000, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+  {
+    id: 'ugc_food_photography', name: 'Food / Product Photography',
+    description: `📸 **A creator shoots clean, appetising photos** of your food or products for your menu, store or ads. Share what to shoot.`,
+    category: PLATFORMS.CREATIVE, action: 'Photography', pricePerUnit: 350000, minQuantity: 1, maxQuantity: 100, speed: 'slow', refillable: false, inputType: 'url',
+    newUntil: '2026-07-31T23:59:59Z',
+  },
+
+  // ============ PODCAST REVIEW ============
+  {
+    id: 'podcast_review', name: 'Podcast Review & Rating',
+    description: `🎙️ **Genuine ratings and reviews on your podcast** (Apple Podcasts / Spotify) so it ranks and gets discovered. Share your show link.`,
+    category: PLATFORMS.PODCAST, action: 'Review', pricePerUnit: 25000, minQuantity: 3, maxQuantity: 300, speed: 'slow', refillable: false,
+    newUntil: '2026-07-31T23:59:59Z',
+  },
 ];
 
 // ── Central pricing (in kobo) by action type — single source of truth ──
@@ -3762,6 +3868,8 @@ export function getPlatformLabel(platform: string): string {
     [PLATFORMS.ALIEXPRESS]: 'AliExpress Reviews',
     [PLATFORMS.CREATIVE]:   'Creative & UGC Gigs',
     [PLATFORMS.GIGS]:       'Real-World Gigs',
+    [PLATFORMS.WEBSTORE]:   'Online Store Reviews',
+    [PLATFORMS.BIZ]:        'Business & Digital Gigs',
   };
 
   return labels[platform] || platform;

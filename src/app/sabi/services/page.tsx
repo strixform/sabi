@@ -31,7 +31,7 @@ const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string }>
   app_store: SiApple,     podcast: SiApplepodcasts, website: FiGlobe,
   rumble:    SiRumble,    discord: SiDiscord, reddit: SiReddit, trustpilot: SiTrustpilot, quora: SiQuora,
   soundcloud: SiSoundcloud, deezer: FiMusic, tidal: FiMusic, amazon: FiStar, aliexpress: FiGlobe,
-  creative: FiStar, gigs: FiMapPin,
+  creative: FiStar, gigs: FiMapPin, webstore: FiStar, biz: FiUsers,
 };
 
 const PLATFORM_COLORS: Record<string, string> = {
@@ -69,6 +69,8 @@ const PLATFORM_COLORS: Record<string, string> = {
   aliexpress:'from-red-500 to-orange-500',
   creative:  'from-pink-500 to-rose-600',
   gigs:      'from-lime-500 to-green-600',
+  webstore:  'from-amber-500 to-yellow-600',
+  biz:       'from-sky-500 to-blue-600',
 };
 
 // What real Nigerian engagement uniquely unlocks

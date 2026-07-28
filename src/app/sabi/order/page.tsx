@@ -78,6 +78,8 @@ const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string; s
   aliexpress: FiShoppingBag,
   creative:   FiVideo,
   gigs:       FiMapPin,
+  webstore:   FiShoppingBag,
+  biz:        FiTrendingUp,
 };
 
 // Categories that currently contain at least one freshly-added service — powers
@@ -296,6 +298,7 @@ const PLATFORM_TINT: Record<string, string> = {
   discord: '#5865F2', reddit: '#FF4500', trustpilot: '#00B67A', quora: '#B92B27',
   soundcloud: '#FF5500', deezer: '#A238FF', tidal: '#00FFFF', amazon: '#FF9900',
   aliexpress: '#FF4747', creative: '#EC4899', gigs: '#84CC16',
+  webstore: '#F59E0B', biz: '#0EA5E9',
 };
 
 // Nigerian states (audience targeting — Nigerian audience only for now)
