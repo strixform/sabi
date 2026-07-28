@@ -70,6 +70,7 @@ export const PLATFORMS = {
   DISCORD: 'discord',
   REDDIT: 'reddit',
   TRUSTPILOT: 'trustpilot',
+  QUORA: 'quora',
 };
 
 export const SERVICES_CATALOG: Service[] = [
@@ -3142,6 +3143,23 @@ _Tip: paste the voting link and name your housemate in the instructions box. Hou
     category: PLATFORMS.TRUSTPILOT, action: 'Review', pricePerUnit: 25000, minQuantity: 3, maxQuantity: 200, speed: 'slow', refillable: false,
   },
 
+  // ============ Quora — answers & upvotes ============
+  {
+    id: 'quora_upvotes', name: 'Quora Upvotes',
+    description: `⬆️ **Real upvotes on your Quora answer.** Push your answer to the top of the question with genuine upvotes from real accounts — more upvotes = more views.`,
+    category: PLATFORMS.QUORA, action: 'Upvote', pricePerUnit: 5000, minQuantity: 20, maxQuantity: 20000, speed: 'medium', refillable: false,
+  },
+  {
+    id: 'quora_answers', name: 'Quora Answers',
+    description: `✍️ **Real people answer your Quora question or mention your brand.** You provide the brief; genuine writers post helpful answers that point to you. Great for authority and SEO.`,
+    category: PLATFORMS.QUORA, action: 'Answer', pricePerUnit: 25000, minQuantity: 3, maxQuantity: 300, speed: 'slow', refillable: false,
+  },
+  {
+    id: 'quora_followers', name: 'Quora Followers',
+    description: `👥 **Grow your Quora profile or Space with real followers** so your answers reach a wider, credible audience.`,
+    category: PLATFORMS.QUORA, action: 'Follow', pricePerUnit: 6000, minQuantity: 50, maxQuantity: 50000, speed: 'medium', refillable: true,
+  },
+
   // ============ NEW: local Nigerian services (real taskers) ============
   {
     id: 'nairaland_reply',
@@ -3453,6 +3471,7 @@ export function getPlatformLabel(platform: string): string {
     [PLATFORMS.DISCORD]:    'Discord',
     [PLATFORMS.REDDIT]:     'Reddit',
     [PLATFORMS.TRUSTPILOT]: 'Trustpilot',
+    [PLATFORMS.QUORA]:      'Quora',
   };
 
   return labels[platform] || platform;

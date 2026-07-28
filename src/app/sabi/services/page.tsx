@@ -11,7 +11,7 @@ import {
   SiInstagram, SiX, SiYoutube, SiTiktok, SiSnapchat, SiSpotify,
   SiWhatsapp, SiPinterest, SiThreads, SiTelegram, SiTwitch,
   SiFacebook, SiGoogle, SiApple, SiApplepodcasts, SiAudiomack, SiApplemusic,
-  SiRumble, SiDiscord, SiReddit, SiTrustpilot,
+  SiRumble, SiDiscord, SiReddit, SiTrustpilot, SiQuora,
 } from 'react-icons/si';
 import { FaLinkedinIn } from 'react-icons/fa';
 import { FiGlobe, FiMusic, FiAward } from 'react-icons/fi';
@@ -29,7 +29,7 @@ const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string }>
   threads:   SiThreads,   telegram: SiTelegram, twitch:  SiTwitch,
   facebook:  SiFacebook,  google:  SiGoogle,  linkedin:  FaLinkedinIn,
   app_store: SiApple,     podcast: SiApplepodcasts, website: FiGlobe,
-  rumble:    SiRumble,    discord: SiDiscord, reddit: SiReddit, trustpilot: SiTrustpilot,
+  rumble:    SiRumble,    discord: SiDiscord, reddit: SiReddit, trustpilot: SiTrustpilot, quora: SiQuora,
 };
 
 const PLATFORM_COLORS: Record<string, string> = {
@@ -59,6 +59,7 @@ const PLATFORM_COLORS: Record<string, string> = {
   discord:   'from-indigo-500 to-violet-600',
   reddit:    'from-orange-500 to-red-600',
   trustpilot:'from-emerald-500 to-green-600',
+  quora:     'from-red-600 to-rose-700',
 };
 
 // What real Nigerian engagement uniquely unlocks
