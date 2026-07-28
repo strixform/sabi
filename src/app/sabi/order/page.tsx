@@ -1153,7 +1153,36 @@ export default function OrderPage() {
           )}
 
           {/* Step 3: Details Input */}
-          {currentStep === 'details' && selectedService && (
+          {/* Field gigs are real-world tasks — they use a dedicated brief + a
+              coordinated field team, NOT the social order form (no link, no
+              follower screenshot). Route to the booking flow instead. */}
+          {currentStep === 'details' && selectedService && selectedService.comingSoon && (
+            <motion.div
+              key="fieldgig"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="mb-8">
+                <h2 className="text-4xl font-black mb-2"><GradientText>Real-World Gig</GradientText></h2>
+                <p className="text-slate-400 text-lg">{selectedService.name} is a physical gig — booked with a short brief, not a link.</p>
+              </div>
+              <div className="premium-glass rounded-2xl p-6 sm:p-8 text-center">
+                <p className="text-slate-300 text-sm mb-6 max-w-md mx-auto leading-relaxed">
+                  You&apos;ll give the location, task, date and how many people — then our field team
+                  coordinates it and sends before/after proof. Paid from your SABI wallet, refunded in
+                  full if we can&apos;t fulfil it.
+                </p>
+                <Link href={`/sabi/field-gigs?service=${encodeURIComponent(selectedService.id)}`}
+                  className="inline-flex items-center gap-1.5 px-7 py-3 rounded-xl bg-gradient-to-r from-lime-500 to-green-600 text-white font-black text-sm hover:brightness-110">
+                  Book this field gig <FiArrowRight />
+                </Link>
+              </div>
+            </motion.div>
+          )}
+
+          {currentStep === 'details' && selectedService && !selectedService.comingSoon && (
             <motion.div
               key="details"
               initial={{ opacity: 0, x: 20 }}
@@ -2081,7 +2110,7 @@ export default function OrderPage() {
             </motion.button>
           )}
 
-          {currentStep !== 'review' && (
+          {currentStep !== 'review' && !(currentStep === 'details' && selectedService?.comingSoon) && (
             <motion.button
               onClick={handleNextStep}
               disabled={

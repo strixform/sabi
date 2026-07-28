@@ -426,10 +426,10 @@ export default function ServicesPage() {
 
                         {soon ? (
                           <Link
-                            href="/sabi/support"
-                            className="premium-cta block text-center py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-sm transition"
+                            href={`/sabi/field-gigs?service=${encodeURIComponent(service.id)}`}
+                            className="premium-cta block text-center py-2.5 rounded-xl bg-gradient-to-r from-lime-500 to-green-600 hover:brightness-110 text-white font-bold text-sm transition"
                           >
-                            Request this <FiArrowRight className="inline w-4 h-4 ml-1" />
+                            Book this gig <FiArrowRight className="inline w-4 h-4 ml-1" />
                           </Link>
                         ) : (
                           <Link

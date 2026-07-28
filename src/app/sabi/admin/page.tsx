@@ -1522,8 +1522,8 @@ export default function AdminPage() {
               <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setOrderPage(0); }}
                 className="px-3 py-2 bg-slate-900 border border-white/[0.06] text-slate-300 text-sm rounded-lg focus:outline-none">
                 <option value="">All status</option>
-                {['pending','executing','completed','failed','cancelled'].map(s => (
-                  <option key={s} value={s}>{s}</option>
+                {['pending','field_pending','executing','completed','failed','cancelled'].map(s => (
+                  <option key={s} value={s}>{s === 'field_pending' ? 'field gigs (to coordinate)' : s}</option>
                 ))}
               </select>
               <select value={serviceFilter} onChange={e => { setServiceFilter(e.target.value); setOrderPage(0); }}
