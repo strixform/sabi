@@ -27,12 +27,12 @@ export async function GET(req: NextRequest) {
   }
 
   const rows = (await sabiExecute({
-    sql: `SELECT c.id, c.subject, c.status, c.needsHuman, c.updatedAt,
+    sql: `SELECT c.id, c.subject, c.status, c.needsHuman, c.updatedAt, c.lastMessageFromAdmin,
                  (SELECT body FROM SabiSupportMessage m WHERE m.conversationId = c.id AND m.internal = 0 ORDER BY m.createdAt DESC LIMIT 1) AS lastMessage
           FROM SabiSupportConversation c WHERE c.userId = ? ORDER BY c.updatedAt DESC LIMIT 50`,
     args: [s.id],
   }).catch(() => ({ rows: [] as any[] }))).rows as any[];
-  return NextResponse.json({ conversations: rows.map(r => ({ id: r.id, subject: r.subject, status: r.status, needsHuman: Number(r.needsHuman) === 1, lastMessage: r.lastMessage, updatedAt: r.updatedAt })) });
+  return NextResponse.json({ conversations: rows.map(r => ({ id: r.id, subject: r.subject, status: r.status, needsHuman: Number(r.needsHuman) === 1, lastMessage: r.lastMessage, updatedAt: r.updatedAt, lastMessageFromAdmin: Number(r.lastMessageFromAdmin) === 1 })) });
 }
 
 export async function POST(req: NextRequest) {

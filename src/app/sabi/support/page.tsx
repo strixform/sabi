@@ -4,7 +4,13 @@ export const dynamic = 'force-dynamic';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-type Conv = { id: string; subject: string; status: string; needsHuman: boolean; lastMessage?: string; updatedAt?: string };
+type Conv = { id: string; subject: string; status: string; needsHuman: boolean; lastMessage?: string; updatedAt?: string; lastMessageFromAdmin?: boolean };
+
+// Remember the last reply the customer has actually seen, per conversation, so the list
+// can flag "● new reply" when staff/AI answers while they're away (localStorage, no server).
+const seenKey = (id: string) => `sabi:support:seen:${id}`;
+const markSeen = (id: string, at?: string) => { try { localStorage.setItem(seenKey(id), at || new Date().toISOString()); } catch {} };
+const isUnseen = (c: Conv) => { if (!c.lastMessageFromAdmin || !c.updatedAt) return false; try { const seen = localStorage.getItem(seenKey(c.id)); return !seen || seen < c.updatedAt; } catch { return false; } };
 type Msg = { id: string; authorName: string; fromAdmin: number; body: string; createdAt: string };
 
 // What's this about? — a quick tap routes the ticket and gives the AI a head-start.
@@ -38,6 +44,8 @@ export default function SupportPage() {
     fetch(`/api/sabi/support?conversationId=${id}`).then(r => r.ok ? r.json() : null).then(d => {
       if (!d) return;
       setMessages(d.messages || []); setNeedsHuman(!!d.conversation?.needsHuman); setStatus(d.conversation?.status || 'open');
+      // Viewing the thread = everything in it is now seen (kills the list's "new reply" dot).
+      markSeen(id);
     }).catch(() => {});
   }, []);
 
@@ -107,12 +115,15 @@ export default function SupportPage() {
                   <button onClick={openNew} className="mt-4 px-4 py-2 rounded-xl text-xs font-bold" style={{ background: 'linear-gradient(135deg,#3b82f6,#8b5cf6)', color: '#fff' }}>Start a chat</button>
                 </div>
               ) : convs.map(c => (
-                <button key={c.id} onClick={() => setActive(c.id)} className="w-full text-left rounded-2xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] p-3.5 transition">
+                <button key={c.id} onClick={() => { markSeen(c.id, c.updatedAt); setActive(c.id); }} className="w-full text-left rounded-2xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] p-3.5 transition">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-bold truncate">{c.subject || 'Support chat'}</span>
-                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${c.status === 'resolved' ? 'bg-emerald-500/15 text-emerald-300' : c.needsHuman ? 'bg-amber-500/15 text-amber-300' : 'bg-blue-500/15 text-blue-300'}`}>{c.status === 'resolved' ? 'resolved' : c.needsHuman ? 'with a teammate' : 'open'}</span>
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      {isUnseen(c) && <span className="shrink-0 w-2 h-2 rounded-full bg-blue-400" title="New reply" />}
+                      <span className={`text-sm truncate ${isUnseen(c) ? 'font-black text-white' : 'font-bold'}`}>{c.subject || 'Support chat'}</span>
+                    </span>
+                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded shrink-0 ${c.status === 'resolved' ? 'bg-emerald-500/15 text-emerald-300' : c.needsHuman ? 'bg-amber-500/15 text-amber-300' : 'bg-blue-500/15 text-blue-300'}`}>{c.status === 'resolved' ? 'resolved' : c.needsHuman ? 'with a teammate' : 'open'}</span>
                   </div>
-                  {c.lastMessage && <p className="text-[11px] text-slate-500 truncate mt-1">{c.lastMessage}</p>}
+                  {c.lastMessage && <p className={`text-[11px] truncate mt-1 ${isUnseen(c) ? 'text-slate-300' : 'text-slate-500'}`}>{c.lastMessageFromAdmin ? '↩ ' : ''}{c.lastMessage}</p>}
                 </button>
               ))}
           </div>
@@ -144,6 +155,18 @@ export default function SupportPage() {
                   </div>
                 </div>
               ))}
+              {/* "Typing" while a reply is on its way — the last message is the customer's,
+                  the ticket is live, and no human has taken over (the AI answers on the next
+                  poll). Reassures the customer someone's on it instead of dead air. */}
+              {(sending || (messages.length > 0 && !messages[messages.length - 1].fromAdmin && status !== 'resolved' && !needsHuman && !composingNew)) && (
+                <div className="flex justify-start">
+                  <div className="bg-white/[0.06] rounded-2xl px-3.5 py-3 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                </div>
+              )}
               <div ref={endRef} />
             </div>
             {status !== 'resolved' && !needsHuman && active && (
