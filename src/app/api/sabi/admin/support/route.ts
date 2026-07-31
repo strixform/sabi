@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { allowOwnerOrStaff, logStaffAction } from '@/lib/sabiStaff';
 import { sabiExecute } from '@/lib/tursoClient';
-import { ensureSupportTables, postSupportMessage } from '@/lib/sabiSupportAI';
+import { ensureSupportTables, postSupportMessage, loadAdminContext, draftSupportReply } from '@/lib/sabiSupportAI';
 
 export const preferredRegion = 'sfo1';
 export const maxDuration = 20;
@@ -18,10 +18,13 @@ export async function GET(req: NextRequest) {
   const convId = sp.get('conversationId');
 
   if (convId) {
-    const conv = (await sabiExecute({ sql: `SELECT c.id, c.subject, c.status, c.needsHuman, c.assignedAdmin, c.aiReplyCount, u.name, u.email FROM SabiSupportConversation c LEFT JOIN SabiUser u ON u.id = c.userId WHERE c.id = ? LIMIT 1`, args: [convId] })).rows[0] as any;
+    const conv = (await sabiExecute({ sql: `SELECT c.id, c.userId, c.subject, c.status, c.needsHuman, c.assignedAdmin, c.aiReplyCount, u.name, u.email FROM SabiSupportConversation c LEFT JOIN SabiUser u ON u.id = c.userId WHERE c.id = ? LIMIT 1`, args: [convId] })).rows[0] as any;
     if (!conv) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     const messages = (await sabiExecute({ sql: `SELECT id, authorName, fromAdmin, internal, body, imageUrl, createdAt FROM SabiSupportMessage WHERE conversationId = ? ORDER BY createdAt ASC LIMIT 300`, args: [convId] })).rows as any[];
-    return NextResponse.json({ conversation: { id: conv.id, subject: conv.subject, status: conv.status, needsHuman: Number(conv.needsHuman) === 1, assignedAdmin: conv.assignedAdmin, customer: { name: conv.name, email: conv.email } }, messages });
+    // Give the agent the customer's wallet + recent orders inline so they answer from
+    // facts, not guesses (the same context the AI reads). Best-effort — never blocks the thread.
+    const context = conv.userId ? await loadAdminContext(String(conv.userId)).catch(() => null) : null;
+    return NextResponse.json({ conversation: { id: conv.id, subject: conv.subject, status: conv.status, needsHuman: Number(conv.needsHuman) === 1, assignedAdmin: conv.assignedAdmin, customer: { name: conv.name, email: conv.email }, context }, messages });
   }
 
   const human = sp.get('human') === '1';
@@ -50,11 +53,38 @@ export async function POST(req: NextRequest) {
   if (action === 'reply') {
     const text = String(body.body || '').trim();
     if (!text) return NextResponse.json({ error: 'Type a reply.' }, { status: 400 });
+    const isNote = body.internal === true || body.internal === 1;
+    if (isNote) {
+      // Internal note — staff-only, the customer never sees it and the AI is not touched.
+      await postSupportMessage(convId, { body: text, authorName: auth.email?.split('@')[0] || 'staff', fromAdmin: true, internal: true });
+      logStaffAction(auth.email || 'owner', 'support:note', convId).catch(() => {});
+      return NextResponse.json({ ok: true });
+    }
     // A human is now on it: post the reply, clear the escalation, take ownership so the AI stays out.
     await postSupportMessage(convId, { body: text, authorName: 'SABI Support', fromAdmin: true });
     await sabiExecute({ sql: `UPDATE SabiSupportConversation SET needsHuman = 0, status = 'open', assignedAdmin = ?, updatedAt = datetime('now') WHERE id = ?`, args: [auth.email || 'staff', convId] }).catch(() => {});
     logStaffAction(auth.email || 'owner', 'support:reply', convId).catch(() => {});
     return NextResponse.json({ ok: true });
+  }
+  if (action === 'suggest') {
+    // Draft a grounded reply for the agent to review and send. Never posts on its own.
+    const d = await draftSupportReply(convId);
+    if (!d.ok) return NextResponse.json({ error: d.error || "Couldn't draft a reply." }, { status: 400 });
+    return NextResponse.json({ ok: true, draft: d.draft });
+  }
+  if (action === 'recheck') {
+    // "I paid but it's not in my wallet" — re-verify their pending deposits with Flutterwave
+    // and credit any that landed. Idempotent + provider-verified: can only recover real money.
+    const conv = (await sabiExecute({ sql: `SELECT userId FROM SabiSupportConversation WHERE id = ? LIMIT 1`, args: [convId] }).catch(() => ({ rows: [] as any[] }))).rows[0] as any;
+    if (!conv?.userId) return NextResponse.json({ error: 'No customer on this ticket.' }, { status: 400 });
+    try {
+      const { recheckUserPayments } = await import('@/lib/sabiWallet');
+      const r = await recheckUserPayments(String(conv.userId));
+      logStaffAction(auth.email || 'owner', 'support:recheck', convId).catch(() => {});
+      return NextResponse.json({ ok: true, found: r.found, newBalanceNaira: r.newBalanceNaira, summary: r.summary });
+    } catch {
+      return NextResponse.json({ error: 'Recheck failed — try again.' }, { status: 500 });
+    }
   }
   if (action === 'resolve') {
     await sabiExecute({ sql: `UPDATE SabiSupportConversation SET status = 'resolved', needsHuman = 0, updatedAt = datetime('now') WHERE id = ?`, args: [convId] }).catch(() => {});

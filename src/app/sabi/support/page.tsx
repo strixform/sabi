@@ -7,6 +7,15 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 type Conv = { id: string; subject: string; status: string; needsHuman: boolean; lastMessage?: string; updatedAt?: string };
 type Msg = { id: string; authorName: string; fromAdmin: number; body: string; createdAt: string };
 
+// What's this about? — a quick tap routes the ticket and gives the AI a head-start.
+const TOPICS = [
+  { emoji: '📦', label: 'My order', subject: 'Order help' },
+  { emoji: '💳', label: 'Payment / funding', subject: 'Payment / funding' },
+  { emoji: '🚀', label: 'Delivery is slow', subject: 'Slow delivery' },
+  { emoji: '↩️', label: 'Refund', subject: 'Refund request' },
+  { emoji: '💬', label: 'Something else', subject: 'General question' },
+];
+
 export default function SupportPage() {
   const [convs, setConvs] = useState<Conv[]>([]);
   const [active, setActive] = useState<string | null>(null);
@@ -18,6 +27,7 @@ export default function SupportPage() {
   const [uploading, setUploading] = useState(false);
   const [sending, setSending] = useState(false);
   const [composingNew, setComposingNew] = useState(false);
+  const [topic, setTopic] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -60,7 +70,7 @@ export default function SupportPage() {
     setMessages(m => [...m, { id: 'tmp', authorName: 'You', fromAdmin: 0, body: text || '(screenshot attached)', imageUrl: img || undefined, createdAt: new Date().toISOString() } as any]);
     setInput(''); setAttachUrl(null);
     try {
-      const res = await fetch('/api/sabi/support', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conversationId: active || undefined, body: text, imageUrl: img }) });
+      const res = await fetch('/api/sabi/support', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conversationId: active || undefined, body: text, imageUrl: img, subject: !active && topic ? topic : undefined }) });
       const d = await res.json();
       if (d.conversationId) { setActive(d.conversationId); setComposingNew(false); setTimeout(() => loadThread(d.conversationId), 900); }
       loadList();
@@ -73,7 +83,7 @@ export default function SupportPage() {
     loadThread(active);
   };
 
-  const openNew = () => { setActive(null); setMessages([]); setComposingNew(true); setNeedsHuman(false); setStatus('open'); };
+  const openNew = () => { setActive(null); setMessages([]); setComposingNew(true); setNeedsHuman(false); setStatus('open'); setTopic(null); };
 
   return (
     <div className="min-h-screen bg-[#080b14] text-slate-100 px-4 py-6">
@@ -116,7 +126,14 @@ export default function SupportPage() {
             </div>
             <div className="flex-1 overflow-auto px-3.5 py-3 space-y-2.5">
               {composingNew && messages.length === 0 && (
-                <p className="text-center text-xs text-slate-500 py-6">Tell us what you need help with — include your order link or payment reference if it&apos;s about an order.</p>
+                <div className="py-4">
+                  <p className="text-center text-xs text-slate-500 mb-3">What&apos;s this about? Tap one — then tell us what you need. Include your order link or payment reference if it helps.</p>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {TOPICS.map(t => (
+                      <button key={t.subject} onClick={() => setTopic(t.subject)} className={`px-3 py-1.5 rounded-full text-xs font-bold border transition ${topic === t.subject ? 'bg-blue-500/20 text-blue-200 border-blue-500/40' : 'bg-white/[0.03] text-slate-400 border-white/10 hover:bg-white/[0.06]'}`}>{t.emoji} {t.label}</button>
+                    ))}
+                  </div>
+                </div>
               )}
               {messages.map(m => (
                 <div key={m.id} className={`flex ${m.fromAdmin ? 'justify-start' : 'justify-end'}`}>

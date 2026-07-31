@@ -194,3 +194,82 @@ async function notifyOwnerOfEscalation(conversationId: string) {
     });
   } catch { /* best-effort */ }
 }
+
+/**
+ * Structured account context for the STAFF inbox side-panel, so a human answering a
+ * ticket sees the customer's wallet + recent orders inline (like the Owlet admin desk)
+ * instead of guessing. Read-only; never moves money.
+ */
+export async function loadAdminContext(userId: string): Promise<{
+  wallet: { balanceNaira: number; totalSpentNaira: number };
+  orders: { id: string; serviceType: string; status: string; quantity: number; delivered: number; targetUrl: string; priceNaira: number; createdAt: string }[];
+}> {
+  const [wallet, orders] = await Promise.all([
+    sabiExecute({ sql: `SELECT balance, totalSpent FROM SabiWallet WHERE userId = ? LIMIT 1`, args: [userId] }).catch(() => ({ rows: [] as any[] })),
+    sabiExecute({ sql: `SELECT id, serviceType, status, quantity, completedQuantity, targetUrl, totalPrice, createdAt FROM SabiOrder WHERE userId = ? ORDER BY createdAt DESC LIMIT 8`, args: [userId] }).catch(() => ({ rows: [] as any[] })),
+  ]);
+  const w = (wallet.rows[0] as any) || {};
+  return {
+    wallet: { balanceNaira: Math.round(Number(w.balance || 0) / 100), totalSpentNaira: Math.round(Number(w.totalSpent || 0) / 100) },
+    orders: (orders.rows as any[]).map(o => ({
+      id: String(o.id), serviceType: String(o.serviceType || ''), status: String(o.status || ''),
+      quantity: Number(o.quantity || 0), delivered: Number(o.completedQuantity || 0), targetUrl: String(o.targetUrl || ''),
+      priceNaira: Math.round(Number(o.totalPrice || 0) / 100), createdAt: String(o.createdAt || '').slice(0, 10),
+    })),
+  };
+}
+
+/**
+ * Draft a reply for a HUMAN agent — the "✨ AI reply" button in the staff inbox. Reads the
+ * same grounded context the auto-agent uses (orders, wallet, screenshots, live payment
+ * re-check) and returns a draft the agent reviews and sends. Never posts on its own, never
+ * moves money. Mirrors Owlet's admin AI-suggest.
+ */
+export async function draftSupportReply(conversationId: string): Promise<{ ok: boolean; draft?: string; error?: string }> {
+  const client = getAnthropic();
+  if (!client) return { ok: false, error: 'AI is not configured.' };
+  await ensureSupportTables();
+
+  const conv = (await sabiExecute({ sql: `SELECT id, userId FROM SabiSupportConversation WHERE id = ? LIMIT 1`, args: [conversationId] }).catch(() => ({ rows: [] as any[] }))).rows[0] as any;
+  if (!conv) return { ok: false, error: 'Conversation not found.' };
+
+  const msgs = (await sabiExecute({ sql: `SELECT authorName, fromAdmin, internal, body, imageUrl FROM SabiSupportMessage WHERE conversationId = ? ORDER BY createdAt ASC LIMIT 16`, args: [conversationId] }).catch(() => ({ rows: [] as any[] }))).rows as any[];
+  const visible = msgs.filter(m => Number(m.internal) !== 1);
+  if (visible.length === 0) return { ok: false, error: 'Nothing to reply to yet.' };
+  const transcript = visible.map(m => `${Number(m.fromAdmin) === 1 ? 'Support' : 'Customer'}: ${m.body}${m.imageUrl ? ' [attached a screenshot]' : ''}`).join('\n');
+  let context = await loadContext(String(conv.userId));
+
+  // If the ticket is about a payment, re-verify with Flutterwave first so the draft states
+  // the truth (credited / not yet) rather than guessing.
+  const lastCustomer = [...visible].reverse().find(m => Number(m.fromAdmin) !== 1);
+  if (lastCustomer && /\b(paid|payment|fund|funded|deposit|debit|debited|transfer|receipt|money|wallet|top ?up|reflect|credited|charged)\b/i.test(String(lastCustomer.body))) {
+    try {
+      const { recheckUserPayments } = await import('@/lib/sabiWallet');
+      const r = await recheckUserPayments(String(conv.userId));
+      if (r?.summary) context += `\n\nLIVE PAYMENT RE-CHECK (just ran against Flutterwave): ${r.summary}`;
+    } catch { /* best-effort */ }
+  }
+
+  const images = visible.filter(m => Number(m.fromAdmin) !== 1 && m.imageUrl).map(m => String(m.imageUrl)).slice(-2);
+
+  try {
+    const res = await client.messages.create({
+      model: MODEL,
+      max_tokens: 500,
+      system: SYSTEM + `\n\nYou are drafting a reply FOR A HUMAN AGENT to review and send. Write the message exactly as it should go to the customer — no preamble, no "here's a draft", just the reply itself.`,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'text', text: `ACCOUNT CONTEXT:\n${context}\n\nCONVERSATION SO FAR:\n${transcript}\n\n${images.length ? `The customer attached ${images.length} screenshot(s) below — read them and use what they show.\n\n` : ''}Draft the reply to the customer's latest message.` },
+          ...images.map((url) => ({ type: 'image' as const, source: { type: 'url' as const, url } })),
+        ],
+      }],
+    });
+    const text = res.content.filter((b: any) => b.type === 'text').map((b: any) => b.text).join('').trim();
+    if (!text) return { ok: false, error: "The AI couldn't draft a reply. Try again." };
+    return { ok: true, draft: text.slice(0, 2000) };
+  } catch (e: any) {
+    console.error('[sabiSupportAI] draft', e?.message);
+    return { ok: false, error: "Couldn't reach the AI. Try again." };
+  }
+}
