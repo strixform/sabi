@@ -2,10 +2,11 @@ import type { NextAuthOptions, Session } from 'next-auth';
 import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
-import { getPrismaClient } from './prisma';
+import { prisma } from './prisma';
 
-const prisma = getPrismaClient();
-
+// Uses the lazy `prisma` proxy (not getPrismaClient()) so importing this module doesn't
+// construct the client at build time — PrismaAdapter closes over it and only queries at
+// request time. Keeps `next build` working without DATABASE_URL locally.
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [

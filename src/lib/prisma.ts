@@ -38,5 +38,18 @@ function getPrismaClient(): PrismaClient {
   return client;
 }
 
-export const prisma = getPrismaClient();
+// Lazy: importing this module must NOT construct the client. The constructor throws
+// when DATABASE_URL is absent, and `next build`'s "collect page data" step imports every
+// route module — so an eager `getPrismaClient()` here broke local builds ("DATABASE_URL
+// environment variable not set" while collecting /api/reseller/analytics). The Proxy
+// defers construction to the FIRST real property access (a query), which only ever
+// happens at request time when the env is present. Existing `import { prisma }` callers
+// are unchanged. (Vercel always has the env, so this only ever affected local builds.)
+export const prisma: PrismaClient = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    const client = getPrismaClient();
+    const value = (client as unknown as Record<string | symbol, unknown>)[prop];
+    return typeof value === 'function' ? (value as (...a: unknown[]) => unknown).bind(client) : value;
+  },
+});
 export { getPrismaClient };
