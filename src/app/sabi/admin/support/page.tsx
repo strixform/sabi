@@ -44,13 +44,16 @@ export default function AdminSupportPage() {
 
   useEffect(() => { try { if (new URLSearchParams(location.search).get('human') === '1') setTab('human'); } catch {} }, []);
 
-  const load = useCallback(() => {
-    setLoading(true);
+  const load = useCallback((silent = false) => {
+    if (!silent) setLoading(true);
     af(`/api/sabi/admin/support?${tab === 'human' ? 'human=1' : ''}`).then(r => r.ok ? r.json() : null).then(d => {
-      setConvs(d?.conversations || []); setCounts({ openCount: d?.openCount || 0, humanCount: d?.humanCount || 0 });
-    }).catch(() => {}).finally(() => setLoading(false));
+      // Only replace the list when the fetch actually succeeded. A transient/expired-auth
+      // poll returns null — KEEP what's on screen instead of blanking it to "No tickets"
+      // every 12s (that flash-to-empty is what read as "it bounced back").
+      if (d) { setConvs(d.conversations || []); setCounts({ openCount: d.openCount || 0, humanCount: d.humanCount || 0 }); }
+    }).catch(() => {}).finally(() => { if (!silent) setLoading(false); });
   }, [tab]);
-  useEffect(() => { load(); const t = setInterval(load, 12000); return () => clearInterval(t); }, [load]);
+  useEffect(() => { load(); const t = setInterval(() => load(true), 12000); return () => clearInterval(t); }, [load]);
 
   const openThread = useCallback((c: Conv) => {
     // Switching threads clears the draft + note toggle so a half-typed reply can never
@@ -65,13 +68,32 @@ export default function AdminSupportPage() {
   const act = async (action: string, body?: string) => {
     if (!active) return;
     setBusy(true);
+    // Optimistic reply bubble so sending feels instant (and, on failure, we can roll it back
+    // AND tell the agent WHY — the old code swallowed failures silently, which read as
+    // "I hit send and nothing happened / it glitched").
+    const isNote = action === 'reply' ? note : false;
+    const optimistic: Msg | null = action === 'reply' && body
+      ? { id: 'tmp' + Date.now(), authorName: isNote ? 'Note' : 'SABI Support', fromAdmin: 1, internal: isNote ? 1 : 0, body, createdAt: new Date().toISOString() }
+      : null;
+    if (optimistic) setMessages(m => [...m, optimistic]);
     try {
       const res = await af('/api/sabi/admin/support', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conversationId: active.id, action, body, internal: action === 'reply' ? note : undefined }) });
       if (res.ok) {
         if (action === 'reply') { setReply(''); setNote(false); openThread(active); }
         if (action === 'resolve') { setActive(null); }
-        load();
+        load(true);
+      } else {
+        // Surface the real reason instead of failing silently — this is what made staff
+        // think the inbox was "still glitching / can't respond".
+        if (optimistic) setMessages(m => m.filter(x => x.id !== optimistic.id));
+        const d = await res.json().catch(() => ({} as any));
+        alert(res.status === 401 || res.status === 403
+          ? 'Your admin session has expired or isn’t recognized here. Reload this page (and sign in again if asked), then send your reply.'
+          : (d?.error || `Couldn’t send — server error ${res.status}. Please try again.`));
       }
+    } catch {
+      if (optimistic) setMessages(m => m.filter(x => x.id !== optimistic.id));
+      alert('Network problem — your reply didn’t send. Check your connection and try again.');
     } finally { setBusy(false); }
   };
 
