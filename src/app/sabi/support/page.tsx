@@ -28,6 +28,8 @@ export default function SupportPage() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [needsHuman, setNeedsHuman] = useState(false);
   const [status, setStatus] = useState('open');
+  const [ratingStars, setRatingStars] = useState<number | null>(null);
+  const [rating, setRating] = useState(false);
   const [input, setInput] = useState('');
   const [attachUrl, setAttachUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -44,6 +46,7 @@ export default function SupportPage() {
     fetch(`/api/sabi/support?conversationId=${id}`).then(r => r.ok ? r.json() : null).then(d => {
       if (!d) return;
       setMessages(d.messages || []); setNeedsHuman(!!d.conversation?.needsHuman); setStatus(d.conversation?.status || 'open');
+      setRatingStars(d.conversation?.ratingStars ?? null);
       // Viewing the thread = everything in it is now seen (kills the list's "new reply" dot).
       markSeen(id);
     }).catch(() => {});
@@ -91,7 +94,15 @@ export default function SupportPage() {
     loadThread(active);
   };
 
-  const openNew = () => { setActive(null); setMessages([]); setComposingNew(true); setNeedsHuman(false); setStatus('open'); setTopic(null); };
+  const rate = async (stars: number) => {
+    if (!active || rating) return;
+    setRating(true); setRatingStars(stars); // optimistic
+    try {
+      await fetch('/api/sabi/support', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'rate', conversationId: active, stars }) });
+    } finally { setRating(false); }
+  };
+
+  const openNew = () => { setActive(null); setMessages([]); setComposingNew(true); setNeedsHuman(false); setStatus('open'); setTopic(null); setRatingStars(null); };
 
   return (
     <div className="min-h-screen bg-[#080b14] text-slate-100 px-4 py-6">
@@ -171,6 +182,17 @@ export default function SupportPage() {
             </div>
             {status !== 'resolved' && !needsHuman && active && (
               <div className="px-3.5 pb-1"><button onClick={talkToHuman} className="text-[10px] text-slate-500 hover:text-slate-300">🙋 Talk to a human</button></div>
+            )}
+            {/* Post-resolve rating — how did we do? One tap; disappears once rated. */}
+            {status === 'resolved' && active && !composingNew && (
+              <div className="px-3.5 py-2.5 border-t border-white/[0.06] flex items-center gap-2 flex-wrap">
+                <span className="text-[11px] text-slate-400">{ratingStars ? 'Thanks for rating!' : 'How did we do?'}</span>
+                <span className="flex gap-0.5">
+                  {[1, 2, 3, 4, 5].map(n => (
+                    <button key={n} onClick={() => rate(n)} disabled={rating || !!ratingStars} className={`text-lg leading-none disabled:cursor-default ${ratingStars && n <= ratingStars ? 'text-amber-400' : 'text-slate-600 hover:text-amber-300'}`} aria-label={`${n} star${n > 1 ? 's' : ''}`}>★</button>
+                  ))}
+                </span>
+              </div>
             )}
             {attachUrl && (
               <div className="px-3.5 pb-1 flex items-center gap-2">

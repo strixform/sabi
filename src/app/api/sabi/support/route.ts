@@ -19,11 +19,25 @@ export async function GET(req: NextRequest) {
   await ensureSupportTables();
   const convId = req.nextUrl.searchParams.get('conversationId');
 
+  // Nav badge: how many of this customer's tickets have an unread support reply (last
+  // message from support, newer than the last time they opened it)?
+  if (req.nextUrl.searchParams.get('unread') === '1') {
+    const n = Number(((await sabiExecute({
+      sql: `SELECT COUNT(*) AS n FROM SabiSupportConversation
+            WHERE userId = ? AND lastMessageFromAdmin = 1
+              AND (lastCustomerSeenAt IS NULL OR updatedAt > lastCustomerSeenAt)`,
+      args: [s.id],
+    }).catch(() => ({ rows: [{ n: 0 }] }))).rows[0] as any)?.n || 0);
+    return NextResponse.json({ unread: n });
+  }
+
   if (convId) {
-    const conv = (await sabiExecute({ sql: `SELECT id, subject, status, needsHuman FROM SabiSupportConversation WHERE id = ? AND userId = ? LIMIT 1`, args: [convId, s.id] })).rows[0] as any;
+    const conv = (await sabiExecute({ sql: `SELECT id, subject, status, needsHuman, ratingStars FROM SabiSupportConversation WHERE id = ? AND userId = ? LIMIT 1`, args: [convId, s.id] })).rows[0] as any;
     if (!conv) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     const messages = (await sabiExecute({ sql: `SELECT id, authorName, fromAdmin, body, imageUrl, createdAt FROM SabiSupportMessage WHERE conversationId = ? AND internal = 0 ORDER BY createdAt ASC LIMIT 200`, args: [convId] })).rows as any[];
-    return NextResponse.json({ conversation: { id: conv.id, subject: conv.subject, status: conv.status, needsHuman: Number(conv.needsHuman) === 1 }, messages });
+    // Opening the thread marks it seen (clears the nav badge for this ticket).
+    await sabiExecute({ sql: `UPDATE SabiSupportConversation SET lastCustomerSeenAt = datetime('now') WHERE id = ? AND userId = ?`, args: [convId, s.id] }).catch(() => {});
+    return NextResponse.json({ conversation: { id: conv.id, subject: conv.subject, status: conv.status, needsHuman: Number(conv.needsHuman) === 1, ratingStars: conv.ratingStars ?? null }, messages });
   }
 
   const rows = (await sabiExecute({
@@ -40,6 +54,18 @@ export async function POST(req: NextRequest) {
   if (!s) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   await ensureSupportTables();
   const body = await req.json().catch(() => ({}));
+
+  // Post-resolve rating — 1-5 ★ + optional note. Only the ticket owner can rate their own.
+  if (body.action === 'rate') {
+    const stars = Math.max(1, Math.min(5, Math.round(Number(body.stars) || 0)));
+    const cId = String(body.conversationId || '').trim();
+    if (!cId || !stars) return NextResponse.json({ error: 'Pick a rating.' }, { status: 400 });
+    const owns = (await sabiExecute({ sql: `SELECT id FROM SabiSupportConversation WHERE id = ? AND userId = ? LIMIT 1`, args: [cId, s.id] })).rows[0] as any;
+    if (!owns) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    await sabiExecute({ sql: `UPDATE SabiSupportConversation SET ratingStars = ?, ratingFeedback = ? WHERE id = ?`, args: [stars, String(body.feedback || '').slice(0, 500) || null, cId] }).catch(() => {});
+    return NextResponse.json({ ok: true });
+  }
+
   const text = String(body.body || '').trim();
   const imageUrl = typeof body.imageUrl === 'string' && /^https?:\/\//.test(body.imageUrl) ? body.imageUrl : null;
   if (!text && !imageUrl) return NextResponse.json({ error: 'Type a message first.' }, { status: 400 });

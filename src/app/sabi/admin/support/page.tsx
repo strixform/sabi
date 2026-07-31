@@ -13,7 +13,7 @@ function af(url: string, opts: RequestInit = {}) {
 }
 
 type Ctx = { wallet: { balanceNaira: number; totalSpentNaira: number }; orders: { id: string; serviceType: string; status: string; quantity: number; delivered: number; targetUrl: string; priceNaira: number; createdAt: string }[] };
-type Conv = { id: string; subject: string; status: string; needsHuman: boolean; assignedAdmin?: string | null; lastMessage?: string; customer?: { name?: string; email?: string }; context?: Ctx | null };
+type Conv = { id: string; subject: string; status: string; needsHuman: boolean; assignedAdmin?: string | null; lastMessage?: string; customer?: { name?: string; email?: string }; context?: Ctx | null; ratingStars?: number | null; ratingFeedback?: string | null };
 type Msg = { id: string; authorName: string; fromAdmin: number; internal: number; body: string; createdAt: string };
 
 // Quick replies for the questions that come up every day — one tap fills the box.
@@ -32,6 +32,7 @@ export default function AdminSupportPage() {
   const [counts, setCounts] = useState({ openCount: 0, humanCount: 0 });
   const [active, setActive] = useState<Conv | null>(null);
   const [ctx, setCtx] = useState<Ctx | null>(null);
+  const [threadRating, setThreadRating] = useState<{ stars: number | null; feedback: string | null }>({ stars: null, feedback: null });
   const [messages, setMessages] = useState<Msg[]>([]);
   const [reply, setReply] = useState('');
   const [note, setNote] = useState(false);
@@ -54,9 +55,9 @@ export default function AdminSupportPage() {
   const openThread = useCallback((c: Conv) => {
     // Switching threads clears the draft + note toggle so a half-typed reply can never
     // land on the wrong customer (the box is shared across conversations).
-    setActive(c); setReply(''); setNote(false); setCtx(null);
+    setActive(c); setReply(''); setNote(false); setCtx(null); setThreadRating({ stars: null, feedback: null });
     af(`/api/sabi/admin/support?conversationId=${c.id}`).then(r => r.ok ? r.json() : null).then(d => {
-      if (d) { setMessages(d.messages || []); setCtx(d.conversation?.context || null); }
+      if (d) { setMessages(d.messages || []); setCtx(d.conversation?.context || null); setThreadRating({ stars: d.conversation?.ratingStars ?? null, feedback: d.conversation?.ratingFeedback ?? null }); }
     }).catch(() => {});
   }, []);
   useEffect(() => { endRef.current?.scrollIntoView(); }, [messages]);
@@ -189,6 +190,11 @@ export default function AdminSupportPage() {
                 ))}
                 <div ref={endRef} />
               </div>
+              {threadRating.stars != null && (
+                <div className="px-3.5 py-1.5 text-[11px] text-amber-300 border-t border-white/[0.06]">
+                  Customer rated this <span className="font-black">{'★'.repeat(threadRating.stars)}</span>{threadRating.feedback ? <span className="text-slate-400"> — “{threadRating.feedback}”</span> : null}
+                </div>
+              )}
               {/* AI-suggest + canned quick replies — one tap fills the box; the agent reviews then sends. */}
               <div className="flex flex-wrap gap-1.5 px-2.5 pt-2">
                 <button onClick={suggest} disabled={suggesting} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-violet-500/20 text-violet-200 disabled:opacity-40" title="Draft a reply from this customer's orders, payments and message">

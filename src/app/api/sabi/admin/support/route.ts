@@ -18,13 +18,13 @@ export async function GET(req: NextRequest) {
   const convId = sp.get('conversationId');
 
   if (convId) {
-    const conv = (await sabiExecute({ sql: `SELECT c.id, c.userId, c.subject, c.status, c.needsHuman, c.assignedAdmin, c.aiReplyCount, u.name, u.email FROM SabiSupportConversation c LEFT JOIN SabiUser u ON u.id = c.userId WHERE c.id = ? LIMIT 1`, args: [convId] })).rows[0] as any;
+    const conv = (await sabiExecute({ sql: `SELECT c.id, c.userId, c.subject, c.status, c.needsHuman, c.assignedAdmin, c.aiReplyCount, c.ratingStars, c.ratingFeedback, u.name, u.email FROM SabiSupportConversation c LEFT JOIN SabiUser u ON u.id = c.userId WHERE c.id = ? LIMIT 1`, args: [convId] })).rows[0] as any;
     if (!conv) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     const messages = (await sabiExecute({ sql: `SELECT id, authorName, fromAdmin, internal, body, imageUrl, createdAt FROM SabiSupportMessage WHERE conversationId = ? ORDER BY createdAt ASC LIMIT 300`, args: [convId] })).rows as any[];
     // Give the agent the customer's wallet + recent orders inline so they answer from
     // facts, not guesses (the same context the AI reads). Best-effort — never blocks the thread.
     const context = conv.userId ? await loadAdminContext(String(conv.userId)).catch(() => null) : null;
-    return NextResponse.json({ conversation: { id: conv.id, subject: conv.subject, status: conv.status, needsHuman: Number(conv.needsHuman) === 1, assignedAdmin: conv.assignedAdmin, customer: { name: conv.name, email: conv.email }, context }, messages });
+    return NextResponse.json({ conversation: { id: conv.id, subject: conv.subject, status: conv.status, needsHuman: Number(conv.needsHuman) === 1, assignedAdmin: conv.assignedAdmin, customer: { name: conv.name, email: conv.email }, context, ratingStars: conv.ratingStars ?? null, ratingFeedback: conv.ratingFeedback ?? null }, messages });
   }
 
   const human = sp.get('human') === '1';

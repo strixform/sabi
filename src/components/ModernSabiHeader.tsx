@@ -23,6 +23,7 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
   const [isIOS, setIsIOS] = useState(false);
   // WhatsApp support number — fetched from admin config
   const [acting, setActing] = useState<{ name: string; role: string } | null>(null);
+  const [supportUnread, setSupportUnread] = useState(0);
 
   useEffect(() => {
     // Detect iOS Safari
@@ -69,6 +70,24 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
 
     checkSession();
   }, [pathname]);
+
+  // Unread support replies → badge on the 💬 icon, so a customer knows staff/AI answered
+  // even when they're not on the support page. Opening a thread clears it server-side.
+  useEffect(() => {
+    if (!isLoggedIn) { setSupportUnread(0); return; }
+    let alive = true;
+    const poll = async () => {
+      try {
+        const r = await fetch('/api/sabi/support?unread=1', { credentials: 'include' });
+        if (!r.ok) return;
+        const d = await r.json();
+        if (alive) setSupportUnread(Number(d?.unread) || 0);
+      } catch { /* ignore */ }
+    };
+    poll();
+    const t = setInterval(poll, 30000);
+    return () => { alive = false; clearInterval(t); };
+  }, [isLoggedIn, pathname]);
 
   // Acting-as indicator — when a teammate has switched into someone else's
   // workspace, every order/wallet action affects THAT account, so show it everywhere.
@@ -256,13 +275,16 @@ export const ModernSabiHeader: React.FC<ModernSabiHeaderProps> = ({ showNavigati
             {(
               <motion.a
                 href="/sabi/support"
-                className="flex items-center justify-center w-8 h-8 rounded-lg border border-white/[0.07] text-blue-300 hover:bg-blue-500/10 hover:border-blue-500/30 transition-all duration-200"
+                className="relative flex items-center justify-center w-8 h-8 rounded-lg border border-white/[0.07] text-blue-300 hover:bg-blue-500/10 hover:border-blue-500/30 transition-all duration-200"
                 whileHover={{ scale: 1.08 }}
                 whileTap={{ scale: 0.95 }}
-                title="Support"
-                aria-label="Support chat"
+                title={supportUnread > 0 ? `${supportUnread} new support repl${supportUnread > 1 ? 'ies' : 'y'}` : 'Support'}
+                aria-label={supportUnread > 0 ? `Support chat, ${supportUnread} unread` : 'Support chat'}
               >
                 <span className="text-sm">💬</span>
+                {supportUnread > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-black leading-none">{supportUnread > 9 ? '9+' : supportUnread}</span>
+                )}
               </motion.a>
             )}
 

@@ -35,6 +35,13 @@ export async function ensureSupportTables() {
   await sabiExecute({ sql: `ALTER TABLE SabiSupportMessage ADD COLUMN isAi INTEGER NOT NULL DEFAULT 0` }).catch(() => {});
   await sabiExecute({ sql: `CREATE INDEX IF NOT EXISTS idx_sabisupportmsg_conv ON SabiSupportMessage(conversationId, createdAt)` }).catch(() => {});
   await sabiExecute({ sql: `CREATE INDEX IF NOT EXISTS idx_sabisupportconv_status ON SabiSupportConversation(status, needsHuman, updatedAt)` }).catch(() => {});
+  // When the customer last opened this thread — powers the nav "unread" badge (a reply is
+  // unread when the last message is from support and newer than this). Server-side so the
+  // badge works across devices, not just where localStorage remembers.
+  await sabiExecute({ sql: `ALTER TABLE SabiSupportConversation ADD COLUMN lastCustomerSeenAt TEXT` }).catch(() => {});
+  // Post-resolve rating (1-5 ★ + optional note) — tells the owner which answers landed.
+  await sabiExecute({ sql: `ALTER TABLE SabiSupportConversation ADD COLUMN ratingStars INTEGER` }).catch(() => {});
+  await sabiExecute({ sql: `ALTER TABLE SabiSupportConversation ADD COLUMN ratingFeedback TEXT` }).catch(() => {});
   ready = true;
 }
 
