@@ -126,8 +126,8 @@ export default function AdminSupportPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#080b14] text-slate-100 p-4 sm:p-6">
-      <div className="max-w-5xl mx-auto">
+    <div className="min-h-screen text-slate-100 p-4 sm:p-6 overflow-x-hidden" style={{ backgroundColor: '#080b14' }}>
+      <div className="max-w-5xl mx-auto min-w-0">
         <h1 className="text-2xl font-black mb-1">💬 Support Inbox</h1>
         <p className="text-xs text-slate-500 mb-4">The AI answers most tickets. This is what needs a human. Every <span className="text-violet-300 font-bold">🤖 AI</span> reply is shown in-thread.</p>
 
@@ -136,9 +136,9 @@ export default function AdminSupportPage() {
           <button onClick={() => setTab('open')} className={`px-3.5 py-2 rounded-xl text-sm font-bold ${tab === 'open' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'bg-white/5 text-slate-400'}`}>All open <span className="text-[10px] ml-1 px-1.5 py-0.5 rounded-full bg-black/30">{counts.openCount}</span></button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_1.3fr] gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_1.3fr] gap-4 min-w-0">
           {/* List */}
-          <div className="space-y-2">
+          <div className="space-y-2 min-w-0">
             {loading ? <div className="text-slate-500 text-sm py-8 text-center">Loading…</div>
               : convs.length === 0 ? <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center text-sm text-slate-500">{tab === 'human' ? '✨ Nothing needs a human — the AI has it.' : 'No open tickets.'}</div>
               : convs.map(c => (
@@ -193,14 +193,17 @@ export default function AdminSupportPage() {
                   )}
                 </div>
               )}
-              <div className="flex-1 overflow-auto px-3.5 py-3 space-y-2">
+              <div className="flex-1 overflow-auto min-w-0 px-3.5 py-3 space-y-2">
                 {messages.map(m => (
                   Number(m.internal) === 1 ? (
-                    <div key={m.id} className="text-center text-[10px] text-slate-500 italic py-1">{m.body}</div>
+                    <div key={m.id} className="text-center text-[10px] italic py-1" style={{ color: '#94a3b8' }}>{m.body}</div>
                   ) : (
                     <div key={m.id} className={`flex ${Number(m.fromAdmin) === 1 ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[82%] min-w-0 rounded-2xl px-3 py-2 text-[13px] leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] ${Number(m.fromAdmin) === 1 ? 'bg-blue-600/25 text-slate-100' : 'bg-white/[0.06] text-slate-100'}`}>
-                        <div className="text-[9px] font-black mb-0.5 flex items-center gap-1" style={{ color: '#64748b' }}>
+                      {/* SOLID bubble colours (inline) so they're readable on ANY background —
+                          the old translucent white bubble vanished when the dark theme didn't paint. */}
+                      <div className="max-w-[82%] min-w-0 rounded-2xl px-3 py-2 text-[13px] leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
+                        style={{ backgroundColor: Number(m.fromAdmin) === 1 ? '#1d4ed8' : '#1e293b', color: '#f1f5f9' }}>
+                        <div className="text-[9px] font-black mb-0.5 flex items-center gap-1" style={{ color: '#cbd5e1' }}>
                           {Number(m.fromAdmin) === 1 ? m.authorName : (active.customer?.name || 'Customer')}
                           {m.authorName === 'SABI Support' && <span className="px-1 py-0.5 rounded bg-violet-500/20 text-violet-300">🤖 AI</span>}
                         </div>
