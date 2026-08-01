@@ -31,13 +31,13 @@ export const SERVICE_GOALS: ServiceGoal[] = [
     match: /visit|signup|sign up|click|traffic|shazam|cart|rsvp|attend/i },
   { id: 'votes', label: 'Votes & Surveys', emoji: '🗳️', tagline: 'Win polls, get feedback',
     helper: 'Win that poll, contest or award with real votes — or let real people complete your surveys for honest feedback. Ideal for competitions, brand research and community decisions.',
-    match: /vote|survey|poll/i },
+    match: /\bvote|survey|poll/i },
   { id: 'audience', label: 'Grow My Audience', emoji: '👥', tagline: 'Look established, gain trust',
     helper: 'A bigger, real following makes your brand look established — people follow crowds and buy from names they recognise. Grow followers, subscribers, members and connections across every platform.',
-    match: /follow|subscrib|member|connection|contact|newsletter|page like/i },
+    match: /follow|subscrib|member|connection|contact|newsletter|page like|join/i },
   { id: 'engagement', label: 'Get Engagement', emoji: '❤️', tagline: 'Social proof that converts',
     helper: 'Likes and comments tell the algorithm your post is hot, so it reaches more people — and the social proof makes new buyers comfortable to order. The fastest way to make a post look popular and trusted.',
-    match: /like|comment|share|react|save|retweet|repost|repl|repin|quote|bookmark|favorit/i },
+    match: /like|comment|share|react|save|retweet|repost|repl|repin|quote|bookmark|favorit|upvote|answer/i },
   { id: 'music', label: 'Music Promotion', emoji: '🎵', tagline: 'Climb the charts',
     helper: 'Get real plays, saves and playlist adds so your song climbs the charts and reaches new fans. Built for artists pushing a new release on Audiomack, Boomplay, Spotify and Apple Music.',
     match: /playlist|sound/i },
@@ -70,4 +70,4 @@ export function goalsWithCounts(): { goal: ServiceGoal; count: number }[] {
 }
 
 /** The most order-worthy services to pin as "Popular / Quick order". */
-export const POPULAR_SERVICE_IDS = ['ig_followers', 'ig_likes', 'tiktok_followers', 'tiktok_views', 'ig_comments', 'youtube_subscribers', 'google_business_review', 'website_visit'];
+export const POPULAR_SERVICE_IDS = ['bbnaija_vote', 'ig_followers', 'ig_likes', 'tiktok_followers', 'tiktok_views', 'ig_comments', 'youtube_subscribers', 'google_business_review', 'website_visit'];
