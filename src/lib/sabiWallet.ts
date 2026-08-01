@@ -44,37 +44,41 @@ export async function creditSabiWallet(
     // the credit completed, so paid funds never reflected. sabiExecute is raw HTTP
     // with 429-retry backoff. Same fix as SABI login.
 
-    // 1. Idempotency — skip if this reference was already credited as a fund.
-    const dup = await sabiExecute({
-      sql: `SELECT id FROM SabiTransaction WHERE userId = ? AND type = 'fund' AND reference = ? LIMIT 1`,
-      args: [userId, reference],
-    });
-    if (dup.rows.length > 0) {
-      const w = await sabiExecute({ sql: `SELECT balance FROM SabiWallet WHERE userId = ? LIMIT 1`, args: [userId] }).catch(() => null);
-      return { success: true, balance: Number((w?.rows[0] as any)?.balance ?? 0) };
-    }
-
-    // 2. Ensure the wallet row exists (updatedAt has no DB default — must supply it).
+    // 1. Ensure the wallet row exists (updatedAt has no DB default — must supply it).
     await sabiExecute({
       sql: `INSERT OR IGNORE INTO SabiWallet (id, userId, balance, totalFunded, totalSpent, totalRefunded, updatedAt)
             VALUES (?, ?, 0, 0, 0, 0, datetime('now'))`,
       args: [crypto.randomUUID(), userId],
     });
 
-    // 3. Credit atomically and read back the new balance.
+    // 2. ATOMIC IDEMPOTENCY CLAIM — record the funding transaction FIRST, but only if this
+    //    (user, fund, reference) isn't already recorded. It's a single INSERT..WHERE NOT
+    //    EXISTS, and libsql/Turso serialises writes, so two concurrent callbacks (the FLW
+    //    webhook + the client "recheck"/requery) for the SAME reference can't both claim it.
+    //    The credit runs ONLY on a successful claim, so a race can NEVER double-credit.
+    //    (Previously the dup CHECK and the credit were separate read/writes → a concurrent
+    //    pair could both pass the check and credit twice; and the credit ran BEFORE the
+    //    record, so a partial failure could double-credit on retry. Recording first, as a
+    //    conditional write, fixes both — the money-path lesson from this portfolio.)
+    const claim = await sabiExecute({
+      sql: `INSERT INTO SabiTransaction (id, userId, type, amount, reference, description, createdAt)
+            SELECT ?, ?, 'fund', ?, ?, 'Wallet funding via Flutterwave', datetime('now')
+            WHERE NOT EXISTS (SELECT 1 FROM SabiTransaction WHERE userId = ? AND type = 'fund' AND reference = ?)`,
+      args: [crypto.randomUUID(), userId, amountInKobo, reference, userId, reference],
+    });
+    if (!claim.rowsAffected) {
+      // Already credited for this reference — return the current balance, credit nothing.
+      const w = await sabiExecute({ sql: `SELECT balance FROM SabiWallet WHERE userId = ? LIMIT 1`, args: [userId] }).catch(() => null);
+      return { success: true, balance: Number((w?.rows[0] as any)?.balance ?? 0) };
+    }
+
+    // 3. We own the claim → credit atomically and read back the new balance.
     const upd = await sabiExecute({
       sql: `UPDATE SabiWallet SET balance = balance + ?, totalFunded = totalFunded + ?, updatedAt = datetime('now')
             WHERE userId = ? RETURNING balance`,
       args: [amountInKobo, amountInKobo, userId],
     });
     const newBalance = Number((upd.rows[0] as any)?.balance ?? 0);
-
-    // 4. Record the funding transaction (id + createdAt supplied — no Prisma defaults in raw SQL).
-    await sabiExecute({
-      sql: `INSERT INTO SabiTransaction (id, userId, type, amount, reference, description, createdAt)
-            VALUES (?, ?, 'fund', ?, ?, 'Wallet funding via Flutterwave', datetime('now'))`,
-      args: [crypto.randomUUID(), userId, amountInKobo, reference],
-    });
 
     return { success: true, balance: newBalance };
   } catch (error) {
@@ -140,28 +144,28 @@ export async function refundSabiWallet(
     // out on Vercel, which is exactly when a refund matters most (the order create
     // just failed for the same reason). Raw HTTP with 429-retry is the resilient path.
 
-    // Idempotency — prevent double-refund for the same reference (orderId).
-    const duplicate = await sabiExecute({
-      sql: `SELECT id FROM SabiTransaction WHERE userId = ? AND type = 'refund' AND reference = ? LIMIT 1`,
-      args: [userId, orderId],
+    // ATOMIC IDEMPOTENCY CLAIM — record the refund FIRST, but only if this (user, refund,
+    // orderId) isn't already recorded. Single INSERT..WHERE NOT EXISTS + serialised writes
+    // means a concurrent double-refund (the inline refund racing the reconcile cron) can't
+    // both claim it; the credit runs ONLY on a successful claim, so it can never double-refund.
+    // (Same conditional-write fix as creditSabiWallet — replaces the old check-then-write.)
+    const claim = await sabiExecute({
+      sql: `INSERT INTO SabiTransaction (id, userId, orderId, type, amount, reference, description, createdAt)
+            SELECT ?, ?, ?, 'refund', ?, ?, ?, datetime('now')
+            WHERE NOT EXISTS (SELECT 1 FROM SabiTransaction WHERE userId = ? AND type = 'refund' AND reference = ?)`,
+      args: [crypto.randomUUID(), userId, orderId || null, amountInKobo, orderId, `Order ${orderId} refunded: ${reason}`, userId, orderId],
     });
-    if (duplicate.rows.length > 0) {
+    if (!claim.rowsAffected) {
       return { success: true }; // Already refunded — idempotent return
     }
 
-    // balance up, net-spend down (clamped at 0 — a refund must never drive totalSpent
-    // negative, which was the double-refund signature), totalRefunded up. Consistent
+    // We own the claim → balance up, net-spend down (clamped at 0 — a refund must never
+    // drive totalSpent negative, the double-refund signature), totalRefunded up. Consistent
     // with the crons + cancel-order so a refund never leaves totalSpent inflated.
     await sabiExecute({
       sql: `UPDATE SabiWallet SET balance = balance + ?, totalSpent = MAX(0, totalSpent - ?), totalRefunded = totalRefunded + ?, updatedAt = datetime('now')
             WHERE userId = ?`,
       args: [amountInKobo, amountInKobo, amountInKobo, userId],
-    });
-
-    await sabiExecute({
-      sql: `INSERT INTO SabiTransaction (id, userId, orderId, type, amount, reference, description, createdAt)
-            VALUES (?, ?, ?, 'refund', ?, ?, ?, datetime('now'))`,
-      args: [crypto.randomUUID(), userId, orderId || null, amountInKobo, orderId, `Order ${orderId} refunded: ${reason}`],
     });
 
     return { success: true };
