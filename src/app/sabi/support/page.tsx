@@ -159,7 +159,7 @@ export default function SupportPage() {
               )}
               {messages.map(m => (
                 <div key={m.id} className={`flex ${m.fromAdmin ? 'justify-start' : 'justify-end'}`}>
-                  <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-[13px] leading-relaxed whitespace-pre-wrap ${m.fromAdmin ? 'bg-white/[0.06] text-slate-100' : 'text-white'}`} style={m.fromAdmin ? {} : { background: 'linear-gradient(135deg,#3b82f6,#8b5cf6)' }}>
+                  <div className={`max-w-[80%] min-w-0 rounded-2xl px-3 py-2 text-[13px] leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] ${m.fromAdmin ? 'bg-white/[0.06] text-slate-100' : 'text-white'}`} style={m.fromAdmin ? {} : { background: 'linear-gradient(135deg,#3b82f6,#8b5cf6)' }}>
                     {m.fromAdmin && <div className="text-[9px] font-black text-slate-400 mb-0.5">{m.authorName || 'SABI Support'}</div>}
                     {(m as any).imageUrl && <a href={(m as any).imageUrl} target="_blank" rel="noreferrer"><img src={(m as any).imageUrl} alt="attachment" className="rounded-lg mb-1 max-h-52 object-contain" /></a>}
                     {m.body}

@@ -156,7 +156,7 @@ export default function AdminSupportPage() {
 
           {/* Thread */}
           {active ? (
-            <div className="rounded-2xl border border-white/10 bg-white/[0.02] flex flex-col" style={{ height: '72vh' }}>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.02] flex flex-col min-w-0 overflow-hidden" style={{ height: '72vh' }}>
               <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 border-b border-white/[0.06]">
                 <div className="min-w-0">
                   <div className="text-sm font-bold truncate">{active.customer?.name || 'Customer'}</div>
@@ -199,7 +199,7 @@ export default function AdminSupportPage() {
                     <div key={m.id} className="text-center text-[10px] text-slate-500 italic py-1">{m.body}</div>
                   ) : (
                     <div key={m.id} className={`flex ${Number(m.fromAdmin) === 1 ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[82%] rounded-2xl px-3 py-2 text-[13px] leading-relaxed whitespace-pre-wrap ${Number(m.fromAdmin) === 1 ? 'bg-blue-600/25 text-slate-100' : 'bg-white/[0.06] text-slate-100'}`}>
+                      <div className={`max-w-[82%] min-w-0 rounded-2xl px-3 py-2 text-[13px] leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] ${Number(m.fromAdmin) === 1 ? 'bg-blue-600/25 text-slate-100' : 'bg-white/[0.06] text-slate-100'}`}>
                         <div className="text-[9px] font-black mb-0.5 flex items-center gap-1" style={{ color: '#64748b' }}>
                           {Number(m.fromAdmin) === 1 ? m.authorName : (active.customer?.name || 'Customer')}
                           {m.authorName === 'SABI Support' && <span className="px-1 py-0.5 rounded bg-violet-500/20 text-violet-300">🤖 AI</span>}
