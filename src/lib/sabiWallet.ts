@@ -196,8 +196,14 @@ export async function getSabiTransactions(userId: string, limit: number = 50) {
  * questions from the live truth, not a guess). Returns a short summary for the AI.
  */
 export async function recheckUserPayments(userId: string): Promise<{ found: number; newBalanceNaira: number | null; summary: string }> {
-  const { verifyFlwTransaction } = await import('./sabiFlutterwave');
+  const { verifyFlwTransaction, listFlwTransactionsByEmail } = await import('./sabiFlutterwave');
   const ownerPrefix = `sabi_${userId.substring(0, 8)}_`;
+
+  // The user's email — needed to sweep card top-ups AND dedicated-account transfers
+  // straight from Flutterwave (not just refs we happened to record).
+  let email = '';
+  try { const u = await prisma.sabiUser.findUnique({ where: { id: userId }, select: { email: true } }); email = u?.email || ''; } catch { /* no email */ }
+
   let refs: string[] = [];
   try {
     const r = await sabiExecute({
@@ -206,9 +212,11 @@ export async function recheckUserPayments(userId: string): Promise<{ found: numb
     });
     refs = (r.rows as any[]).map(row => String(row.reference)).filter(Boolean).filter(x => x.startsWith(ownerPrefix)).slice(0, 15);
   } catch { /* none */ }
-  if (refs.length === 0) return { found: 0, newBalanceNaira: null, summary: 'No recent (last 4 days) funding attempt on record to re-check.' };
 
   let newBalanceKobo: number | null = null; let succeeded = 0;
+  const done = new Set<string>();
+
+  // 1) Known pending refs.
   for (const ref of refs) {
     try {
       const v = await verifyFlwTransaction(ref);
@@ -216,16 +224,51 @@ export async function recheckUserPayments(userId: string): Promise<{ found: numb
       if (v.txRef && !v.txRef.startsWith(ownerPrefix)) continue;
       const kobo = Math.round((v.amount || 0) * 100);
       if (kobo <= 0) continue;
-      succeeded++;
+      succeeded++; done.add(ref);
       const cr = await creditSabiWallet(userId, kobo, v.txRef || ref);
       if (cr.success && typeof cr.balance === 'number') newBalanceKobo = cr.balance;
     } catch { /* skip */ }
   }
+
+  // 2) CARD top-ups by email — catches a paid card top-up with no recorded ref.
+  if (email) {
+    try {
+      const from = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const txs = await listFlwTransactionsByEmail(email, from).catch(() => [] as any[]);
+      const emailLc = email.toLowerCase();
+      for (const tx of txs) {
+        if (tx?.status !== 'successful' || (tx?.currency || 'NGN') !== 'NGN') continue;
+        const ref = String(tx?.tx_ref || '');
+        if (!ref.startsWith(ownerPrefix)) continue;
+        if (String(tx?.customer?.email || '').toLowerCase() !== emailLc) continue;
+        if (done.has(ref)) continue; done.add(ref);
+        const kobo = Math.round(Number(tx?.amount || 0) * 100);
+        if (kobo <= 0) continue;
+        succeeded++;
+        const cr = await creditSabiWallet(userId, kobo, ref);
+        if (cr.success && typeof cr.balance === 'number') newBalanceKobo = cr.balance;
+      }
+    } catch { /* best-effort */ }
+  }
+
+  // 3) DEDICATED-ACCOUNT (bank transfer) inflows — the VA path the card check misses.
+  if (email) {
+    try {
+      const { reconcileVirtualAccount } = await import('./sabiVirtualAccount');
+      const va = await reconcileVirtualAccount(userId, email);
+      if (va.credited > 0) {
+        succeeded += va.credited;
+        const w = await getSabiWallet(userId);
+        if (w && typeof w.balance === 'number') newBalanceKobo = w.balance;
+      }
+    } catch { /* best-effort */ }
+  }
+
   return {
     found: succeeded,
     newBalanceNaira: newBalanceKobo != null ? Math.round(newBalanceKobo / 100) : null,
     summary: succeeded > 0
       ? `${succeeded} successful payment(s) verified and the wallet is up to date${newBalanceKobo != null ? ` (balance ₦${Math.round(newBalanceKobo / 100).toLocaleString()})` : ''}. Tell the customer it's now credited.`
-      : `Checked ${refs.length} recent funding attempt(s); NONE have succeeded at Flutterwave yet. Do NOT promise a credit — if they insist they were debited, ask for the receipt and escalate.`,
+      : `Checked the customer's recent card top-ups AND dedicated-account transfers; NONE have succeeded at Flutterwave yet. Do NOT promise a credit — if they insist they were debited, ask for the receipt and escalate.`,
   };
 }

@@ -96,6 +96,26 @@ export async function POST(req: NextRequest) {
     }
   } catch { /* best-effort — the ref-based path still applied above */ }
 
+  // Also sweep DEDICATED-ACCOUNT (bank transfer) inflows — one re-check must cover
+  // BOTH card top-ups AND virtual-account transfers, so the customer never has to
+  // know which method they used (a common "I sent a transfer, it's not showing"
+  // case the card path alone misses). No-op if they have no dedicated account;
+  // idempotent per FLW transaction id, so nothing double-credits.
+  try {
+    const { reconcileVirtualAccount } = await import('@/lib/sabiVirtualAccount');
+    const va = await reconcileVirtualAccount(session.id, session.email);
+    if (va.credited > 0) {
+      succeeded += va.credited;
+      creditedKobo += va.amountKobo;
+      // reconcile doesn't surface the running balance — read it so the message is right.
+      try {
+        const { getSabiWallet } = await import('@/lib/sabiWallet');
+        const w = await getSabiWallet(session.id);
+        if (w && typeof w.balance === 'number') newBalanceKobo = w.balance;
+      } catch { /* balance is cosmetic; the UI reloads on found>0 */ }
+    }
+  } catch { /* VA sweep is best-effort */ }
+
   if (succeeded === 0 && refs.length === 0) {
     return NextResponse.json({ success: true, found: 0, creditedNaira: 0, message: 'No successful payment found on your account yet. If you were debited, wait a minute and re-check — or contact support with your receipt.' });
   }
