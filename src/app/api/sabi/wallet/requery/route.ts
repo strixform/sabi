@@ -38,10 +38,6 @@ export async function POST(req: NextRequest) {
 
   const refs = [...new Set([...refsRaw.map(String), ...serverRefs])].filter(r => r.startsWith(ownerPrefix)).slice(0, 15);
 
-  if (refs.length === 0) {
-    return NextResponse.json({ success: true, found: 0, creditedNaira: 0, message: 'No recent funding attempt found to re-check. If you were debited, please contact support with your receipt.' });
-  }
-
   let newBalanceKobo: number | null = null;
   let creditedKobo = 0;
   let succeeded = 0;
@@ -64,6 +60,44 @@ export async function POST(req: NextRequest) {
         creditedKobo += kobo;
       }
     } catch { /* skip this ref, try the rest */ }
+  }
+
+  // ROBUST SWEEP — the ref-based path above only works if we KNOW the ref (a saved
+  // pending row or the client's localStorage). A buyer who paid on another device,
+  // cleared their cache, or whose pending row never got written has NO ref — yet
+  // they hold a real receipt. So we also ask Flutterwave directly for this user's
+  // successful transactions by email and credit any of THEIR OWN card top-ups
+  // (tx_ref sabi_{userId8}_…) the webhook missed. Idempotent per tx_ref, so a
+  // payment already credited is safely skipped. This is what makes the re-check
+  // actually find a paid-but-not-reflected top-up without the user hunting a ref.
+  try {
+    const { listFlwTransactionsByEmail } = await import('@/lib/sabiFlutterwave');
+    const from = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const txs = await listFlwTransactionsByEmail(session.email, from).catch(() => [] as any[]);
+    const emailLc = (session.email || '').toLowerCase();
+    const done = new Set(refs);
+    for (const tx of txs) {
+      if (tx?.status !== 'successful') continue;
+      if ((tx?.currency || 'NGN') !== 'NGN') continue;
+      const ref = String(tx?.tx_ref || '');
+      // Two independent guards: it's THIS user's own card ref, AND Flutterwave
+      // attributes the transaction to their email — so no one can pull another's.
+      if (!ref.startsWith(ownerPrefix)) continue;
+      if (String(tx?.customer?.email || '').toLowerCase() !== emailLc) continue;
+      if (done.has(ref)) continue; done.add(ref);
+      const kobo = Math.round(Number(tx?.amount || 0) * 100);
+      if (kobo <= 0) continue;
+      succeeded++;
+      const r = await creditSabiWallet(session.id, kobo, ref);
+      if (r.success) {
+        if (typeof r.balance === 'number') newBalanceKobo = r.balance;
+        creditedKobo += kobo;
+      }
+    }
+  } catch { /* best-effort — the ref-based path still applied above */ }
+
+  if (succeeded === 0 && refs.length === 0) {
+    return NextResponse.json({ success: true, found: 0, creditedNaira: 0, message: 'No successful payment found on your account yet. If you were debited, wait a minute and re-check — or contact support with your receipt.' });
   }
 
   return NextResponse.json({
